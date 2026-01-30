@@ -3,5 +3,5 @@
 Team:
 - Alexander Hiroma Friedrichkeit (**PO**)
 - Oliwier Przewlocki (**TA**)
-- Laurin Schieder (**Developer**)
-- Pavle Petrovic (**Developer**)
+- Laurin Schieder (**Developer-A**)
+- Pavle Petrovic (**Developer-B**)
