@@ -1,12 +1,3 @@
-# 
-
-## Legende
-
-- **SP** Ein Storypoint entspricht einer Pomodoro Einheit von 40 Minuten.
-- **HEAD** Die Verantwortung einer Userstory wird von dieser Person übernommen. Die Tests sollten von einem anderen Teammitglied überprüft werden.
-- **Prio** Es muss jeweils mindestens eine *Must Have (MH)*, *Should Have (SH)* und *Nice to have (N2H)* Userstory geben.
-- **Status** Der Status wird durch die Abarbeitung der Tasks in z.B. GitHub Issues abgebildet. Hier ist nur die Verlinkung dorthin.
-
 # **User Stories**
 
 ### **Legende**
@@ -23,26 +14,35 @@
 
 ## Auflisting
 
-| ID | Description | SP | HEAD | Prio | Status |
-| --- | --- | --- | --- | --- | --- |
-| 1 | Als Benutzer möchte ich offline auf meine Listen zugreifen können, damit ich auch ohne Internet einkaufen kann. | 3 |  | MH | - |
-| 2 | Als Benutzer möchte ich zu Artikeln Label hinzufügen und wieder löschen können, wie zum Beispiel "Tierfutter", "Trinken", dies hilft bei der Organisation. | 1 |  | MH | - |
-| 3 | Als Benutzer möchte ich einen eindeutigen Einladungscode für meine Einkaufsliste generieren können, damit ich sie mit anderen teilen kann. | 2 |  | SH | - |
-| 4 | Als Benutzer möchte ich mit einem Einladungscode einer geteilten Liste beitreten können, damit ich gemeinsam mit anderen einkaufen kann. | 2 |  | SH | - |
-| 5 | Als Benutzer möchte ich Teilnehmer aus meiner geteilten Liste entfernen können, damit ich kontrollieren kann, wer Zugriff hat. | 1 |  | SH | - |
-| 6 | Als Benutzer möchte ich zusätzlich zu einem Artikel eine Notiz hinterlegen können, um eventuell unvorhersehbare Informationen mitzuliefern. | 1 |  | SH | - |
-| 7 | Als neuer Benutzer möchte ich mich mit meiner E-Mail-Adresse registrieren können, damit ich meine Listen auf mehreren Geräten nutzen kann. | 2 |  | SH | - |
-| 8 | Als Benutzer möchte ich erledigte Artikel abhaken können, damit ich im Supermarkt den Überblick behalte. | 1 |  | MH | - |
-| 9 | Als Benutzer möchte ich Artikel nach Kategorien sortieren können, damit ich meinen Einkaufsweg optimieren kann. | 2 |  | SH | - |
-| 10 | Als Benutzer möchte ich häufig gekaufte Artikel als Favoriten speichern, damit ich sie schneller zur Liste hinzufügen kann. | 1 |  | SH | - |
-| 11 | Als Benutzer möchte ich Mengen und Einheiten zu Artikeln hinzufügen können (z.B. „2 kg“, „500 ml“), damit ich genau weiß, was ich kaufen muss. | 1 |  | SH | - |
-| 12 | Als Benutzer möchte ich mehrere Einkaufslisten erstellen können (z.B. „Wochenende“, „Baumarkt“), damit ich verschiedene Einkäufe trennen kann. | 2 |  | MH | - |
-| 13 | Als Benutzer möchte ich Artikel durch Spracheingabe hinzufügen können, damit ich schneller einkaufen kann. | 3 |  | N2H | - |
-| 14 | Als Benutzer möchte ich Push‑Benachrichtigungen erhalten, wenn jemand die geteilte Liste bearbeitet, damit ich über Änderungen informiert bleibe. | 2 |  | N2H | - |
-| 15 | Als Benutzer möchte ich Preise zu Artikeln hinzufügen können, damit ich mein Budget im Blick behalte. | 1 |  | N2H | - |
-| 16 | Als Benutzer möchte ich auf meine Pixel watch 3 auch die Schoppingliste verwenden, um schnell und einfach auf die Liste zuzugreifen auch ohne handy | 1 |  | N2H |  |
-| 17 | Als Benutzer möchte ich das Konflikte mit andrern User auf der gleichen Liste angezeigt werden, um die Richtigkeit zu garantieren | 2 |  | MH |  |
+
+| ID  | Beschreibung                                                                                                                                                                           | SP  | HEAD | Prio | Status |     |
+| --- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --- | ---- | ---- | ------ | --- |
+| 1   | Als Benutzer möchte ich offline auf meine Listen zugreifen können, damit ich auch ohne Internet einkaufen kann.                                                                        | 6   |      | MH   | -      |     |
+| 2   | Als Benutzer möchte ich erledigte Artikel abhaken können (Check/Uncheck), damit ich meinen Fortschritt überwache.                                                                      | 3   |      | MH   | -      |     |
+| 3   | Als Benutzer möchte ich mehrere Einkaufslisten erstellen und verwalten  <br>können (CRUD), damit ich verschiedene Einkäufe trennen kann.                                               | 5   |      | MH   | -      |     |
+| 4   | Als Benutzer möchte ich Artikel zu einer Liste hinzufügen/bearbeiten/löschen können, damit ich meine Liste aktualisiere.                                                               | 4   |      | MH   | -      |     |
+| 5   | Als neuer Benutzer möchte ich mich mit E-Mail-Adresse und Passwort registrieren können, damit ich meine Daten sichern kann.                                                            | 4   |      | MH   | -      |     |
+| 6   | Als Benutzer möchte ich sehen, wenn Konflikte auftreten, damit ich die  <br>Richtigkeit der Daten garantiere.                                                                          | 7   |      | MH   | -      |     |
+| 7   | Als Benutzer möchte ich Einkaufslisten mit anderen Benutzern via  <br>Einladungscode teilen können, damit wir zusammen einkaufen können.                                               | 4   |      | MH   | -      |     |
+| 8   | Als Benutzer möchte ich Änderungen an geteilten Listen in Echtzeit  <br>synchronisiert bekommen, damit alle denselben Stand sehen.                                                     | 7   |      | MH   | -      |     |
+| 9   | Als Benutzer möchte zu Artikel Kategorien (z.B. Obst, Gemüse,  <br>Milchprodukte) erstellen und sortieren können, damit ich meinen Einkaufsweg optimiere.                              | 3   |      | SH   | -      |     |
+| 10  | Als Benutzer möchte ich zu Artikeln Mengen/Einheiten (z.B. „2 kg", „500  <br>ml") und Labels (z.B. „Bio", „Vegetarisch") hinzufügen können.                                            | 3   |      | SH   | -      |     |
+| 11  | Als Benutzer möchte ich Artikel über eine Suchfunktion schnell finden können, damit ich große Listen effizient bearbeite.                                                              | 2   |      | SH   | -      |     |
+| 12  | Als Benutzer möchte ich häufig gekaufte Artikel als Favoriten speichern können, damit ich sie schneller hinzufügen kann.                                                               | 2   |      | SH   | -      |     |
+| 13  | Als Benutzer möchte ich Teilnehmer aus einer geteilten Liste entfernen können, um die Zugriffskontrolle zu wahren.                                                                     | 2   |      | SH   | -      |     |
+| 14  | Als Benutzer möchte ich Einkaufslisten duplizieren können, damit ich wiederkehrende Einkäufe schneller anlegen kann.                                                                   | 2   |      | SH   | -      |     |
+| 15  | Als Benutzer möchte ich Preise zu Artikeln speichern und die geschätzten  <br>Gesamtkosten pro Liste sehen, damit ich mein Budget im Blick behalte.                                    | 4   |      | SH   | -      |     |
+| 16  | Als Benutzer möchte ich Dark Mode / helles Design umschalten können, damit die App für mich angenehmer zu bedienen ist.                                                                | 2   |      | SH   | -      |     |
+| 17  | Als Benutzer möchte ich Einkaufslisten exportieren können (CSV/PDF), damit ich meine Daten sichern oder extern auswerten kann.                                                         | 3   |      | SH   | -      |     |
+| 18  | Als Benutzer möchte ich Artikel per Spracheingabe hinzufügen können, damit ich schneller einkaufen kann.                                                                               | 3   |      | N2H  | -      |     |
+| 19  | Als Benutzer möchte ich Artikel per Barcode-Scan (QR/EAN) hinzufügen können, damit ich Produkte schneller erfasse.                                                                     | 5   |      | N2H  | -      |     |
+| 20  | Als Benutzer möchte ich Push-Benachrichtigungen erhalten, wenn jemand meine geteilte Liste bearbeitet, damit ich über Änderungen informiert bleibe.                                    | 4   |      | N2H  | -      |     |
+| 21  | Als Benutzer möchte ich eine Einkaufsliste über QR-Code mit anderen teilen können (schneller als Einladungscode).                                                                      | 3   |      | N2H  | -      |     |
+| 22  | Als Benutzer möchte ich mich mit einem Google/Facebook-Konto anmelden können, damit ich keinen neuen Login erstellen muss.                                                             | 3   |      | N2H  | -      |     |
+| 23  | Als Benutzer möchte ich auf Basis vergangener Einkäufe intelligente Vorschläge für fehlende Artikel bekommen (ML-basiert).                                                             | 5   |      | N2H  | -      |     |
+| 24  | Als Benutzer möchte ich meine Einkaufslisten auf meiner Smartwatch (Pixel  <br>Watch 3) nutzen können, damit ich ohne Handy einkaufen kann.                                            | 4   |      | N2H  | -      |     |
+| 25  | Als Benutzer möchte ich gelöschte Listen für 30 Tage im Papierkorb  <br>wiederherstellen können, damit versehentliche Löschungen rückgängig  <br>gemacht werden.                       | 2   |      | N2H  | -      |     |
+| 26  | Als Benutzer möchte ich über Bluetooth Low Energy (BLE) auf geteilte Einkaufslisten zugreifen können, auch ohne Internetverbindung, damit ich mit anderen in der Nähe zusammenarbeite. | 6   |      | N2H  | -      |     |
+
 
 ## Zusammenfassung
-
-*Bitte hier die einzelnen Gruppenmitgliedern, mit deren Gesamtbelastung (SPs) auflisten!*
