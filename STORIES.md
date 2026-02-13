@@ -19,14 +19,14 @@
 
 |ID|Beschreibung|SP|HEAD|Prio|Status|
 |---|---|---|---|---|---|
-|1|Als Benutzer möchte ich offline auf meine Listen zugreifen können, damit ich auch ohne Internet einkaufen kann.|5|Przo|MH|-|
-|2|Als Benutzer möchte ich erledigte Artikel abhaken können (Check/Uncheck), damit ich meinen Fortschritt überwache.|3|Hira|MH|-|
-|3|Als Benutzer möchte ich mehrere Einkaufslisten erstellen und verwalten können (CRUD), damit ich verschiedene Einkäufe trennen und teilen kann.|5|Petp|MH|-|
-|4|Als Benutzer möchte ich Artikel zu einer Liste mit Kategorien (z.B. Obst, Gemüse, Milchprodukte) hinzufügen können und über eine Suchfunktion schnell finden, damit ich eine Übersicht über den Einkauf habe.|8|Petp|MH|-|
-|5|Als Benutzer möchte ich sehen, wenn Konflikte auftreten und eine Benachrichtigung erhalten, damit ich die Konflikte beheben kann.|8|Hira|MH|-|
-|6|Als Benutzer möchte ich Einkaufslisten mit anderen Benutzern via Einladungscode teilen können, damit wir zusammen einkaufen können.|5|Schl|MH|-|
-|7|Als Benutzer möchte ich Änderungen an geteilten Listen in Echtzeit synchronisiert bekommen, damit alle denselben Stand sehen.|8|Przo|MH|-|
-|8|Als Benutzer möchte ich Artikel bearbeiten und löschen können, damit ich meine Einkaufsliste aktualisieren kann.|5|Schl|MH|-|
+|1|Als Benutzer möchte ich offline auf meine Listen zugreifen können, damit ich auch ohne Internet einkaufen kann.|5|Przo|MH|https://github.com/TGM-HIT/syt5-gek1051-mobile-application-listme/issues/1|
+|2|Als Benutzer möchte ich erledigte Artikel abhaken können (Check/Uncheck), damit ich meinen Fortschritt überwache.|3|Hira|MH|https://github.com/TGM-HIT/syt5-gek1051-mobile-application-listme/issues/2|
+|3|Als Benutzer möchte ich mehrere Einkaufslisten erstellen und verwalten können (CRUD), damit ich verschiedene Einkäufe trennen und teilen kann.|5|Petp|MH|https://github.com/TGM-HIT/syt5-gek1051-mobile-application-listme/issues/3|
+|4|Als Benutzer möchte ich Artikel zu einer Liste mit Kategorien (z.B. Obst, Gemüse, Milchprodukte) hinzufügen können und über eine Suchfunktion schnell finden, damit ich eine Übersicht über den Einkauf habe.|8|Petp|MH|https://github.com/TGM-HIT/syt5-gek1051-mobile-application-listme/issues/4|
+|5|Als Benutzer möchte ich sehen, wenn Konflikte auftreten und eine Benachrichtigung erhalten, damit ich die Konflikte beheben kann.|8|Hira|MH|https://github.com/TGM-HIT/syt5-gek1051-mobile-application-listme/issues/5|
+|6|Als Benutzer möchte ich Einkaufslisten mit anderen Benutzern via Einladungscode teilen können, damit wir zusammen einkaufen können.|5|Schl|MH|https://github.com/TGM-HIT/syt5-gek1051-mobile-application-listme/issues/6|
+|7|Als Benutzer möchte ich Änderungen an geteilten Listen in Echtzeit synchronisiert bekommen, damit alle denselben Stand sehen.|8|Przo|MH|https://github.com/TGM-HIT/syt5-gek1051-mobile-application-listme/issues/7|
+|8|Als Benutzer möchte ich Artikel bearbeiten und löschen können, damit ich meine Einkaufsliste aktualisieren kann.|5|Schl|MH|https://github.com/TGM-HIT/syt5-gek1051-mobile-application-listme/issues/8|
 |9|Als Benutzer möchte ich zu Artikeln Mengen/Einheiten (z.B. „2 kg“, „500 ml“) und Labels (z.B. „Bio“, „Vegetarisch“) hinzufügen können.|3|Petp|SH|-|
 |10|Als Benutzer möchte ich zu einem Artikel Bilder hinzufügen, damit ich die richtigen Artikel im Geschäft finde.|3|Schl|SH|-|
 |11|Als Benutzer möchte ich häufig gekaufte Artikel als Favoriten speichern können, damit ich sie schneller hinzufügen kann.|3|Hira|SH|-|
