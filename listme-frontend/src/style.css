@@ -1,0 +1,172 @@
+@import "tailwindcss";
+
+/* ── Catppuccin Frappe ── */
+@theme {
+  --color-ctp-rosewater: #f2d5cf;
+  --color-ctp-flamingo: #eebebe;
+  --color-ctp-pink: #f4b8e4;
+  --color-ctp-mauve: #ca9ee6;
+  --color-ctp-red: #e78284;
+  --color-ctp-maroon: #ea999c;
+  --color-ctp-peach: #ef9f76;
+  --color-ctp-yellow: #e5c890;
+  --color-ctp-green: #a6d189;
+  --color-ctp-teal: #81c8be;
+  --color-ctp-sky: #99d1db;
+  --color-ctp-sapphire: #85c1dc;
+  --color-ctp-blue: #8caaee;
+  --color-ctp-lavender: #babbf1;
+  --color-ctp-text: #c6d0f5;
+  --color-ctp-subtext1: #b5bfe2;
+  --color-ctp-subtext0: #a5adce;
+  --color-ctp-overlay2: #949cbb;
+  --color-ctp-overlay1: #838ba7;
+  --color-ctp-overlay0: #737994;
+  --color-ctp-surface2: #626880;
+  --color-ctp-surface1: #51576d;
+  --color-ctp-surface0: #414559;
+  --color-ctp-base: #303446;
+  --color-ctp-mantle: #292c3c;
+  --color-ctp-crust: #232634;
+
+  --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
+}
+
+/* ── Base ── */
+html {
+  background-color: var(--color-ctp-base);
+  color: var(--color-ctp-text);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  overscroll-behavior-y: contain;
+}
+
+body {
+  margin: 0;
+  min-height: 100dvh;
+  background-color: var(--color-ctp-base);
+}
+
+/* ── Safe area insets for notched devices ── */
+#app {
+  padding-top: env(safe-area-inset-top);
+  padding-bottom: env(safe-area-inset-bottom);
+  padding-left: env(safe-area-inset-left);
+  padding-right: env(safe-area-inset-right);
+}
+
+/* ── Scrollbar ── */
+::-webkit-scrollbar {
+  width: 4px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--color-ctp-surface1);
+  border-radius: 999px;
+}
+
+/* ── Stagger animation ── */
+@keyframes fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes scale-in {
+  from {
+    opacity: 0;
+    transform: scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes slide-up {
+  from {
+    transform: translateY(100%);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+@keyframes pulse-ring {
+  0% {
+    transform: scale(1);
+    opacity: 0.4;
+  }
+  100% {
+    transform: scale(1.6);
+    opacity: 0;
+  }
+}
+
+.animate-fade-up {
+  animation: fade-up 0.5s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.animate-scale-in {
+  animation: scale-in 0.4s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.animate-slide-up {
+  animation: slide-up 0.4s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+/* ── Touch feedback ── */
+.pressable {
+  transition: transform 0.15s cubic-bezier(0.16, 1, 0.3, 1),
+              box-shadow 0.15s ease;
+  will-change: transform;
+  -webkit-tap-highlight-color: transparent;
+}
+.pressable:active {
+  transform: scale(0.97);
+}
+
+@media (hover: hover) {
+  .pressable:hover {
+    transform: translateY(-2px);
+  }
+}
+
+/* ── Skeleton loading ── */
+.skeleton {
+  background: linear-gradient(
+    90deg,
+    var(--color-ctp-surface0) 25%,
+    var(--color-ctp-surface1) 50%,
+    var(--color-ctp-surface0) 75%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.5s ease-in-out infinite;
+  border-radius: 8px;
+}
+
+/* ── Respect reduced motion ── */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
