@@ -1,0 +1,40 @@
+{
+  "name": "listme-frontend",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vue-tsc -b && vite build",
+    "preview": "vite preview",
+    "test": "vitest",
+    "test:run": "vitest run",
+    "generate-icons": "npx @vite-pwa/assets-generator"
+  },
+  "dependencies": {
+    "@stomp/stompjs": "^7.3.0",
+    "@types/qrcode": "^1.5.6",
+    "axios": "^1.13.5",
+    "dexie": "^4.3.0",
+    "pinia": "^3.0.4",
+    "qrcode": "^1.5.4",
+    "vue": "^3.5.25",
+    "vue-router": "^4.6.4",
+    "yjs": "^13.6.29"
+  },
+  "devDependencies": {
+    "@tailwindcss/vite": "^4.1.18",
+    "@types/node": "^24.10.1",
+    "@vite-pwa/assets-generator": "^1.0.2",
+    "@vitejs/plugin-vue": "^6.0.2",
+    "@vue/test-utils": "^2.4.6",
+    "@vue/tsconfig": "^0.8.1",
+    "happy-dom": "^20.6.1",
+    "tailwindcss": "^4.1.18",
+    "typescript": "~5.9.3",
+    "vite": "^7.3.1",
+    "vite-plugin-pwa": "^1.2.0",
+    "vitest": "^4.0.18",
+    "vue-tsc": "^3.1.5"
+  }
+}
