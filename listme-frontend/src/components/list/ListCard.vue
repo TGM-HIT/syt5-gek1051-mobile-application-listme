@@ -1,11 +1,14 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import type { ShoppingList } from '../../types'
+import { useRouter } from 'vue-router'
 
 const props = defineProps<{
   list: ShoppingList
   index: number
 }>()
+
+const router = useRouter()
 
 const progress = computed(() =>
   props.list.totalItems > 0
@@ -38,6 +41,10 @@ const accentClasses = computed(() => {
 })
 
 const timeAgo = computed(() => props.list.updatedAt)
+
+function navigateToList() {
+  router.push(`/list/${props.list.id}`)
+}
 </script>
 
 <template>
@@ -53,6 +60,7 @@ const timeAgo = computed(() => props.list.updatedAt)
     "
     :class="[accentClasses.border, accentClasses.glow]"
     :style="{ animationDelay: `${index * 60}ms` }"
+    @click="navigateToList"
   >
     <div class="flex items-start justify-between gap-3">
       <!-- Left: emoji + info -->
