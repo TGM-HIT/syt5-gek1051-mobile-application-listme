@@ -5,88 +5,31 @@ import ListSection from '../components/list/ListSection.vue'
 import ListCard from '../components/list/ListCard.vue'
 import FloatingActionButton from '../components/common/FloatingActionButton.vue'
 import AddListModal from '../components/common/AddListModal.vue'
+import { myLists as mockMyLists, friendsLists as mockFriendsLists } from '../data/mock'
 
 const showAddModal = ref(false)
+const searchQuery = ref('')
 
-// ── Mock data ──
-const myLists = ref<ShoppingList[]>([
-  {
-    id: '1',
-    name: 'Weekly Groceries',
-    emoji: '🛒',
-    totalItems: 12,
-    checkedItems: 8,
-    updatedAt: '2h ago',
-    owner: 'me',
-    shared: true,
-    participants: [
-      { id: 'u1', name: 'Sarah', initials: 'SA', online: true },
-      { id: 'u2', name: 'Mike', initials: 'MK', online: false },
-    ],
-    accentColor: 'teal',
-  },
-  {
-    id: '2',
-    name: 'Home Supplies',
-    emoji: '🏠',
-    totalItems: 5,
-    checkedItems: 3,
-    updatedAt: '1d ago',
-    owner: 'me',
-    shared: false,
-    participants: [],
-    accentColor: 'green',
-  },
-  {
-    id: '3',
-    name: 'Pharmacy',
-    emoji: '💊',
-    totalItems: 3,
-    checkedItems: 0,
-    updatedAt: '3d ago',
-    owner: 'me',
-    shared: false,
-    participants: [],
-    accentColor: 'sapphire',
-  },
-])
-
-const friendsLists = ref<ShoppingList[]>([
-  {
-    id: '4',
-    name: 'Birthday Party Supplies',
-    emoji: '🎂',
-    totalItems: 18,
-    checkedItems: 7,
-    updatedAt: '30m ago',
-    owner: 'Sarah',
-    shared: true,
-    participants: [
-      { id: 'u1', name: 'Sarah', initials: 'SA', online: true },
-      { id: 'u3', name: 'Oli', initials: 'OG', online: true },
-      { id: 'u4', name: 'Emma', initials: 'EM', online: false },
-      { id: 'u5', name: 'Luca', initials: 'LC', online: false },
-    ],
-    accentColor: 'teal',
-  },
-  {
-    id: '5',
-    name: 'Office Snacks',
-    emoji: '🍕',
-    totalItems: 8,
-    checkedItems: 8,
-    updatedAt: '5h ago',
-    owner: 'Mike',
-    shared: true,
-    participants: [
-      { id: 'u2', name: 'Mike', initials: 'MK', online: false },
-      { id: 'u6', name: 'Anna', initials: 'AN', online: true },
-    ],
-    accentColor: 'green',
-  },
-])
+const myLists = ref<ShoppingList[]>(mockMyLists)
+const friendsLists = ref<ShoppingList[]>(mockFriendsLists)
 
 const allLists = computed(() => [...myLists.value, ...friendsLists.value])
+
+const filteredLists = computed(() => {
+  const query = searchQuery.value.toLowerCase()
+  const all = allLists.value;
+  if (!query) return {myLists: myLists.value, friendsLists: friendsLists.value};
+
+  const filtered = all.filter(list =>
+    list.name.toLowerCase().includes(query) ||
+    list.items.some(item => item.name.toLowerCase().includes(query))
+  );
+
+  return {
+    myLists: filtered.filter(l => myLists.value.some(ml => ml.id === l.id)),
+    friendsLists: filtered.filter(l => friendsLists.value.some(fl => fl.id === l.id))
+  }
+})
 
 function handleCreate(name: string, emoji: string) {
   const colors: Array<'green' | 'teal' | 'sapphire'> = ['green', 'teal', 'sapphire']
@@ -101,6 +44,8 @@ function handleCreate(name: string, emoji: string) {
     shared: false,
     participants: [],
     accentColor: colors[myLists.value.length % 3] ?? 'teal',
+    categories: [],
+    items: [],
   })
 }
 </script>
@@ -117,6 +62,14 @@ function handleCreate(name: string, emoji: string) {
         </span>
       </h2>
     </div>
+
+    <!-- Search Bar -->
+    <input
+      v-model="searchQuery"
+      type="text"
+      placeholder="Search lists or items..."
+      class="w-full px-4 py-2 rounded-lg bg-ctp-surface0 border border-ctp-surface1 text-ctp-text focus:outline-none focus:border-ctp-teal mb-4"
+    />
 
     <!-- Quick stats -->
     <div class="grid grid-cols-3 gap-3 mb-8 animate-fade-up" style="animation-delay: 60ms">
@@ -137,7 +90,7 @@ function handleCreate(name: string, emoji: string) {
     <!-- My Lists -->
     <ListSection title="My Lists" :count="myLists.length" class="mb-8">
       <ListCard
-        v-for="(list, i) in myLists"
+        v-for="(list, i) in filteredLists.myLists"
         :key="list.id"
         :list="list"
         :index="i"
@@ -147,7 +100,7 @@ function handleCreate(name: string, emoji: string) {
     <!-- Friends Lists -->
     <ListSection title="Shared with me" :count="friendsLists.length">
       <ListCard
-        v-for="(list, i) in friendsLists"
+        v-for="(list, i) in filteredLists.friendsLists"
         :key="list.id"
         :list="list"
         :index="i + myLists.length"
