@@ -170,3 +170,45 @@ body {
     transition-duration: 0.01ms !important;
   }
 }
+
+
+/* ── Custom round checkbox ── */
+.round-checkbox {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 20px;
+  height: 20px;
+  border: 2px solid var(--color-ctp-surface2);
+  border-radius: 9999px; /* fully round */
+  background-color: transparent;
+  display: inline-grid;
+  place-content: center;
+  vertical-align: middle;
+  cursor: pointer;
+  transition: border-color 120ms ease, background-color 120ms ease, box-shadow 120ms ease;
+}
+
+.round-checkbox:hover {
+  border-color: var(--color-ctp-teal);
+}
+
+.round-checkbox:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px color-mix(in oklab, var(--color-ctp-teal) 40%, transparent);
+}
+
+.round-checkbox:checked {
+  background-color: var(--color-ctp-teal);
+  border-color: var(--color-ctp-teal);
+}
+
+.round-checkbox:checked::after {
+  content: "";
+  width: 12px;
+  height: 12px;
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: 12px 12px;
+  /* white checkmark icon */
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23ffffff' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='20 6 9 17 4 12'/%3E%3C/svg%3E");
+}

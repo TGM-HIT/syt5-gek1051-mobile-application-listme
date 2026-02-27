@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue';
+import { ref, computed, onMounted, nextTick } from 'vue';
 import { useRoute } from 'vue-router';
 import type { ShoppingList, Category, Item } from '../types';
 import { myLists as mockMyLists, friendsLists as mockFriendsLists, mockCategories } from '../data/mock'
@@ -15,8 +15,17 @@ const shoppingList = computed(() => {
 const searchQuery = ref('');
 const selectedCategory = ref<string | null>(null);
 
+// Local reactive items source for UI rendering to avoid needing full page reloads
+const itemsRef = ref<Item[]>([]);
+
+onMounted(() => {
+  if (shoppingList.value?.items) {
+    itemsRef.value = [...shoppingList.value.items];
+  }
+});
+
 const filteredItems = computed(() => {
-  let items = shoppingList.value?.items || [];
+  let items = itemsRef.value || [];
 
   if (searchQuery.value) {
     items = items.filter(item => item.name.toLowerCase().includes(searchQuery.value.toLowerCase()));
@@ -50,16 +59,26 @@ const newItemSelectedCategory = ref(mockCategories[0]?.id || '');
 
 function addItem() {
   if (!shoppingList.value) return;
+  const name = newItemName.value.trim();
+  if (!name) return;
   const newItem: Item = {
     id: crypto.randomUUID(),
-    name: newItemName.value,
+    name,
     checked: false,
-    position: shoppingList.value.items.length + 1,
+    position: (shoppingList.value.items?.length || 0) + 1,
     categoryId: newItemSelectedCategory.value,
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
   };
+  // Update local reactive list for instant UI feedback
+  itemsRef.value = [...itemsRef.value, newItem];
+  // Also update the underlying list for consistency (mutate, do not reassign)
   shoppingList.value.items.push(newItem);
+  if (typeof shoppingList.value.totalItems === 'number') {
+    shoppingList.value.totalItems += 1;
+  }
+  // Do not change selected category after adding; keep user's context
+  searchQuery.value = '';
   newItemName.value = '';
 }
 </script>
@@ -95,14 +114,17 @@ function addItem() {
       <h2 class="text-lg font-bold text-ctp-text mb-2" :style="{ color: getCategory(categoryId)?.color }">{{ getCategory(categoryId)?.name }}</h2>
       <ul>
         <li v-for="item in items" :key="item.id" class="flex items-center justify-between py-2 border-b border-ctp-surface1">
-          <span :class="{ 'line-through': item.checked }">{{ item.name }}</span>
-          <input type="checkbox" v-model="item.checked" />
+          <span :class="['text-ctp-text flex-1', { 'line-through text-ctp-overlay0': item.checked }]">{{ item.name }}</span>
+          <input type="checkbox" v-model="item.checked" class="round-checkbox text-ctp-teal border-ctp-surface2" />
         </li>
       </ul>
     </div>
     <div class="mt-4">
-      <input v-model="newItemName" @keyup.enter="addItem" placeholder="Add new item" class="w-full px-4 py-2 rounded-lg bg-ctp-surface0 border border-ctp-surface1 text-ctp-text focus:outline-none focus:border-ctp-teal mb-4" />
-      <select v-model="newItemSelectedCategory" class="w-full px-4 py-2 rounded-lg bg-ctp-surface0 border border-ctp-surface1 text-ctp-text focus:outline-none focus:border-ctp-teal mb-4">
+      <div class="flex gap-2 mb-3">
+        <input v-model="newItemName" @keyup.enter="addItem" placeholder="Neues Item hinzufügen" class="flex-1 px-4 py-2 rounded-lg bg-ctp-surface0 border border-ctp-surface1 text-ctp-text focus:outline-none focus:border-ctp-teal" />
+        <button @click="addItem" :disabled="!newItemName.trim()" class="px-4 py-2 rounded-lg bg-ctp-teal text-ctp-base disabled:opacity-50 disabled:cursor-not-allowed">Hinzufügen</button>
+      </div>
+      <select v-model="newItemSelectedCategory" class="w-full px-4 py-2 rounded-lg bg-ctp-surface0 border border-ctp-surface1 text-ctp-text focus:outline-none focus:border-ctp-teal">
         <option v-for="category in shoppingList.categories" :value="category.id">{{ category.name }}</option>
       </select>
     </div>

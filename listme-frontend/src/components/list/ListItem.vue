@@ -18,7 +18,7 @@ function toggleCheck() {
       type="checkbox"
       :checked="item.checked"
       @change="toggleCheck"
-      class="form-checkbox h-5 w-5 text-ctp-teal rounded border-ctp-surface2 focus:ring-ctp-teal"
+      class="round-checkbox text-ctp-teal border-ctp-surface2"
     />
     <span :class="{ 'line-through text-ctp-overlay0': item.checked }" class="text-ctp-text flex-1">
       {{ item.name }}
