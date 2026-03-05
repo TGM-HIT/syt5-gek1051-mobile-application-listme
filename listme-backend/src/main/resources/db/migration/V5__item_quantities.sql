@@ -1,0 +1,2 @@
+ALTER TABLE items ADD COLUMN quantity DECIMAL(10,2);
+ALTER TABLE items ADD COLUMN quantity_unit VARCHAR(20);
