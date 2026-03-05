@@ -80,7 +80,6 @@ public class ItemController {
                                 @CurrentDevice Device device) {
         return ItemResponse.from(itemService.restore(listId, itemId, device));
     }
-
     /** Permanently delete a trashed item — irreversible. */
     @DeleteMapping("/{itemId}/permanent")
     @ResponseStatus(HttpStatus.NO_CONTENT)
@@ -91,3 +90,5 @@ public class ItemController {
         itemService.permanentDelete(listId, itemId, device);
     }
 }
+
+
