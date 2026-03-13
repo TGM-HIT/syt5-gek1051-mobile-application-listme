@@ -63,3 +63,4 @@ jobs:
           message: 'ci: update frontend coverage badge [skip ci]'
           add: '.github/badges/frontend-coverage.svg'
           default_author: github_actions
+          push: 'origin HEAD:refs/heads/badges --force'
