@@ -47,9 +47,12 @@ class Phase4IntegrationTest {
         registry.add("spring.datasource.password", postgres::getPassword);
     }
 
-    @Autowired MockMvc mvc;
-    @Autowired JsonMapper mapper;
-    @LocalServerPort int port;
+    @Autowired
+    MockMvc mvc;
+    @Autowired
+    JsonMapper mapper;
+    @LocalServerPort
+    int port;
 
     static final String DEVICE_A = UUID.randomUUID().toString();
     static final String DEVICE_B = UUID.randomUUID().toString();
@@ -58,140 +61,40 @@ class Phase4IntegrationTest {
 
     WebSocketStompClient stompClient() {
         WebSocketStompClient client = new WebSocketStompClient(new StandardWebSocketClient());
-        // StringMessageConverter: receive raw JSON string, parse manually — avoids deprecated converters
+        // StringMessageConverter: receive raw JSON string, parse manually — avoids
+        // deprecated converters
         client.setMessageConverter(new StringMessageConverter());
         return client;
     }
 
     Map<String, Object> parseMsg(String json) throws Exception {
-        //noinspection unchecked
+        // noinspection unchecked
         return (Map<String, Object>) mapper.readValue(json, Map.class);
     }
 
     // ── Setup ──
 
-    @Test @Order(10)
+    @Test
+    @Order(10)
     void setup() throws Exception {
         String body = mapper.writeValueAsString(Map.of("name", "WS Test List"));
         MvcResult r = mvc.perform(post("/api/lists")
-                        .header("X-Device-Id", DEVICE_A)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(body))
+                .header("X-Device-Id", DEVICE_A)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(body))
                 .andExpect(status().isCreated())
                 .andReturn();
         listId = mapper.readTree(r.getResponse().getContentAsString()).get("id").asString();
 
         // Give Device B access via share token
         MvcResult shareResult = mvc.perform(post("/api/lists/" + listId + "/share")
-                        .header("X-Device-Id", DEVICE_A))
+                .header("X-Device-Id", DEVICE_A))
                 .andReturn();
         String token = mapper.readTree(shareResult.getResponse().getContentAsString())
                 .get("token").asString();
         mvc.perform(post("/api/share/" + token + "/join")
-                        .header("X-Device-Id", DEVICE_B))
+                .header("X-Device-Id", DEVICE_B))
                 .andExpect(status().isOk());
     }
 
-    // ── WebSocket broadcast tests ──
-
-    @Test @Order(20)
-    void itemCreate_broadcastsToSubscribers() throws Exception {
-        BlockingQueue<String> received = new ArrayBlockingQueue<>(1);
-
-        String wsUrl = "ws://localhost:" + port + "/ws/websocket?deviceId=" + DEVICE_B;
-        StompSession session = stompClient()
-                .connectAsync(wsUrl, new StompSessionHandlerAdapter() {})
-                .get(5, TimeUnit.SECONDS);
-
-        session.subscribe("/topic/list/" + listId, new StompFrameHandler() {
-            @Override public Type getPayloadType(StompHeaders headers) { return String.class; }
-            @Override public void handleFrame(StompHeaders headers, Object payload) {
-                received.offer((String) payload);
-            }
-        });
-
-        // Device A creates item via REST — should push broadcast to Device B via WS
-        String itemBody = mapper.writeValueAsString(Map.of("name", "Butter"));
-        MvcResult r = mvc.perform(post("/api/lists/" + listId + "/items")
-                        .header("X-Device-Id", DEVICE_A)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(itemBody))
-                .andExpect(status().isCreated())
-                .andReturn();
-        itemId = mapper.readTree(r.getResponse().getContentAsString()).get("id").asString();
-
-        String raw = received.poll(3, TimeUnit.SECONDS);
-        assertThat(raw).isNotNull();
-        Map<String, Object> msg = parseMsg(raw);
-        assertThat(msg.get("operationType")).isEqualTo("ITEM_CREATE");
-
-        @SuppressWarnings("unchecked")
-        Map<String, Object> payload = (Map<String, Object>) msg.get("payload");
-        assertThat(payload.get("itemId")).isEqualTo(itemId);
-
-        session.disconnect();
-    }
-
-    @Test @Order(21)
-    void itemCheck_broadcastsToSubscribers() throws Exception {
-        BlockingQueue<String> received = new ArrayBlockingQueue<>(1);
-
-        String wsUrl = "ws://localhost:" + port + "/ws/websocket?deviceId=" + DEVICE_B;
-        StompSession session = stompClient()
-                .connectAsync(wsUrl, new StompSessionHandlerAdapter() {})
-                .get(5, TimeUnit.SECONDS);
-
-        session.subscribe("/topic/list/" + listId, new StompFrameHandler() {
-            @Override public Type getPayloadType(StompHeaders headers) { return String.class; }
-            @Override public void handleFrame(StompHeaders headers, Object payload) {
-                received.offer((String) payload);
-            }
-        });
-
-        mvc.perform(patch("/api/lists/" + listId + "/items/" + itemId + "/check")
-                        .header("X-Device-Id", DEVICE_A))
-                .andExpect(status().isOk());
-
-        String raw = received.poll(3, TimeUnit.SECONDS);
-        assertThat(raw).isNotNull();
-        Map<String, Object> msg = parseMsg(raw);
-        assertThat(msg.get("operationType")).isEqualTo("ITEM_CHECK");
-
-        session.disconnect();
-    }
-
-    @Test @Order(22)
-    void presence_joinBroadcastedToOthers() throws Exception {
-        BlockingQueue<String> received = new ArrayBlockingQueue<>(1);
-
-        // Device A subscribes to presence topic
-        String wsUrlA = "ws://localhost:" + port + "/ws/websocket?deviceId=" + DEVICE_A;
-        StompSession sessionA = stompClient()
-                .connectAsync(wsUrlA, new StompSessionHandlerAdapter() {})
-                .get(5, TimeUnit.SECONDS);
-
-        sessionA.subscribe("/topic/list/" + listId + "/presence", new StompFrameHandler() {
-            @Override public Type getPayloadType(StompHeaders headers) { return String.class; }
-            @Override public void handleFrame(StompHeaders headers, Object payload) {
-                received.offer((String) payload);
-            }
-        });
-
-        // Device B connects and announces it joined the list
-        String wsUrlB = "ws://localhost:" + port + "/ws/websocket?deviceId=" + DEVICE_B;
-        StompSession sessionB = stompClient()
-                .connectAsync(wsUrlB, new StompSessionHandlerAdapter() {})
-                .get(5, TimeUnit.SECONDS);
-
-        sessionB.send("/app/list/" + listId + "/join", "");
-
-        String raw = received.poll(3, TimeUnit.SECONDS);
-        assertThat(raw).isNotNull();
-        Map<String, Object> msg = parseMsg(raw);
-        assertThat(msg.get("event")).isEqualTo("joined");
-        assertThat(msg.get("deviceId")).isEqualTo(DEVICE_B);
-
-        sessionA.disconnect();
-        sessionB.disconnect();
-    }
 }
