@@ -6,5 +6,10 @@ export default defineConfig({
   test: {
     environment: 'happy-dom',
     include: ['src/**/*.{test,spec}.{ts,tsx}', 'tests/**/*.{test,spec}.{ts,tsx}'],
+    coverage: {
+      provider: 'v8',
+      include: ['src/**/*.{ts,vue}'],
+      exclude: ['src/main.ts', 'src/router/**', 'src/**/*.d.ts'],
+    },
   },
 })

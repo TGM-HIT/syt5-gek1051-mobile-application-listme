@@ -1,0 +1,64 @@
+name: Frontend CI
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'listme-frontend/**'
+      - '.github/workflows/frontend-ci.yml'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'listme-frontend/**'
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: listme-frontend/package-lock.json
+
+      - name: Install dependencies
+        working-directory: listme-frontend
+        run: npm install
+
+      - name: Type check
+        working-directory: listme-frontend
+        run: npx vue-tsc --noEmit
+
+      - name: Build
+        working-directory: listme-frontend
+        run: npx vite build
+
+      - name: Run tests with coverage
+        working-directory: listme-frontend
+        run: npm run test:run -- --coverage --coverage.reporter=json-summary --coverage.reporter=text
+
+      - name: Generate coverage badge
+        if: always()
+        run: |
+          if [ -f listme-frontend/coverage/coverage-summary.json ]; then
+            PCT=$(node -e "const s=require('./listme-frontend/coverage/coverage-summary.json');console.log(Math.round(s.total.lines.pct))")
+            if   [ "$PCT" -ge 80 ]; then COLOR="3fb950"
+            elif [ "$PCT" -ge 60 ]; then COLOR="d29922"
+            elif [ "$PCT" -ge 40 ]; then COLOR="f85149"
+            else COLOR="6e7681"; fi
+            mkdir -p .github/badges
+            curl -sf "https://img.shields.io/badge/coverage-${PCT}%25-${COLOR}?style=flat" \
+              -o .github/badges/frontend-coverage.svg
+          fi
+
+      - name: Commit coverage badge
+        if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+        uses: EndBug/add-and-commit@v9
+        with:
+          message: 'ci: update frontend coverage badge [skip ci]'
+          add: '.github/badges/frontend-coverage.svg'
+          default_author: github_actions
