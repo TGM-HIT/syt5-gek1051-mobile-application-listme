@@ -1,214 +1,90 @@
-import { defineStore } from 'pinia'
-import { ref } from 'vue'
-import axios from 'axios'
-import { itemService } from '../services/item'
-import { CacheService } from '../services/cache'
-import { LocalClockService } from '../services/clock'
-import { OperationQueue } from '../crdt/OperationQueue'
-import { getDeviceId } from '../services/device'
-import { useListsStore } from './lists'
-import type { Item, CreateItemRequest, UpdateItemRequest } from '../types'
+<script setup lang="ts">
+import { computed, ref, watch } from 'vue'
+import { useRoute } from 'vue-router'
+import AppHeader from './components/common/AppHeader.vue'
+import BottomNav from './components/common/BottomNav.vue'
+import { useOffline } from './composables/useOffline'
+import { useSyncQueue } from './composables/useSyncQueue'
 
-function isNetworkError(e: unknown): boolean {
-return axios.isAxiosError(e) && !e.response
-}
+const route = useRoute()
+const { isOnline } = useOffline()
 
-export const useItemsStore = defineStore('items', () => {
-// Items keyed by listId for multi-list caching
-const itemsByList = ref<Record<string, Item[]>>({})
-const loading = ref(false)
-const error = ref<string | null>(null)
+// Flush queued ops whenever connectivity returns
+useSyncQueue()
 
-function getItems(listId: string): Item[] {
-return itemsByList.value[listId] ?? []
-}
+const hideChrome = computed(() => !!route.meta.hideChrome)
 
-async function fetchAll(listId: string) {
-loading.value = true
-error.value = null
+// Show/hide the global offline banner
+const showOfflineBanner = ref(!isOnline.value)
+let hideTimer: ReturnType<typeof setTimeout> | null = null
 
-// Serve cached items immediately so the list feels instant
-const cached = await CacheService.getItems(listId)
-if (cached.length > 0) {
-itemsByList.value[listId] = cached
-loading.value = false
-}
-
-try {
-const fresh = await itemService.getAll(listId)
-itemsByList.value[listId] = fresh
-await CacheService.saveItems(listId, fresh)
-} catch {
-if ((itemsByList.value[listId] ?? []).length === 0) {
-error.value = 'Items konnten nicht geladen werden'
-}
-// Silently stay on cached data when offline
-} finally {
-loading.value = false
-}
-}
-
-async function create(listId: string, req: CreateItemRequest): Promise<Item> {
-  try {
-  const item = await itemService.create(listId, req)
-  if (!itemsByList.value[listId]) itemsByList.value[listId] = []
-  itemsByList.value[listId].push(item)
-  await CacheService.saveItem(item)
-  syncCounts(listId)
-  return item
-  } catch (e) {
-  if (!isNetworkError(e)) throw e
-
-  // Offline: apply locally with a client-generated UUID, queue for later sync
-  const deviceId = await getDeviceId()
-  const itemId = crypto.randomUUID()
-  const now = new Date().toISOString()
-  const item: Item = {
-  id: itemId,
-  listId,
-  name: req.name,
-  checked: false,
-  position: (itemsByList.value[listId] ?? []).length,
-  categoryId: req.categoryId ?? null,
-  categoryName: null,
-  categoryColor: null,
-  quantity: req.quantity ?? null,
-  quantityUnit: req.quantityUnit ?? null,
-  price: req.price ?? null,
-  imageUrl: req.imageUrl ?? null,
-  labels: [],
-  createdAt: now,
-  updatedAt: now,
-  deletedAt: null,
-  createdByDeviceId: null,
+watch(isOnline, (online) => {
+  if (hideTimer) clearTimeout(hideTimer)
+  showOfflineBanner.value = true
+  if (online) {
+    hideTimer = setTimeout(() => { showOfflineBanner.value = false }, 2500)
   }
-  if (!itemsByList.value[listId]) itemsByList.value[listId] = []
-  itemsByList.value[listId].push(item)
-  await CacheService.saveItem(item)
-  syncCounts(listId)
+})
 
-  const vectorClock = await LocalClockService.getNextClock(listId, deviceId)
-  await OperationQueue.enqueue({
-  id: crypto.randomUUID(),
-  listId,
-  deviceId,
-  operationType: 'ITEM_CREATE',
-  payload: { itemId, name: req.name, position: item.position, timestamp: Date.now() },
-  vectorClock,
-  createdAt: Date.now(),
-  })
-  return item
-  }
-  }
+const offlineBannerClass = computed(() =>
+  isOnline.value
+    ? 'bg-ctp-green/15 text-ctp-green border-b border-ctp-green/20'
+    : 'bg-ctp-red/15 text-ctp-red border-b border-ctp-red/20'
+)
+</script>
 
-  async function update(listId: string, itemId: string, req: UpdateItemRequest): Promise<void> {
-    try {
-    const updated = await itemService.update(listId, itemId, req)
-    const items = itemsByList.value[listId] ?? []
-    const idx = items.findIndex(i => i.id === itemId)
-    if (idx !== -1) items[idx] = updated
-    await CacheService.saveItem(updated)
-    } catch (e) {
-    if (!isNetworkError(e)) throw e
+<template>
+  <div class="min-h-dvh bg-ctp-base text-ctp-text">
+    <AppHeader v-if="!hideChrome" />
 
-    const items = itemsByList.value[listId] ?? []
-    const idx = items.findIndex(i => i.id === itemId)
-    if (idx === -1) return
-    const patched = {
-    ...items[idx]!,
-    name: req.name,
-    quantity: req.quantity ?? null,
-    quantityUnit: req.quantityUnit ?? null,
-    price: req.price ?? null,
-    imageUrl: req.imageUrl ?? null,
-    updatedAt: new Date().toISOString(),
-    }
-    items[idx] = patched
-    await CacheService.saveItem(patched)
+    <!-- Global offline / back-online banner (home + other non-list pages) -->
+    <Transition name="banner">
+      <div
+        v-if="showOfflineBanner && !hideChrome"
+        class="fixed top-14 left-0 right-0 z-50 flex items-center justify-center gap-2 py-2 px-4 text-xs font-medium"
+        :class="offlineBannerClass"
+      >
+        <span
+          class="w-1.5 h-1.5 rounded-full shrink-0"
+          :class="isOnline ? 'bg-ctp-green animate-pulse' : 'bg-ctp-red'"
+        />
+        <span v-if="isOnline">Wieder online — Listen werden aktualisiert</span>
+        <span v-else>Kein Internet — Offline-Daten werden angezeigt</span>
+      </div>
+    </Transition>
 
-    const deviceId = await getDeviceId()
-    const vectorClock = await LocalClockService.getNextClock(listId, deviceId)
-    await OperationQueue.enqueue({
-    id: crypto.randomUUID(),
-    listId,
-    deviceId,
-    operationType: 'ITEM_UPDATE',
-    payload: { itemId, name: req.name, timestamp: Date.now() },
-    vectorClock,
-    createdAt: Date.now(),
-    })
-    }
-    }
+    <main class="main-scroll h-dvh overflow-y-auto overscroll-contain">
+      <RouterView v-slot="{ Component }">
+        <Transition name="page" mode="out-in">
+          <component :is="Component" />
+        </Transition>
+      </RouterView>
+    </main>
 
-    async function toggleCheck(listId: string, itemId: string): Promise<void> {
-      try {
-      const updated = await itemService.toggleCheck(listId, itemId)
-      const items = itemsByList.value[listId] ?? []
-      const idx = items.findIndex(i => i.id === itemId)
-      if (idx !== -1) items[idx] = updated
-      await CacheService.saveItem(updated)
-      syncCounts(listId)
-      } catch (e) {
-      if (!isNetworkError(e)) throw e
+    <BottomNav v-if="!hideChrome" />
+  </div>
+</template>
 
-      const items = itemsByList.value[listId] ?? []
-      const idx = items.findIndex(i => i.id === itemId)
-      if (idx === -1) return
-      const toggled = { ...items[idx]!, checked: !items[idx]!.checked }
-      items[idx] = toggled
-      await CacheService.saveItem(toggled)
-      syncCounts(listId)
-
-      const deviceId = await getDeviceId()
-      const vectorClock = await LocalClockService.getNextClock(listId, deviceId)
-      await OperationQueue.enqueue({
-      id: crypto.randomUUID(),
-      listId,
-      deviceId,
-      operationType: 'ITEM_CHECK',
-      payload: { itemId, checked: toggled.checked, timestamp: Date.now() },
-      vectorClock,
-      createdAt: Date.now(),
-      })
-      }
-      }
-
-      async function remove(listId: string, itemId: string): Promise<void> {
-        try {
-        await itemService.delete(listId, itemId)
-        if (itemsByList.value[listId]) {
-        itemsByList.value[listId] = itemsByList.value[listId].filter(i => i.id !== itemId)
-        }
-        await CacheService.removeItem(itemId)
-        syncCounts(listId)
-        } catch (e) {
-        if (!isNetworkError(e)) throw e
-
-        // Offline: remove locally and queue delete for sync
-        if (itemsByList.value[listId]) {
-        itemsByList.value[listId] = itemsByList.value[listId].filter(i => i.id !== itemId)
-        }
-        await CacheService.removeItem(itemId)
-        syncCounts(listId)
-
-        const deviceId = await getDeviceId()
-        const vectorClock = await LocalClockService.getNextClock(listId, deviceId)
-        await OperationQueue.enqueue({
-        id: crypto.randomUUID(),
-        listId,
-        deviceId,
-        operationType: 'ITEM_DELETE',
-        payload: { itemId, timestamp: Date.now() },
-        vectorClock,
-        createdAt: Date.now(),
-        })
-        }
-        }
-
-        function syncCounts(listId: string) {
-        const items = itemsByList.value[listId] ?? []
-        useListsStore().patchCounts(listId, items.length, items.filter(i => i.checked).length)
-        }
-
-        return { itemsByList, loading, error, getItems, fetchAll, create, update, toggleCheck, remove }
-        })
+<style scoped>
+.page-enter-active {
+  transition: opacity 0.2s ease;
+}
+.page-leave-active {
+  transition: opacity 0.15s ease;
+}
+.page-enter-from {
+  opacity: 0;
+}
+.page-leave-to {
+  opacity: 0;
+}
+.banner-enter-active,
+.banner-leave-active {
+  transition: all 0.25s ease;
+}
+.banner-enter-from,
+.banner-leave-to {
+  opacity: 0;
+  transform: translateY(-100%);
+}
+</style>

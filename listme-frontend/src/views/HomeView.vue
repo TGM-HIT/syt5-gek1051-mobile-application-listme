@@ -1,12 +1,12 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { useListsStore } from '../../../../../ListMeTest/listmetest/listme-frontend/src/stores/lists'
-import ListSection from '../../../../../ListMeTest/listmetest/listme-frontend/src/components/list/ListSection.vue'
-import ListCard from '../../../../../ListMeTest/listmetest/listme-frontend/src/components/list/ListCard.vue'
-import FloatingActionButton from '../../../../../ListMeTest/listmetest/listme-frontend/src/components/common/FloatingActionButton.vue'
-import AddListModal from '../../../../../ListMeTest/listmetest/listme-frontend/src/components/common/AddListModal.vue'
-import LinkDevicesModal from '../../../../../ListMeTest/listmetest/listme-frontend/src/components/list/LinkDevicesModal.vue'
+import { useListsStore } from '../stores/lists'
+import ListSection from '../components/list/ListSection.vue'
+import ListCard from '../components/list/ListCard.vue'
+import FloatingActionButton from '../components/common/FloatingActionButton.vue'
+import AddListModal from '../components/common/AddListModal.vue'
+import LinkDevicesModal from '../components/list/LinkDevicesModal.vue'
 
 const route = useRoute()
 const router = useRouter()
