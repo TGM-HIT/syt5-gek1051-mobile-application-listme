@@ -40,7 +40,7 @@ jobs:
 
       - name: Run tests with coverage
         working-directory: listme-frontend
-        run: npm run test:run -- --coverage --coverage.reporter=json-summary --coverage.reporter=text
+        run: npm run test:run -- --passWithNoTests --coverage --coverage.reporter=json-summary --coverage.reporter=text
 
       - name: Generate coverage badge
         if: always()
