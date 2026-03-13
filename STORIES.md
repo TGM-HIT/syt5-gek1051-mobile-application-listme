@@ -12,6 +12,8 @@
 
 24SP pro Person
 
+
+**37.5% MH sind closed**
 ## Auflisting
 
 | ID  | Beschreibung                                                                                                                                                                                                  | SP  | HEAD | Prio | Status                                                                     |
