@@ -41,10 +41,10 @@ No accounts. No passwords. Open the app and start.
 [![AWS](https://img.shields.io/badge/AWS-Lightsail-ff9900?logo=amazonaws&logoColor=white)](https://aws.amazon.com/lightsail/)
 
 <!-- Repo meta -->
-[![Last Commit](https://img.shields.io/github/last-commit/TGM-HIT/syt5-gek1051-mobile-application-listme?color=8b949e)](https://github.com/TGM-HIT/syt5-gek1051-mobile-application-listme/commits/main)
-[![Repo Size](https://img.shields.io/github/repo-size/TGM-HIT/syt5-gek1051-mobile-application-listme?color=8b949e)](https://github.com/TGM-HIT/syt5-gek1051-mobile-application-listme)
-[![Issues](https://img.shields.io/github/issues/TGM-HIT/syt5-gek1051-mobile-application-listme)](https://github.com/TGM-HIT/syt5-gek1051-mobile-application-listme/issues)
-[![License](https://img.shields.io/github/license/TGM-HIT/syt5-gek1051-mobile-application-listme?color=8b949e)](LICENSE)
+[![GitHub](https://img.shields.io/badge/GitHub-TGM--HIT-8b949e?logo=github)](https://github.com/TGM-HIT/syt5-gek1051-mobile-application-listme)
+[![License](https://img.shields.io/badge/license-MIT-8b949e)](LICENSE)
+[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-3fb950)](https://github.com/TGM-HIT/syt5-gek1051-mobile-application-listme/pulls)
+[![Made with love](https://img.shields.io/badge/made%20with-%E2%9D%A4-e05d44)](https://github.com/TGM-HIT)
 
 ---
 
