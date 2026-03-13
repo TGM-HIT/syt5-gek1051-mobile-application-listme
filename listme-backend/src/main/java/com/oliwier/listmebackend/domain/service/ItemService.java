@@ -134,6 +134,7 @@ public class ItemService {
         return item;
     }
 
+    /** Soft delete — moves item to trash. */
     @Transactional
     public void delete(UUID listId, UUID itemId, Device device) {
         ShoppingList list = requireAccess(listId, device);
@@ -148,6 +149,7 @@ public class ItemService {
         broadcaster.broadcastOp(list.getId(), op);
     }
 
+    /** Restore a trashed item to the active list. */
     @Transactional
     public Item restore(UUID listId, UUID itemId, Device device) {
         requireAccess(listId, device);
@@ -160,6 +162,7 @@ public class ItemService {
         return itemRepository.save(item);
     }
 
+    /** Permanently remove a trashed item — no recovery possible. */
     @Transactional
     public void permanentDelete(UUID listId, UUID itemId, Device device) {
         requireAccess(listId, device);

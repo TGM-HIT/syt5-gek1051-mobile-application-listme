@@ -1,0 +1,65 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: listme-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: listme
+      POSTGRES_USER: listme
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD is required}
+    volumes:
+      - listme-pgdata:/var/lib/postgresql/data
+    networks:
+      - listme        # internal only — never exposed to host
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U listme"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build:
+      context: ./listme-backend
+    container_name: listme-backend
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://listme-db:5432/listme
+      SPRING_DATASOURCE_USERNAME: listme
+      SPRING_DATASOURCE_PASSWORD: ${DB_PASSWORD}
+      SPRING_JPA_SHOW_SQL: "false"
+      LOGGING_LEVEL_COM_OLIWIER_LISTMEBACKEND: INFO
+      LOGGING_LEVEL_ORG_HIBERNATE_SQL: WARN
+      AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID:?AWS_ACCESS_KEY_ID is required}
+      AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY:?AWS_SECRET_ACCESS_KEY is required}
+      AWS_REGION: ${AWS_REGION:-eu-central-1}
+      AWS_S3_BUCKET: ${AWS_S3_BUCKET:-listme-item-images}
+    networks:
+      - listme        # internal: reachable by frontend nginx
+
+  frontend:
+    build:
+      context: ./listme-frontend
+    container_name: listme-frontend
+    restart: unless-stopped
+    depends_on:
+      - backend
+    networks:
+      - listme        # internal: reaches backend at listme-backend:8080
+      - caddy-net     # shared: Helikon's Caddy can reach nginx at listme-frontend:80
+
+# ── Volumes ─────────────────────────────────────────────────────────────────
+volumes:
+  listme-pgdata:
+
+# ── Networks ─────────────────────────────────────────────────────────────────
+networks:
+  listme:
+    name: listme
+    driver: bridge    # isolated — postgres/backend never exposed
+
+  caddy-net:
+    external: true    # shared with Helikon's Caddy
+    name: caddy-net   # create once: docker network create caddy-net

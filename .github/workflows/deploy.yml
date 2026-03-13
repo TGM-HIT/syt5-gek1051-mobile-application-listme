@@ -1,0 +1,23 @@
+name: Deploy
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build backend image
+        run: docker build -t listme-backend ./listme-backend
+
+      - name: Build frontend image
+        run: docker build -t listme-frontend ./listme-frontend
+
+      # Deployment steps (AWS Lightsail) go here once infrastructure is provisioned
+      - name: Deploy notice
+        run: echo "Build succeeded. Deployment to Lightsail not yet configured."

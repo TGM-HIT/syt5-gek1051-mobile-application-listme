@@ -17,7 +17,8 @@ Before reading this guide, read [architecture.md](architecture.md) — it covers
 6. [Data Flow Walkthroughs](#6-data-flow-walkthroughs)
 7. [Implementation Phases](#7-implementation-phases)
 8. [Testing](#8-testing)
-9. [Sources & References](#9-sources--references)
+9. [AI Guidelines](#9-ai-guidelines)
+10. [Sources & References](#10-sources--references)
 
 ---
 
@@ -719,11 +720,11 @@ docker build -t listme-frontend:prod ./listme-frontend
 
 The backend uses three layers of testing, all run with `./mvnw test`:
 
-| Layer           | Framework                                 | What it tests                                                       |
-| --------------- | ----------------------------------------- | ------------------------------------------------------------------- |
-| **Unit**        | JUnit 5 + AssertJ                         | Pure Java logic with no I/O (VectorClock math, CRDT properties)     |
+| Layer | Framework | What it tests |
+|-------|-----------|---------------|
+| **Unit** | JUnit 5 + AssertJ | Pure Java logic with no I/O (VectorClock math, CRDT properties) |
 | **Integration** | JUnit 5 + Spring MockMvc + TestContainers | Full HTTP request → DB round-trips with a real PostgreSQL container |
-| **WebSocket**   | JUnit 5 + Spring `WebSocketStompClient`   | Live STOMP message delivery over a random port                      |
+| **WebSocket** | JUnit 5 + Spring `WebSocketStompClient` | Live STOMP message delivery over a random port |
 
 ---
 
@@ -774,28 +775,26 @@ mvc.perform(post("/api/lists")
 ### 8.3 Backend — Existing Test Files
 
 #### `Phase1IntegrationTest.java`
-
 Tests device identity, list CRUD, share tokens, and sync tokens in order:
 
-| `@Order` | Test                         | Asserts                                                        |
-| -------- | ---------------------------- | -------------------------------------------------------------- |
-| 1        | `deviceAutoRegisters`        | `GET /devices/me` auto-creates device, returns its UUID        |
-| 2        | `rejectsMissingDeviceHeader` | Missing `X-Device-Id` → 400                                    |
-| 10       | `createList`                 | 201 response, `participantCount=1`, captures `listId`          |
-| 11       | `getMyLists`                 | Device A sees exactly 1 list                                   |
-| 20–23    | Share token flow             | Generate token → preview → Device B joins → Device B sees list |
-| 30–32    | Sync token flow              | Create token → preview → Device C applies → Device C sees list |
+| `@Order` | Test | Asserts |
+|----------|------|---------|
+| 1 | `deviceAutoRegisters` | `GET /devices/me` auto-creates device, returns its UUID |
+| 2 | `rejectsMissingDeviceHeader` | Missing `X-Device-Id` → 400 |
+| 10 | `createList` | 201 response, `participantCount=1`, captures `listId` |
+| 11 | `getMyLists` | Device A sees exactly 1 list |
+| 20–23 | Share token flow | Generate token → preview → Device B joins → Device B sees list |
+| 30–32 | Sync token flow | Create token → preview → Device C applies → Device C sees list |
 
 #### `Phase2IntegrationTest.java`
-
 Full CRUD for lists, categories, and items:
 
-| `@Order` | Test          | Asserts                                                                                       |
-| -------- | ------------- | --------------------------------------------------------------------------------------------- |
-| 10–13    | List CRUD     | Create, get, update; non-participant gets 403                                                 |
-| 20–22    | Category CRUD | Create with color, update, get                                                                |
-| 30–36    | Item CRUD     | Create with category, position increments, toggle check twice, update clears category, delete |
-| 40       | List deletion | DELETE removes self from participants; device sees 0 lists                                    |
+| `@Order` | Test | Asserts |
+|----------|------|---------|
+| 10–13 | List CRUD | Create, get, update; non-participant gets 403 |
+| 20–22 | Category CRUD | Create with color, update, get |
+| 30–36 | Item CRUD | Create with category, position increments, toggle check twice, update clears category, delete |
+| 40 | List deletion | DELETE removes self from participants; device sees 0 lists |
 
 #### `Phase3CrdtTest.java`
 
@@ -821,15 +820,15 @@ void vectorClock_merge_commutative() {
 
 **Integration tests (`@Order` 20–26):**
 
-| `@Order` | Test                                 | Asserts                                                     |
-| -------- | ------------------------------------ | ----------------------------------------------------------- |
-| 20       | `setup_listAndItem`                  | Creates list + item, captures IDs                           |
-| 21       | `clockIncrements_afterItemCreate`    | Vector clock counter for Device A = 1                       |
-| 22       | `opsRecorded_forItemCreate`          | `GET /crdt/ops` returns 1 op of type `ITEM_CREATE`          |
-| 23       | `clockIncrements_afterToggleCheck`   | Clock counter = 2 after second op                           |
-| 24       | `deviceB_seesOpsAfterJoining`        | Device B joins via share token, gets 2 ops from catchup     |
-| 25       | `pushOp_fromDeviceB_appliedToServer` | `POST /crdt/ops` with offline CHECK op → item state updated |
-| 26       | `pushOp_idempotent_duplicateIgnored` | Pushing same op UUID twice → op count stays the same        |
+| `@Order` | Test | Asserts |
+|----------|------|---------|
+| 20 | `setup_listAndItem` | Creates list + item, captures IDs |
+| 21 | `clockIncrements_afterItemCreate` | Vector clock counter for Device A = 1 |
+| 22 | `opsRecorded_forItemCreate` | `GET /crdt/ops` returns 1 op of type `ITEM_CREATE` |
+| 23 | `clockIncrements_afterToggleCheck` | Clock counter = 2 after second op |
+| 24 | `deviceB_seesOpsAfterJoining` | Device B joins via share token, gets 2 ops from catchup |
+| 25 | `pushOp_fromDeviceB_appliedToServer` | `POST /crdt/ops` with offline CHECK op → item state updated |
+| 26 | `pushOp_idempotent_duplicateIgnored` | Pushing same op UUID twice → op count stays the same |
 
 #### `Phase4IntegrationTest.java`
 
@@ -839,12 +838,12 @@ Tests live WebSocket delivery using `WebSocketStompClient` with a `RANDOM_PORT` 
 @SpringBootTest(webEnvironment = RANDOM_PORT)  // ← needed for real WebSocket
 ```
 
-| `@Order` | Test                                 | Asserts                                                                      |
-| -------- | ------------------------------------ | ---------------------------------------------------------------------------- |
-| 10       | `setup`                              | Creates list + shares with Device B                                          |
-| 20       | `itemCreate_broadcastsToSubscribers` | Device B's WS receives `ITEM_CREATE` op with correct `itemId`                |
-| 21       | `itemCheck_broadcastsToSubscribers`  | Device B's WS receives `ITEM_CHECK` op                                       |
-| 22       | `presence_joinBroadcastedToOthers`   | Device A's presence subscription receives `{ event: "joined", deviceId: B }` |
+| `@Order` | Test | Asserts |
+|----------|------|---------|
+| 10 | `setup` | Creates list + shares with Device B |
+| 20 | `itemCreate_broadcastsToSubscribers` | Device B's WS receives `ITEM_CREATE` op with correct `itemId` |
+| 21 | `itemCheck_broadcastsToSubscribers` | Device B's WS receives `ITEM_CHECK` op |
+| 22 | `presence_joinBroadcastedToOthers` | Device A's presence subscription receives `{ event: "joined", deviceId: B }` |
 
 ---
 
@@ -853,7 +852,6 @@ Tests live WebSocket delivery using `WebSocketStompClient` with a `RANDOM_PORT` 
 **Rule:** one test class per feature area, tests ordered with `@Order` so they share state (e.g., a list created in `@Order(10)` is used by `@Order(20)`).
 
 When you implement a new phase, add a corresponding `Phase5OfflineTest.java`, etc. Cover:
-
 1. The happy path (online operation works)
 2. Access control (non-participant gets 403)
 3. Any CRDT-specific behaviour (idempotency, clock increments)
@@ -868,13 +866,13 @@ The frontend uses Vitest with `happy-dom` as the DOM environment. Config is in [
 export default defineConfig({
   plugins: [vue()],
   test: {
-    environment: "happy-dom", // lightweight DOM — faster than jsdom
+    environment: 'happy-dom',   // lightweight DOM — faster than jsdom
     include: [
-      "src/**/*.{test,spec}.{ts,tsx}",
-      "tests/**/*.{test,spec}.{ts,tsx}",
+      'src/**/*.{test,spec}.{ts,tsx}',
+      'tests/**/*.{test,spec}.{ts,tsx}',
     ],
   },
-});
+})
 ```
 
 Run tests:
@@ -893,30 +891,30 @@ npm run test -- --run # CI / single pass
 
 ```ts
 // src/crdt/VectorClock.spec.ts
-import { describe, it, expect } from "vitest";
-import { VectorClock } from "./VectorClock";
+import { describe, it, expect } from 'vitest'
+import { VectorClock } from './VectorClock'
 
-describe("VectorClock", () => {
-  it("increments own counter", () => {
-    const vc = new VectorClock({});
-    const next = vc.increment("device-A");
-    expect(next.get("device-A")).toBe(1);
-    expect(vc.get("device-A")).toBe(0); // original unchanged (immutable)
-  });
+describe('VectorClock', () => {
+  it('increments own counter', () => {
+    const vc = new VectorClock({})
+    const next = vc.increment('device-A')
+    expect(next.get('device-A')).toBe(1)
+    expect(vc.get('device-A')).toBe(0)   // original unchanged (immutable)
+  })
 
-  it("detects concurrent ops", () => {
-    const a = new VectorClock({ A: 2, B: 1 });
-    const b = new VectorClock({ A: 1, B: 2 });
-    expect(a.compare(b)).toBe("CONCURRENT");
-    expect(b.compare(a)).toBe("CONCURRENT");
-  });
+  it('detects concurrent ops', () => {
+    const a = new VectorClock({ A: 2, B: 1 })
+    const b = new VectorClock({ A: 1, B: 2 })
+    expect(a.compare(b)).toBe('CONCURRENT')
+    expect(b.compare(a)).toBe('CONCURRENT')
+  })
 
-  it("merge is commutative", () => {
-    const a = new VectorClock({ A: 5, B: 1 });
-    const b = new VectorClock({ A: 2, B: 8 });
-    expect(a.merge(b).toMap()).toEqual(b.merge(a).toMap());
-  });
-});
+  it('merge is commutative', () => {
+    const a = new VectorClock({ A: 5, B: 1 })
+    const b = new VectorClock({ A: 2, B: 8 })
+    expect(a.merge(b).toMap()).toEqual(b.merge(a).toMap())
+  })
+})
 ```
 
 #### OperationQueue (`src/crdt/OperationQueue.ts`)
@@ -929,65 +927,57 @@ npm install -D fake-indexeddb
 
 ```ts
 // src/crdt/OperationQueue.spec.ts
-import "fake-indexeddb/auto";
-import { describe, it, expect, beforeEach } from "vitest";
-import { OperationQueue } from "./OperationQueue";
+import 'fake-indexeddb/auto'
+import { describe, it, expect, beforeEach } from 'vitest'
+import { OperationQueue } from './OperationQueue'
 
 beforeEach(async () => {
-  await OperationQueue.pruneOld(0);
-});
+  await OperationQueue.pruneOld(0)
+})
 
-it("enqueues and retrieves pending ops", async () => {
+it('enqueues and retrieves pending ops', async () => {
   await OperationQueue.enqueue({
-    id: crypto.randomUUID(),
-    listId: "list-1",
-    deviceId: "dev-A",
-    operationType: "ITEM_CREATE",
-    payload: { itemId: "item-1", name: "Milk" },
-    vectorClock: { "dev-A": 1 },
-    createdAt: Date.now(),
-  });
-  const pending = await OperationQueue.getAllPending();
-  expect(pending).toHaveLength(1);
-  expect(pending[0]!.operationType).toBe("ITEM_CREATE");
-});
+    id: crypto.randomUUID(), listId: 'list-1', deviceId: 'dev-A',
+    operationType: 'ITEM_CREATE',
+    payload: { itemId: 'item-1', name: 'Milk' },
+    vectorClock: { 'dev-A': 1 }, createdAt: Date.now(),
+  })
+  const pending = await OperationQueue.getAllPending()
+  expect(pending).toHaveLength(1)
+  expect(pending[0]!.operationType).toBe('ITEM_CREATE')
+})
 ```
 
 #### Pinia stores (`src/stores/`)
 
 ```ts
 // src/stores/items.spec.ts
-import "fake-indexeddb/auto";
-import { describe, it, expect, vi, beforeEach } from "vitest";
-import { setActivePinia, createPinia } from "pinia";
-import { useItemsStore } from "./items";
-import { itemService } from "../services/item";
+import 'fake-indexeddb/auto'
+import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { setActivePinia, createPinia } from 'pinia'
+import { useItemsStore } from './items'
+import { itemService } from '../services/item'
 
-beforeEach(() => {
-  setActivePinia(createPinia());
-});
+beforeEach(() => { setActivePinia(createPinia()) })
 
-it("offline create: applies to store and enqueues op", async () => {
-  vi.spyOn(itemService, "create").mockRejectedValue(
-    Object.assign(new Error("Network Error"), {
-      isAxiosError: true,
-      response: undefined,
-    }),
-  );
+it('offline create: applies to store and enqueues op', async () => {
+  vi.spyOn(itemService, 'create').mockRejectedValue(
+    Object.assign(new Error('Network Error'), { isAxiosError: true, response: undefined })
+  )
 
-  const store = useItemsStore();
-  store.itemsByList["list-1"] = [];
+  const store = useItemsStore()
+  store.itemsByList['list-1'] = []
 
-  await store.create("list-1", { name: "Milk" });
+  await store.create('list-1', { name: 'Milk' })
 
-  expect(store.getItems("list-1")).toHaveLength(1);
-  expect(store.getItems("list-1")[0]!.name).toBe("Milk");
+  expect(store.getItems('list-1')).toHaveLength(1)
+  expect(store.getItems('list-1')[0]!.name).toBe('Milk')
 
-  const { OperationQueue } = await import("../crdt/OperationQueue");
-  const pending = await OperationQueue.getAllPending();
-  expect(pending).toHaveLength(1);
-  expect(pending[0]!.operationType).toBe("ITEM_CREATE");
-});
+  const { OperationQueue } = await import('../crdt/OperationQueue')
+  const pending = await OperationQueue.getAllPending()
+  expect(pending).toHaveLength(1)
+  expect(pending[0]!.operationType).toBe('ITEM_CREATE')
+})
 ```
 
 ---
@@ -1004,40 +994,249 @@ Key E2E scenario — offline → reconnect sync cycle:
 
 ```ts
 // tests/e2e/offline-sync.spec.ts
-import { test, expect } from "@playwright/test";
+import { test, expect } from '@playwright/test'
 
-test("offline create syncs on reconnect", async ({ page, context }) => {
-  await page.goto("/list/some-existing-list-id");
+test('offline create syncs on reconnect', async ({ page, context }) => {
+  await page.goto('/list/some-existing-list-id')
 
-  await context.setOffline(true);
-  await page.getByTestId("add-item-fab").click();
-  await page.getByTestId("item-name-input").fill("Offline Milk");
-  await page.getByTestId("add-item-submit").click();
+  await context.setOffline(true)
+  await page.getByTestId('add-item-fab').click()
+  await page.getByTestId('item-name-input').fill('Offline Milk')
+  await page.getByTestId('add-item-submit').click()
 
-  await expect(page.getByText("Offline Milk")).toBeVisible();
+  await expect(page.getByText('Offline Milk')).toBeVisible()
 
-  await context.setOffline(false);
-  await page.waitForTimeout(1000);
+  await context.setOffline(false)
+  await page.waitForTimeout(1000)
 
-  await page.reload();
-  await expect(page.getByText("Offline Milk")).toBeVisible();
-});
+  await page.reload()
+  await expect(page.getByText('Offline Milk')).toBeVisible()
+})
 ```
 
 ---
 
 ### 8.8 Performance Targets
 
-| Metric                             | Target                   |
-| ---------------------------------- | ------------------------ |
-| Sync latency (WebSocket, 95th pct) | < 500ms                  |
-| Offline op store capacity          | 10 000+ ops in IndexedDB |
-| WebSocket concurrent connections   | 1 000+ per instance      |
-| CRDT merge (1 000 ops)             | < 100ms                  |
+| Metric | Target |
+|--------|--------|
+| Sync latency (WebSocket, 95th pct) | < 500ms |
+| Offline op store capacity | 10 000+ ops in IndexedDB |
+| WebSocket concurrent connections | 1 000+ per instance |
+| CRDT merge (1 000 ops) | < 100ms |
 
 ---
 
-## 9. Sources & References
+## 9. AI Guidelines
+
+This project uses AI coding assistants as a standard part of the development workflow.
+The following guidelines ensure consistent, high-quality output across the team.
+
+---
+
+### 9.1 Which tools we use
+
+| Tool | Where | What for |
+|------|-------|----------|
+| **Claude Code** (CLI) | Terminal, VSCode, IntelliJ | Complex multi-file changes, refactoring, debugging, code generation |
+| **GitHub Copilot** | VSCode / IntelliJ plugin | Inline autocomplete, single functions |
+| **Claude.ai** (Web) | Browser | Architecture questions, explaining concepts, commit messages, PR descriptions |
+
+---
+
+### 9.2 Setting up Claude Code
+
+#### Installation
+
+```bash
+npm install -g @anthropic-ai/claude-code
+```
+
+#### Starting in VSCode
+
+1. Open a terminal (`Ctrl+`` ` `` or `View → Terminal`)
+2. In the project root:
+   ```bash
+   claude
+   ```
+3. Claude Code opens an interactive session in the terminal
+
+**Alternative:** Install the VSCode extension — Claude Code then appears as a chat panel in the sidebar.
+
+#### Starting in IntelliJ IDEA
+
+1. Open the Terminal tab at the bottom
+2. In the project root:
+   ```bash
+   claude
+   ```
+3. Or: install the **Claude Code** plugin from the JetBrains Marketplace — it appears as a Tool Window
+
+---
+
+### 9.3 Getting good output
+
+#### Always provide context
+
+Bad:
+```
+Add a new endpoint
+```
+
+Good:
+```
+Add a GET /api/lists/{id}/participants endpoint to ListController.java
+that returns all list_devices rows for the given list as a List<ParticipantResponse> DTO.
+Follow the same pattern as ItemController. The device must be a member (403 otherwise).
+```
+
+**Rule of thumb:** The more context, the fewer corrections needed. Always include:
+- The exact filename / path
+- The existing pattern the code should follow
+- The expected input and output format
+
+---
+
+#### Use CLAUDE.md
+
+The repo has a `CLAUDE.md` in the root. It contains the full architecture, all conventions, and implementation phases. Claude Code loads it automatically on startup.
+
+This means you don't need to explain the architecture every time — Claude already knows it. Just reference user stories or phases:
+
+```
+Implement Phase 2 Step 1 from CLAUDE.md — ListController + ListService CRUD
+```
+
+---
+
+#### Tell Claude to read files before editing them
+
+Before Claude Code edits a file, ask it to read it first:
+
+```
+Read ItemController.java and then add a PATCH endpoint for toggling the checked state
+```
+
+This prevents code from being overwritten that Claude doesn't know about.
+
+---
+
+#### Break complex features into steps
+
+Instead of asking for everything at once, split it up:
+
+```
+Step 1: Create the Preset JPA entity following the pattern of ShoppingList.java
+Step 2: Create PresetRepository extending JpaRepository
+Step 3: Create PresetService with save() and findAllByDevice() methods
+Step 4: Create PresetController with GET /api/presets and POST /api/presets
+```
+
+---
+
+### 9.4 Workflow: Implementing a feature
+
+```
+1. Open the GitHub issue → read the description
+2. Start claude in the project root
+3. Provide context:
+   "I'm working on issue #42 — Categories. Read CLAUDE.md phase 2 and the existing
+    CategoryController.java if it exists, then implement the full category CRUD."
+4. Review the output — always skim the generated code before confirming
+5. docker compose restart backend (for Java changes)
+6. Test manually in the browser / with curl
+7. Commit with the generated message
+```
+
+---
+
+### 9.5 Workflow: Fixing a bug
+
+```
+1. Copy the error message (from the browser console or docker compose logs backend)
+2. Start claude
+3. Paste:
+   "I'm getting this error: [paste error]. Here is the relevant file: [filename].
+    Find the root cause and fix it."
+4. Claude proposes a change — review and confirm
+5. Test, commit
+```
+
+**Tip:** For backend errors always check the logs first:
+```bash
+docker compose logs --tail=50 backend
+```
+
+---
+
+### 9.6 What Claude Code should not do alone
+
+- **Never blindly accept migrations** — always review Flyway migrations yourself before running `docker compose up`. A bad migration can corrupt the DB.
+- **No secrets in prompts** — never paste real passwords, API keys, or `.env` contents into an AI prompt.
+- **No force-push without team agreement** — if Claude suggests `git push --force`, discuss with the team first.
+- **Don't skip tests** — if Claude says "you can skip tests for now", still run the integration tests (`./mvnw test`).
+
+---
+
+### 9.7 Useful prompts (copy-paste)
+
+**Create a new controller following an existing pattern:**
+```
+Read ListController.java and ListResponse.java, then create a CategoryController
+following the exact same structure for CRUD operations on the categories table.
+```
+
+**Create a Flyway migration:**
+```
+Create a new Flyway migration file V9__<name>.sql that adds the following columns
+to the items table: [describe columns]. Follow the style of V1__init.sql.
+```
+
+**Create a frontend store following an existing pattern:**
+```
+Read src/stores/lists.ts, then create src/stores/labels.ts following the same
+offline-first pattern (API call → Dexie write → Pinia update).
+```
+
+**Generate a commit message:**
+```
+Generate a conventional commit message for the changes I just made to [files].
+The issue number is #XX.
+```
+
+**Generate a PR description:**
+```
+Write a GitHub pull request description for a PR that closes issues #X, #Y, #Z.
+Include a summary, what was implemented, and a test plan checklist.
+```
+
+---
+
+### 9.8 GitHub Copilot in VSCode / IntelliJ
+
+#### VSCode
+
+1. Install the **GitHub Copilot** extension
+2. Start typing in the editor — Copilot suggests completions in grey
+3. `Tab` to accept, `Esc` to reject
+4. `Ctrl+Enter` opens multiple suggestions side by side
+
+**Copilot Chat** (`Ctrl+Shift+I`): like Claude but directly in the editor. Good for small, local questions about a single file.
+
+#### IntelliJ IDEA
+
+1. Install the **GitHub Copilot** plugin from the JetBrains Marketplace
+2. Sign in with your GitHub account
+3. Inline completions appear automatically while typing — `Tab` to accept
+4. **Copilot Chat**: Tool Window bottom right → ask questions about the currently open file
+
+---
+
+_Last updated: 2026-03-05_
+
+---
+
+## 10. Sources & References
 
 [^1]: Kleppmann, M., Wiggins, A., van Hardenberg, P., & McGranaghan, M. (2019). **Local-first software: you own your data, in spite of the cloud.** https://doi.org/10.1145/3359591.3359737
 

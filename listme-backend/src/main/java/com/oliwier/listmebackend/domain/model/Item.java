@@ -1,9 +1,6 @@
 package com.oliwier.listmebackend.domain.model;
 
 import jakarta.persistence.*;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
 
 import java.math.BigDecimal;
 import java.time.Instant;
@@ -13,7 +10,6 @@ import java.util.UUID;
 
 @Entity
 @Table(name = "items")
-@Getter @Setter @NoArgsConstructor
 public class Item {
 
     @Id
@@ -54,9 +50,9 @@ public class Item {
 
     @ManyToMany
     @JoinTable(
-        name = "item_labels",
-        joinColumns = @JoinColumn(name = "item_id"),
-        inverseJoinColumns = @JoinColumn(name = "label_id")
+            name = "item_labels",
+            joinColumns = @JoinColumn(name = "item_id"),
+            inverseJoinColumns = @JoinColumn(name = "label_id")
     )
     private Set<Label> labels = new HashSet<>();
 
@@ -68,6 +64,46 @@ public class Item {
 
     @Column(name = "deleted_at")
     private Instant deletedAt;
+
+    public Item() {}
+
+    // --- Getters ---
+
+    public UUID getId() { return id; }
+    public ShoppingList getList() { return list; }
+    public String getName() { return name; }
+    public boolean isChecked() { return checked; }
+    public int getPosition() { return position; }
+    public Category getCategory() { return category; }
+    public Device getCreatedByDevice() { return createdByDevice; }
+    public BigDecimal getQuantity() { return quantity; }
+    public String getQuantityUnit() { return quantityUnit; }
+    public BigDecimal getPrice() { return price; }
+    public String getImageUrl() { return imageUrl; }
+    public Set<Label> getLabels() { return labels; }
+    public Instant getCreatedAt() { return createdAt; }
+    public Instant getUpdatedAt() { return updatedAt; }
+    public Instant getDeletedAt() { return deletedAt; }
+
+    // --- Setters ---
+
+    public void setId(UUID id) { this.id = id; }
+    public void setList(ShoppingList list) { this.list = list; }
+    public void setName(String name) { this.name = name; }
+    public void setChecked(boolean checked) { this.checked = checked; }
+    public void setPosition(int position) { this.position = position; }
+    public void setCategory(Category category) { this.category = category; }
+    public void setCreatedByDevice(Device createdByDevice) { this.createdByDevice = createdByDevice; }
+    public void setQuantity(BigDecimal quantity) { this.quantity = quantity; }
+    public void setQuantityUnit(String quantityUnit) { this.quantityUnit = quantityUnit; }
+    public void setPrice(BigDecimal price) { this.price = price; }
+    public void setImageUrl(String imageUrl) { this.imageUrl = imageUrl; }
+    public void setLabels(Set<Label> labels) { this.labels = labels; }
+    public void setCreatedAt(Instant createdAt) { this.createdAt = createdAt; }
+    public void setUpdatedAt(Instant updatedAt) { this.updatedAt = updatedAt; }
+    public void setDeletedAt(Instant deletedAt) { this.deletedAt = deletedAt; }
+
+    // --- Lifecycle Callbacks ---
 
     @PrePersist
     void prePersist() {

@@ -1,0 +1,3 @@
+listme.yourdomain.com {
+    reverse_proxy listme-frontend:80
+}

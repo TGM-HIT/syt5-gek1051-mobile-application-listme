@@ -1,0 +1,72 @@
+name: Backend CI
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'listme-backend/**'
+      - '.github/workflows/backend-ci.yml'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'listme-backend/**'
+  workflow_dispatch:
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: listme
+          POSTGRES_USER: listme
+          POSTGRES_PASSWORD: listme
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Java 21
+        uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+          cache: 'maven'
+
+      - name: Compile
+        working-directory: listme-backend
+        run: ./mvnw compile -B
+
+      - name: Test with coverage
+        working-directory: listme-backend
+        run: ./mvnw verify -B
+        env:
+          SPRING_DATASOURCE_URL: jdbc:postgresql://localhost:5432/listme
+          SPRING_DATASOURCE_USERNAME: listme
+          SPRING_DATASOURCE_PASSWORD: listme
+
+      - name: Generate JaCoCo badge
+        id: jacoco
+        if: always()
+        uses: cicirello/jacoco-badge-generator@v2
+        with:
+          jacoco-csv-file: listme-backend/target/site/jacoco/jacoco.csv
+          badges-directory: .github/badges
+          generate-coverage-badge: true
+          coverage-badge-filename: backend-coverage.svg
+
+      - name: Commit coverage badge
+        if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+        uses: EndBug/add-and-commit@v9
+        with:
+          message: 'ci: update backend coverage badge [skip ci]'
+          add: '.github/badges/backend-coverage.svg'
+          default_author: github_actions

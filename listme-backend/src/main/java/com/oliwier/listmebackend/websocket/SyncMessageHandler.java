@@ -28,6 +28,7 @@ public class SyncMessageHandler {
         String deviceId = deviceId(accessor);
         if (deviceId == null) return;
 
+        // Store listId in session so we can clean up on disconnect
         accessor.getSessionAttributes().put("lastListId_" + listId, listId.toString());
 
         broadcaster.broadcastJoin(listId, deviceId);
@@ -40,6 +41,7 @@ public class SyncMessageHandler {
         broadcaster.broadcastLeave(listId, deviceId);
     }
 
+    /** Clean up when WebSocket connection drops entirely. */
     @EventListener
     public void onDisconnect(SessionDisconnectEvent event) {
         SimpMessageHeaderAccessor accessor =
@@ -47,7 +49,9 @@ public class SyncMessageHandler {
         String deviceId = deviceId(accessor);
         if (deviceId == null) return;
 
+        // Remove from all lists and notify
         presenceTracker.disconnectDevice(deviceId);
+        // No broadcast here — the topic subscriptions are already gone
     }
 
     private String deviceId(SimpMessageHeaderAccessor accessor) {

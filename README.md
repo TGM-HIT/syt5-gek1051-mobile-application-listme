@@ -11,6 +11,43 @@ No accounts. No passwords. Open the app and start.
 
 ---
 
+<!-- CI/CD -->
+[![Backend CI](https://github.com/TGM-HIT/syt5-gek1051-mobile-application-listme/actions/workflows/backend-ci.yml/badge.svg)](https://github.com/TGM-HIT/syt5-gek1051-mobile-application-listme/actions/workflows/backend-ci.yml)
+[![Frontend CI](https://github.com/TGM-HIT/syt5-gek1051-mobile-application-listme/actions/workflows/frontend-ci.yml/badge.svg)](https://github.com/TGM-HIT/syt5-gek1051-mobile-application-listme/actions/workflows/frontend-ci.yml)
+[![Deploy](https://github.com/TGM-HIT/syt5-gek1051-mobile-application-listme/actions/workflows/deploy.yml/badge.svg)](https://github.com/TGM-HIT/syt5-gek1051-mobile-application-listme/actions/workflows/deploy.yml)
+
+<!-- Code Coverage -->
+[![Backend Coverage](.github/badges/backend-coverage.svg)](https://github.com/TGM-HIT/syt5-gek1051-mobile-application-listme/actions/workflows/backend-ci.yml)
+[![Frontend Coverage](.github/badges/frontend-coverage.svg)](https://github.com/TGM-HIT/syt5-gek1051-mobile-application-listme/actions/workflows/frontend-ci.yml)
+
+<!-- Backend stack -->
+[![Java](https://img.shields.io/badge/Java-21-f89820?logo=openjdk&logoColor=white)](https://adoptium.net/)
+[![Spring Boot](https://img.shields.io/badge/Spring%20Boot-4.0.2-6db33f?logo=springboot&logoColor=white)](https://spring.io/projects/spring-boot)
+[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16-4169e1?logo=postgresql&logoColor=white)](https://www.postgresql.org/)
+[![Flyway](https://img.shields.io/badge/Flyway-migration-cc0200?logo=flyway&logoColor=white)](https://flywaydb.org/)
+
+<!-- Frontend stack -->
+[![Vue](https://img.shields.io/badge/Vue-3.5-42b883?logo=vuedotjs&logoColor=white)](https://vuejs.org/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.9-3178c6?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
+[![Vite](https://img.shields.io/badge/Vite-7-646cff?logo=vite&logoColor=white)](https://vitejs.dev/)
+[![Tailwind CSS](https://img.shields.io/badge/Tailwind%20CSS-4-38bdf8?logo=tailwindcss&logoColor=white)](https://tailwindcss.com/)
+[![Pinia](https://img.shields.io/badge/Pinia-3-ffd859?logo=pinia&logoColor=black)](https://pinia.vuejs.org/)
+[![Vitest](https://img.shields.io/badge/Vitest-4-6e9f18?logo=vitest&logoColor=white)](https://vitest.dev/)
+
+<!-- Infrastructure -->
+[![Docker](https://img.shields.io/badge/Docker-compose-2496ed?logo=docker&logoColor=white)](https://www.docker.com/)
+[![Node](https://img.shields.io/badge/Node-20-339933?logo=nodedotjs&logoColor=white)](https://nodejs.org/)
+[![PWA](https://img.shields.io/badge/PWA-enabled-5a0fc8?logo=pwa&logoColor=white)](https://web.dev/progressive-web-apps/)
+[![AWS](https://img.shields.io/badge/AWS-Lightsail-ff9900?logo=amazonaws&logoColor=white)](https://aws.amazon.com/lightsail/)
+
+<!-- Repo meta -->
+[![GitHub](https://img.shields.io/badge/GitHub-TGM--HIT-8b949e?logo=github)](https://github.com/TGM-HIT/syt5-gek1051-mobile-application-listme)
+[![License](https://img.shields.io/badge/license-MIT-8b949e)](LICENSE)
+[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-3fb950)](https://github.com/TGM-HIT/syt5-gek1051-mobile-application-listme/pulls)
+[![Made with love](https://img.shields.io/badge/made%20with-%E2%9D%A4-e05d44)](https://github.com/TGM-HIT)
+
+---
+
 ## Team
 
 | Name | Role |
@@ -67,6 +104,6 @@ docker compose restart backend
 
 ## Tech stack (short version)
 
-**Backend:** Spring Boot 4.0.2 · Java 17 · PostgreSQL 16 · WebSocket/STOMP · Flyway
+**Backend:** Spring Boot 4.0.2 · Java 21 · PostgreSQL 16 · WebSocket/STOMP · Flyway
 **Frontend:** Vue 3 · TypeScript · Vite · Pinia · Dexie (IndexedDB) · Tailwind CSS 4 · PWA
 **Infra:** Docker · AWS Lightsail · GitHub Actions

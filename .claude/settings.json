@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "WebFetch(domain:api.github.com)",
+      "WebFetch(domain:raw.githubusercontent.com)",
+      "Bash(curl -s https://raw.githubusercontent.com/ren-ben/HelikonProject/main/.env.example)",
+      "Bash(curl -s https://raw.githubusercontent.com/ren-ben/HelikonProject/main/pom.xml)"
+    ]
+  }
+}
