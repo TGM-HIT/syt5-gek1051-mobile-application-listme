@@ -545,6 +545,167 @@ library view in "picker mode" — selecting an item fills the sheet and closes t
 
 ---
 
+## Testing Strategy
+
+**Target:** ~90% line coverage on both backend (JaCoCo) and frontend (Vitest v8).
+All tests run automatically in CI on every push.
+
+### Coverage Layers
+
+| Layer | Backend | Frontend |
+|-------|---------|----------|
+| Unit | JUnit 5 + Mockito (pure logic, no DB) | Vitest (stores, services, CRDT classes) |
+| Integration | TestContainers (real PG) + MockMvc | Vitest + @vue/test-utils (components, composables) |
+| E2E | — | Playwright (critical user flows + offline sim) |
+
+### Pre-condition: Fix Compilation Errors First
+
+Before any test phase the backend must compile cleanly:
+
+1. **Duplicate `CreateItemRequest.java`** — two files with the same fully-qualified class name exist; delete the one in the wrong package.
+2. **`PriceService` Lombok symbols** — `isChecked()` / `getPrice()` not generated; add `@Getter` / `@Data` to `Item` entity or add the missing fields to the entity.
+
+---
+
+### Test Phase T1 — CRDT & Pure Logic (no DB, no network)
+
+**Goal:** Cover the deterministic core that is easiest to test and highest value.
+
+**Backend** (`src/test/.../crdt/`):
+- `VectorClockTest.java` — increment, merge, compare (BEFORE/AFTER/CONCURRENT/EQUAL), commutativity, associativity, idempotence
+- `ConflictDetectorTest.java` — all clock-relation branches, concurrent-op detection
+- `SyncEngineUnitTest.java` — ITEM_ADD, ITEM_UPDATE, ITEM_REMOVE, ITEM_CHECK, LWW tie-break by timestamp then deviceId, OR-Set add-wins
+
+**Frontend** (`src/crdt/`, `src/services/clock.ts`):
+- `VectorClock.spec.ts` — mirrors Java tests exactly (same property tests)
+- `ConflictDetector.spec.ts` — concurrent vs. causal detection
+- `OperationQueue.spec.ts` — enqueue, dequeue, ordering
+- `clock.spec.ts` — service wrapper functions
+
+**Expected cumulative coverage after T1:** Backend ~25% | Frontend ~20%
+
+---
+
+### Test Phase T2 — Services & Stores (unit, mocked dependencies)
+
+**Goal:** Cover all business logic in isolation.
+
+**Backend** (`src/test/.../domain/service/`):
+- `ItemServiceTest.java` — add, update, check/uncheck, soft-delete, restore; mock `ItemRepository`, `ShoppingListRepository`
+- `ListServiceTest.java` — create, update, delete, duplicate, share token assignment; mock repos
+- `CategoryServiceTest.java` — CRUD, validate no duplicate names per list
+- `LabelServiceTest.java` — CRUD, assign/remove from items
+- `PriceServiceTest.java` — total, by-category, checked-only filter
+- `ShareServiceTest.java` — token generation length/format, join resolves correct list
+- `SyncTokenServiceTest.java` — token generation, multi-list grouping
+- `FavoriteServiceTest.java` — add/remove, device scoping
+- `PresetServiceTest.java` — create from list, apply to new list (copies items)
+- `DeviceServiceTest.java` — registration, display-name update
+
+**Frontend** (`src/stores/`, `src/services/`):
+- `lists.spec.ts` — createList, updateList, deleteList, shareList; mock `list.ts` service
+- `items.spec.ts` — addItem, checkItem, deleteItem, restoreItem; mock `item.ts` service
+- `labels.spec.ts` — CRUD actions
+- `presence.spec.ts` — join/leave, online user map
+- `profile.spec.ts` — deviceId persistence, displayName update
+- `theme.spec.ts` — toggle, persistence
+- `budget.spec.ts` — total calculation, per-category breakdown, formatting
+- `device.spec.ts` — UUID generation, IndexedDB persistence stub
+- `itemHistory.spec.ts` — debounce, offline fallback to store scan
+
+**Expected cumulative coverage after T2:** Backend ~55% | Frontend ~50%
+
+---
+
+### Test Phase T3 — Controller & Component Integration
+
+**Goal:** Cover HTTP layer (backend) and rendered components (frontend).
+
+**Backend** (`src/test/.../api/`):
+- `ListControllerIT.java` — full CRUD via MockMvc + TestContainers; share endpoint; duplicate endpoint
+- `ItemControllerIT.java` — add, update, check, delete, history endpoint
+- `CategoryControllerIT.java` — CRUD, assign to item
+- `LabelControllerIT.java` — CRUD, assign/remove
+- `DeviceControllerIT.java` — auto-register on first call, update display name
+- `ShareControllerIT.java` — generate token, join via token
+- `SyncTokenControllerIT.java` — create, resolve
+- `PresetControllerIT.java` — create, get, apply to new list
+- `BudgetControllerIT.java` — totals endpoint
+- `ExportControllerIT.java` — CSV download, content-type headers
+- `FavoriteControllerIT.java` — add/remove, list by device
+
+**Frontend** (`src/components/`):
+- `ItemRow.spec.ts` — renders name/qty/price, checkbox toggles, delete emits event
+- `ListCard.spec.ts` — progress bar percentage, participant avatars, accent color class
+- `ListSection.spec.ts` — renders empty state, renders list of cards
+- `AddListModal.spec.ts` — form validation, emoji selection, submit emits correct payload
+- `ConflictBanner.spec.ts` — shows/hides, renders conflict values, merge-click emits
+- `LabelTag.spec.ts` — color style applied, text rendered
+- `ConnectionBanner.spec.ts` — shows when offline, hidden when online
+- `BudgetBar.spec.ts` — width percentage, over-budget style
+
+**Expected cumulative coverage after T3:** Backend ~80% | Frontend ~75%
+
+---
+
+### Test Phase T4 — WebSocket, Composables & View Integration
+
+**Goal:** Cover real-time sync path and view-level logic.
+
+**Backend** (`src/test/.../websocket/`):
+- `SyncMessageHandlerIT.java` — STOMP send to `/app/list/{id}/sync`, verify broadcast, verify DB write
+- `PresenceTrackerTest.java` — device joins/leaves, online list correct
+- `DeviceHandshakeInterceptorTest.java` — deviceId extracted from header
+
+**Frontend**:
+- `useOffline.spec.ts` — emits `online`/`offline` on window events
+- `useSyncQueue.spec.ts` — queues ops when offline, flushes in order when back online
+- `useListSync.spec.ts` — applies incoming WebSocket message to items store
+- `HomeView.spec.ts` — renders "My Lists" + "Shared with me" sections, FAB visible
+- `ListDetailView.spec.ts` — renders item list, filter bar, calls checkItem on tap
+- `LibraryView.spec.ts` — history section renders, preset section renders, search filters both
+
+**Expected cumulative coverage after T4:** Backend ~88% | Frontend ~85%
+
+---
+
+### Test Phase T5 — E2E (Playwright, frontend only)
+
+**Goal:** Validate full user flows in a real browser; covers branches that unit tests miss.
+
+**Setup:** Add `@playwright/test` to devDependencies; add `playwright.config.ts`; add step to `frontend-ci.yml`:
+```yaml
+- name: Install Playwright browsers
+  run: npx playwright install --with-deps chromium
+- name: Run E2E tests
+  working-directory: listme-frontend
+  run: npx playwright test
+```
+
+**Test files** (`e2e/`):
+- `home.spec.ts` — load app, see empty state, create list, list appears in "My Lists"
+- `item-crud.spec.ts` — open list, add item, check item, delete item
+- `share.spec.ts` — generate share link, open in second page context, list appears
+- `offline.spec.ts` — go offline (CDP), add item, come back online, item synced
+- `conflict.spec.ts` — two tabs edit same item offline, reconnect, conflict banner appears
+
+**Expected cumulative coverage after T5:** Frontend ~90% (E2E covers UI branches missed by unit tests)
+
+---
+
+### CI Changes Required per Phase
+
+| Phase | Backend CI | Frontend CI |
+|-------|-----------|-------------|
+| T1–T4 | existing `./mvnw verify -B` covers all JUnit/IT tests | add `vitest run --coverage` (already done) |
+| T5 | — | add Playwright install + `playwright test` step |
+
+JaCoCo already configured via `./mvnw verify`; ensure `jacoco-maven-plugin` has `<goal>report</goal>` bound to `verify`.
+
+Vitest coverage already configured with `@vitest/coverage-v8`.
+
+---
+
 ### Phase 13: Production Prep (Week 14)
 
 **Goal:** Deployment readiness
