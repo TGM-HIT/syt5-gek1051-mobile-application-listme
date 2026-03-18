@@ -31,16 +31,16 @@ public class DeviceController {
     @Transactional
     public DeviceResponse updateMe(@CurrentDevice Device device,
                                    @Valid @RequestBody UpdateDeviceRequest req) {
-<span class="nc" id="L34">        device.setDisplayName(req.displayName());</span>
-<span class="nc" id="L35">        device.setProfilePicture(req.profilePicture());</span>
-<span class="nc" id="L36">        return DeviceResponse.from(deviceRepository.save(device));</span>
+<span class="fc" id="L34">        device.setDisplayName(req.displayName());</span>
+<span class="fc" id="L35">        device.setProfilePicture(req.profilePicture());</span>
+<span class="fc" id="L36">        return DeviceResponse.from(deviceRepository.save(device));</span>
     }
 
     @GetMapping(&quot;/{deviceId}&quot;)
     public DeviceResponse getDevice(@PathVariable UUID deviceId) {
-<span class="nc" id="L41">        return deviceRepository.findById(deviceId)</span>
-<span class="nc" id="L42">                .map(DeviceResponse::from)</span>
-<span class="nc" id="L43">                .orElseThrow(() -&gt; new ResponseStatusException(HttpStatus.NOT_FOUND, &quot;Device not found&quot;));</span>
+<span class="fc" id="L41">        return deviceRepository.findById(deviceId)</span>
+<span class="fc" id="L42">                .map(DeviceResponse::from)</span>
+<span class="fc" id="L43">                .orElseThrow(() -&gt; new ResponseStatusException(HttpStatus.NOT_FOUND, &quot;Device not found&quot;));</span>
     }
 }
 </pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

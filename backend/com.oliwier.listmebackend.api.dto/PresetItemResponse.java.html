@@ -5,7 +5,7 @@ import com.oliwier.listmebackend.domain.model.PresetItem;
 import java.math.BigDecimal;
 import java.util.UUID;
 
-<span class="nc" id="L8">public record PresetItemResponse(</span>
+<span class="fc" id="L8">public record PresetItemResponse(</span>
         UUID id,
         String name,
         BigDecimal quantity,
@@ -14,10 +14,10 @@ import java.util.UUID;
         String imageUrl
 ) {
     public static PresetItemResponse from(PresetItem i) {
-<span class="nc" id="L17">        return new PresetItemResponse(</span>
-<span class="nc" id="L18">                i.getId(), i.getName(),</span>
-<span class="nc" id="L19">                i.getQuantity(), i.getQuantityUnit(),</span>
-<span class="nc" id="L20">                i.getPrice(), i.getImageUrl());</span>
+<span class="fc" id="L17">        return new PresetItemResponse(</span>
+<span class="fc" id="L18">                i.getId(), i.getName(),</span>
+<span class="fc" id="L19">                i.getQuantity(), i.getQuantityUnit(),</span>
+<span class="fc" id="L20">                i.getPrice(), i.getImageUrl());</span>
     }
 }
 </pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

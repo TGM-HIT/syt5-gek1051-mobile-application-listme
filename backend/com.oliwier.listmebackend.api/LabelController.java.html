@@ -24,7 +24,7 @@ public class LabelController {
 
     @GetMapping
     public List&lt;LabelResponse&gt; getLabels(@PathVariable UUID listId, @CurrentDevice Device device) {
-<span class="nc" id="L27">        return labelService.getByList(listId, device).stream().map(LabelResponse::from).toList();</span>
+<span class="fc" id="L27">        return labelService.getByList(listId, device).stream().map(LabelResponse::from).toList();</span>
     }
 
     @PostMapping
@@ -33,7 +33,7 @@ public class LabelController {
     public LabelResponse create(@PathVariable UUID listId,
                                 @CurrentDevice Device device,
                                 @Valid @RequestBody CreateLabelRequest req) {
-<span class="nc" id="L36">        return LabelResponse.from(labelService.create(listId, device, req));</span>
+<span class="fc" id="L36">        return LabelResponse.from(labelService.create(listId, device, req));</span>
     }
 
     @PutMapping(&quot;/{labelId}&quot;)
@@ -42,7 +42,7 @@ public class LabelController {
                                 @PathVariable UUID labelId,
                                 @CurrentDevice Device device,
                                 @Valid @RequestBody CreateLabelRequest req) {
-<span class="nc" id="L45">        return LabelResponse.from(labelService.update(listId, labelId, device, req));</span>
+<span class="fc" id="L45">        return LabelResponse.from(labelService.update(listId, labelId, device, req));</span>
     }
 
     @DeleteMapping(&quot;/{labelId}&quot;)
@@ -51,7 +51,7 @@ public class LabelController {
     public void delete(@PathVariable UUID listId,
                        @PathVariable UUID labelId,
                        @CurrentDevice Device device) {
-<span class="nc" id="L54">        labelService.delete(listId, labelId, device);</span>
-<span class="nc" id="L55">    }</span>
+<span class="fc" id="L54">        labelService.delete(listId, labelId, device);</span>
+<span class="fc" id="L55">    }</span>
 }
 </pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

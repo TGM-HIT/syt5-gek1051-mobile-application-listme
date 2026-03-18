@@ -37,9 +37,9 @@ public class ShareController {
     @ResponseStatus(HttpStatus.NO_CONTENT)
     @Transactional
     public void revokeShare(@CurrentDevice Device device, @PathVariable UUID listId) {
-<span class="nc" id="L40">        ShoppingList list = getListForDevice(listId, device);</span>
-<span class="nc" id="L41">        shareService.revokeShareToken(list);</span>
-<span class="nc" id="L42">    }</span>
+<span class="fc" id="L40">        ShoppingList list = getListForDevice(listId, device);</span>
+<span class="fc" id="L41">        shareService.revokeShareToken(list);</span>
+<span class="fc" id="L42">    }</span>
 
     @GetMapping(&quot;/api/share/{token}&quot;)
     public ListResponse preview(@PathVariable String token) {

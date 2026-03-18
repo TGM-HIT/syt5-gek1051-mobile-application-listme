@@ -52,24 +52,24 @@ public class ListController {
 
         // If a preset was specified, copy its items into the new list (saved explicitly)
 <span class="fc" id="L54">        int itemCount = 0;</span>
-<span class="pc bpc" id="L55" title="1 of 2 branches missed.">        if (req.presetId() != null) {</span>
-<span class="nc" id="L56">            List&lt;PresetItem&gt; presetItems = presetItemRepository.findByPresetIdOrderByPosition(req.presetId());</span>
-<span class="nc" id="L57">            List&lt;Item&gt; items = new java.util.ArrayList&lt;&gt;();</span>
-<span class="nc bnc" id="L58" title="All 2 branches missed.">            for (PresetItem pi : presetItems) {</span>
-<span class="nc" id="L59">                Item item = new Item();</span>
-<span class="nc" id="L60">                item.setList(list);</span>
-<span class="nc" id="L61">                item.setName(pi.getName());</span>
-<span class="nc" id="L62">                item.setChecked(false);</span>
-<span class="nc" id="L63">                item.setPosition(pi.getPosition());</span>
-<span class="nc" id="L64">                item.setQuantity(pi.getQuantity());</span>
-<span class="nc" id="L65">                item.setQuantityUnit(pi.getQuantityUnit());</span>
-<span class="nc" id="L66">                item.setPrice(pi.getPrice());</span>
-<span class="nc" id="L67">                item.setImageUrl(pi.getImageUrl());</span>
-<span class="nc" id="L68">                item.setCreatedByDevice(device);</span>
-<span class="nc" id="L69">                items.add(item);</span>
-<span class="nc" id="L70">            }</span>
-<span class="nc" id="L71">            itemRepository.saveAll(items);</span>
-<span class="nc" id="L72">            itemCount = items.size();</span>
+<span class="fc bfc" id="L55" title="All 2 branches covered.">        if (req.presetId() != null) {</span>
+<span class="fc" id="L56">            List&lt;PresetItem&gt; presetItems = presetItemRepository.findByPresetIdOrderByPosition(req.presetId());</span>
+<span class="fc" id="L57">            List&lt;Item&gt; items = new java.util.ArrayList&lt;&gt;();</span>
+<span class="fc bfc" id="L58" title="All 2 branches covered.">            for (PresetItem pi : presetItems) {</span>
+<span class="fc" id="L59">                Item item = new Item();</span>
+<span class="fc" id="L60">                item.setList(list);</span>
+<span class="fc" id="L61">                item.setName(pi.getName());</span>
+<span class="fc" id="L62">                item.setChecked(false);</span>
+<span class="fc" id="L63">                item.setPosition(pi.getPosition());</span>
+<span class="fc" id="L64">                item.setQuantity(pi.getQuantity());</span>
+<span class="fc" id="L65">                item.setQuantityUnit(pi.getQuantityUnit());</span>
+<span class="fc" id="L66">                item.setPrice(pi.getPrice());</span>
+<span class="fc" id="L67">                item.setImageUrl(pi.getImageUrl());</span>
+<span class="fc" id="L68">                item.setCreatedByDevice(device);</span>
+<span class="fc" id="L69">                items.add(item);</span>
+<span class="fc" id="L70">            }</span>
+<span class="fc" id="L71">            itemRepository.saveAll(items);</span>
+<span class="fc" id="L72">            itemCount = items.size();</span>
         }
 
 <span class="fc" id="L75">        return ListResponse.fromWithCount(list, itemCount);</span>
@@ -101,36 +101,36 @@ public class ListController {
 
     @GetMapping(&quot;/{listId}/participants&quot;)
     public List&lt;ParticipantResponse&gt; getParticipants(@PathVariable UUID listId, @CurrentDevice Device device) {
-<span class="nc" id="L104">        requireAccess(listId, device);</span>
-<span class="nc" id="L105">        return listDeviceRepository.findByListId(listId).stream()</span>
-<span class="nc" id="L106">                .map(ld -&gt; new ParticipantResponse(ld.getDevice().getId(), ld.getRole(), ld.getJoinedAt(), ld.getDevice().getDisplayName(), ld.getDevice().getProfilePicture()))</span>
-<span class="nc" id="L107">                .toList();</span>
+<span class="fc" id="L104">        requireAccess(listId, device);</span>
+<span class="fc" id="L105">        return listDeviceRepository.findByListId(listId).stream()</span>
+<span class="fc" id="L106">                .map(ld -&gt; new ParticipantResponse(ld.getDevice().getId(), ld.getRole(), ld.getJoinedAt(), ld.getDevice().getDisplayName(), ld.getDevice().getProfilePicture()))</span>
+<span class="fc" id="L107">                .toList();</span>
     }
 
     @PostMapping(&quot;/{listId}/duplicate&quot;)
     @ResponseStatus(HttpStatus.CREATED)
     @Transactional
     public ListResponse duplicate(@PathVariable UUID listId, @CurrentDevice Device device) {
-<span class="nc" id="L114">        ShoppingList orig = requireAccess(listId, device);</span>
+<span class="fc" id="L114">        ShoppingList orig = requireAccess(listId, device);</span>
 
-<span class="nc" id="L116">        ShoppingList copy = new ShoppingList();</span>
-<span class="nc" id="L117">        copy.setId(UUID.randomUUID());</span>
-<span class="nc" id="L118">        copy.setName(orig.getName() + &quot; (Kopie)&quot;);</span>
-<span class="nc" id="L119">        copy.setEmoji(orig.getEmoji());</span>
-<span class="nc" id="L120">        copy.setCreatedByDevice(device);</span>
-<span class="nc" id="L121">        copy.getListDevices().add(new ListDevice(copy, device, &quot;owner&quot;));</span>
+<span class="fc" id="L116">        ShoppingList copy = new ShoppingList();</span>
+<span class="fc" id="L117">        copy.setId(UUID.randomUUID());</span>
+<span class="fc" id="L118">        copy.setName(orig.getName() + &quot; (Kopie)&quot;);</span>
+<span class="fc" id="L119">        copy.setEmoji(orig.getEmoji());</span>
+<span class="fc" id="L120">        copy.setCreatedByDevice(device);</span>
+<span class="fc" id="L121">        copy.getListDevices().add(new ListDevice(copy, device, &quot;owner&quot;));</span>
 
-<span class="nc" id="L123">        orig.getItems().forEach(origItem -&gt; {</span>
-<span class="nc" id="L124">            Item item = new Item();</span>
-<span class="nc" id="L125">            item.setList(copy);</span>
-<span class="nc" id="L126">            item.setName(origItem.getName());</span>
-<span class="nc" id="L127">            item.setPosition(origItem.getPosition());</span>
-<span class="nc" id="L128">            item.setChecked(false);</span>
-<span class="nc" id="L129">            item.setCreatedByDevice(device);</span>
-<span class="nc" id="L130">            copy.getItems().add(item);</span>
-<span class="nc" id="L131">        });</span>
+<span class="fc" id="L123">        orig.getItems().forEach(origItem -&gt; {</span>
+<span class="fc" id="L124">            Item item = new Item();</span>
+<span class="fc" id="L125">            item.setList(copy);</span>
+<span class="fc" id="L126">            item.setName(origItem.getName());</span>
+<span class="fc" id="L127">            item.setPosition(origItem.getPosition());</span>
+<span class="fc" id="L128">            item.setChecked(false);</span>
+<span class="fc" id="L129">            item.setCreatedByDevice(device);</span>
+<span class="fc" id="L130">            copy.getItems().add(item);</span>
+<span class="fc" id="L131">        });</span>
 
-<span class="nc" id="L133">        return ListResponse.from(listRepository.save(copy));</span>
+<span class="fc" id="L133">        return ListResponse.from(listRepository.save(copy));</span>
     }
 
     @DeleteMapping(&quot;/{listId}&quot;)

@@ -5,7 +5,7 @@ import com.oliwier.listmebackend.domain.model.Preset;
 import java.time.Instant;
 import java.util.UUID;
 
-<span class="nc" id="L8">public record PresetResponse(</span>
+<span class="fc" id="L8">public record PresetResponse(</span>
         UUID id,
         String name,
         String emoji,
@@ -13,7 +13,7 @@ import java.util.UUID;
         Instant createdAt
 ) {
     public static PresetResponse from(Preset p) {
-<span class="nc" id="L16">        return new PresetResponse(p.getId(), p.getName(), p.getEmoji(), p.getItems().size(), p.getCreatedAt());</span>
+<span class="fc" id="L16">        return new PresetResponse(p.getId(), p.getName(), p.getEmoji(), p.getItems().size(), p.getCreatedAt());</span>
     }
 }
 </pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

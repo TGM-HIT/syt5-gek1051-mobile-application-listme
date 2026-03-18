@@ -24,19 +24,19 @@ public class ExportController {
             @RequestParam(defaultValue = &quot;csv&quot;) String format,
             @CurrentDevice Device device) {
 
-<span class="nc bnc" id="L27" title="All 2 branches missed.">        if (&quot;pdf&quot;.equalsIgnoreCase(format)) {</span>
-<span class="nc" id="L28">            byte[] pdf = exportService.exportPdf(listId);</span>
-<span class="nc" id="L29">            return ResponseEntity.ok()</span>
-<span class="nc" id="L30">                    .header(HttpHeaders.CONTENT_DISPOSITION, &quot;attachment; filename=\&quot;liste.pdf\&quot;&quot;)</span>
-<span class="nc" id="L31">                    .contentType(MediaType.APPLICATION_PDF)</span>
-<span class="nc" id="L32">                    .body(pdf);</span>
+<span class="fc bfc" id="L27" title="All 2 branches covered.">        if (&quot;pdf&quot;.equalsIgnoreCase(format)) {</span>
+<span class="fc" id="L28">            byte[] pdf = exportService.exportPdf(listId);</span>
+<span class="fc" id="L29">            return ResponseEntity.ok()</span>
+<span class="fc" id="L30">                    .header(HttpHeaders.CONTENT_DISPOSITION, &quot;attachment; filename=\&quot;liste.pdf\&quot;&quot;)</span>
+<span class="fc" id="L31">                    .contentType(MediaType.APPLICATION_PDF)</span>
+<span class="fc" id="L32">                    .body(pdf);</span>
         }
 
-<span class="nc" id="L35">        byte[] csv = exportService.exportCsv(listId);</span>
-<span class="nc" id="L36">        return ResponseEntity.ok()</span>
-<span class="nc" id="L37">                .header(HttpHeaders.CONTENT_DISPOSITION, &quot;attachment; filename=\&quot;liste.csv\&quot;&quot;)</span>
-<span class="nc" id="L38">                .contentType(new MediaType(&quot;text&quot;, &quot;csv&quot;, java.nio.charset.StandardCharsets.UTF_8))</span>
-<span class="nc" id="L39">                .body(csv);</span>
+<span class="fc" id="L35">        byte[] csv = exportService.exportCsv(listId);</span>
+<span class="fc" id="L36">        return ResponseEntity.ok()</span>
+<span class="fc" id="L37">                .header(HttpHeaders.CONTENT_DISPOSITION, &quot;attachment; filename=\&quot;liste.csv\&quot;&quot;)</span>
+<span class="fc" id="L38">                .contentType(new MediaType(&quot;text&quot;, &quot;csv&quot;, java.nio.charset.StandardCharsets.UTF_8))</span>
+<span class="fc" id="L39">                .body(csv);</span>
     }
 }
 </pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

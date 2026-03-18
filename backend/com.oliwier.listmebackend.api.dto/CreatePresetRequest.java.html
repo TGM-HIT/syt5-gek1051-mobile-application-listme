@@ -6,7 +6,7 @@ import jakarta.validation.constraints.Size;
 
 import java.util.UUID;
 
-<span class="nc" id="L9">public record CreatePresetRequest(</span>
+<span class="fc" id="L9">public record CreatePresetRequest(</span>
         @NotBlank @Size(max = 100) String name,
         @Size(max = 10) String emoji,
         @NotNull UUID fromListId

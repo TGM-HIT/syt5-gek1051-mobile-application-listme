@@ -25,16 +25,16 @@ public class ItemHistoryController {
             @RequestParam(defaultValue = &quot;&quot;) String q,
             @RequestParam(defaultValue = &quot;8&quot;) int limit) {
 
-<span class="nc" id="L28">        int cap = Math.min(limit, 20);</span>
-<span class="nc" id="L29">        List&lt;Object[]&gt; rows = itemRepository.findHistoryRaw(</span>
-<span class="nc" id="L30">                device.getId().toString(), q.trim(), cap);</span>
+<span class="fc" id="L28">        int cap = Math.min(limit, 20);</span>
+<span class="fc" id="L29">        List&lt;Object[]&gt; rows = itemRepository.findHistoryRaw(</span>
+<span class="fc" id="L30">                device.getId().toString(), q.trim(), cap);</span>
 
-<span class="nc" id="L32">        return rows.stream().map(r -&gt; new ItemHistoryResponse(</span>
+<span class="fc" id="L32">        return rows.stream().map(r -&gt; new ItemHistoryResponse(</span>
                 (String) r[0],
                 (String) r[1],
-<span class="nc bnc" id="L35" title="All 2 branches missed.">                r[2] != null ? new BigDecimal(r[2].toString()) : null,</span>
+<span class="pc bpc" id="L35" title="1 of 2 branches missed.">                r[2] != null ? new BigDecimal(r[2].toString()) : null,</span>
                 (String) r[3]
-<span class="nc" id="L37">        )).toList();</span>
+<span class="fc" id="L37">        )).toList();</span>
     }
 }
 </pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

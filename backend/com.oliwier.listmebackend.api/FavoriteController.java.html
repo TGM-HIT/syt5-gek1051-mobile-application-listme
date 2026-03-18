@@ -24,7 +24,7 @@ public class FavoriteController {
 
     @GetMapping
     public List&lt;FavoriteResponse&gt; getMyFavorites(@CurrentDevice Device device) {
-<span class="nc" id="L27">        return favoriteService.getMyFavorites(device).stream().map(FavoriteResponse::from).toList();</span>
+<span class="fc" id="L27">        return favoriteService.getMyFavorites(device).stream().map(FavoriteResponse::from).toList();</span>
     }
 
     @PostMapping
@@ -32,14 +32,14 @@ public class FavoriteController {
     @Transactional
     public FavoriteResponse create(@CurrentDevice Device device,
                                    @Valid @RequestBody CreateFavoriteRequest req) {
-<span class="nc" id="L35">        return FavoriteResponse.from(favoriteService.create(device, req));</span>
+<span class="fc" id="L35">        return FavoriteResponse.from(favoriteService.create(device, req));</span>
     }
 
     @DeleteMapping(&quot;/{favoriteId}&quot;)
     @ResponseStatus(HttpStatus.NO_CONTENT)
     @Transactional
     public void delete(@PathVariable UUID favoriteId, @CurrentDevice Device device) {
-<span class="nc" id="L42">        favoriteService.delete(favoriteId, device);</span>
-<span class="nc" id="L43">    }</span>
+<span class="fc" id="L42">        favoriteService.delete(favoriteId, device);</span>
+<span class="fc" id="L43">    }</span>
 }
 </pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

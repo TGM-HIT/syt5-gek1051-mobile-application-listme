@@ -23,11 +23,11 @@ public class PresetService {
     private final ListDeviceRepository listDeviceRepository;
 
     public List&lt;Preset&gt; getForDevice(Device device) {
-<span class="nc" id="L26">        return presetRepository.findByCreatedByDeviceIdOrderByCreatedAtDesc(device.getId());</span>
+<span class="fc" id="L26">        return presetRepository.findByCreatedByDeviceIdOrderByCreatedAtDesc(device.getId());</span>
     }
 
     public List&lt;PresetItem&gt; getItems(UUID presetId) {
-<span class="nc" id="L30">        return presetItemRepository.findByPresetIdOrderByPosition(presetId);</span>
+<span class="fc" id="L30">        return presetItemRepository.findByPresetIdOrderByPosition(presetId);</span>
     }
 
     @Transactional

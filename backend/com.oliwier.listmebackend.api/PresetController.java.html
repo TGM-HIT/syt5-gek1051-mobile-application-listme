@@ -25,12 +25,12 @@ public class PresetController {
 
     @GetMapping
     public List&lt;PresetResponse&gt; getAll(@CurrentDevice Device device) {
-<span class="nc" id="L28">        return presetService.getForDevice(device).stream().map(PresetResponse::from).toList();</span>
+<span class="fc" id="L28">        return presetService.getForDevice(device).stream().map(PresetResponse::from).toList();</span>
     }
 
     @GetMapping(&quot;/{presetId}/items&quot;)
     public List&lt;PresetItemResponse&gt; getItems(@PathVariable UUID presetId) {
-<span class="nc" id="L33">        return presetService.getItems(presetId).stream().map(PresetItemResponse::from).toList();</span>
+<span class="fc" id="L33">        return presetService.getItems(presetId).stream().map(PresetItemResponse::from).toList();</span>
     }
 
     @PostMapping
@@ -38,15 +38,15 @@ public class PresetController {
     @Transactional
     public PresetResponse create(@CurrentDevice Device device,
                                  @Valid @RequestBody CreatePresetRequest req) {
-<span class="nc" id="L41">        return PresetResponse.from(</span>
-<span class="nc" id="L42">                presetService.createFromList(device, req.fromListId(), req.name(), req.emoji()));</span>
+<span class="fc" id="L41">        return PresetResponse.from(</span>
+<span class="fc" id="L42">                presetService.createFromList(device, req.fromListId(), req.name(), req.emoji()));</span>
     }
 
     @DeleteMapping(&quot;/{presetId}&quot;)
     @ResponseStatus(HttpStatus.NO_CONTENT)
     @Transactional
     public void delete(@CurrentDevice Device device, @PathVariable UUID presetId) {
-<span class="nc" id="L49">        presetService.delete(device, presetId);</span>
-<span class="nc" id="L50">    }</span>
+<span class="fc" id="L49">        presetService.delete(device, presetId);</span>
+<span class="fc" id="L50">    }</span>
 }
 </pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

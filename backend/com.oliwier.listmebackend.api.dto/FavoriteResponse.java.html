@@ -4,9 +4,9 @@ import com.oliwier.listmebackend.domain.model.Favorite;
 
 import java.util.UUID;
 
-<span class="nc" id="L7">public record FavoriteResponse(UUID id, String itemName, String emoji) {</span>
+<span class="fc" id="L7">public record FavoriteResponse(UUID id, String itemName, String emoji) {</span>
     public static FavoriteResponse from(Favorite favorite) {
-<span class="nc" id="L9">        return new FavoriteResponse(favorite.getId(), favorite.getItemName(), favorite.getEmoji());</span>
+<span class="fc" id="L9">        return new FavoriteResponse(favorite.getId(), favorite.getItemName(), favorite.getEmoji());</span>
     }
 }
 </pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>
