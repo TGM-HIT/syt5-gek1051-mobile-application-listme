@@ -15,7 +15,8 @@
       "Bash(xargs grep:*)",
       "Bash(npm run:*)",
       "Bash(npx vitest:*)",
-      "Bash(node_modules/.bin/vitest run:*)"
+      "Bash(node_modules/.bin/vitest run:*)",
+      "Bash(node -e \"const p=require\\(''./package.json''\\); console.log\\(''test:run:'', p.scripts[''test:run'']\\); console.log\\(''coverage-v8:'', p.devDependencies[''@vitest/coverage-v8''] || p.dependencies?.[''@vitest/coverage-v8''] || ''NOT FOUND''\\)\")"
     ]
   }
 }
