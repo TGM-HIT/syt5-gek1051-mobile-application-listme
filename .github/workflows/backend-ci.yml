@@ -16,21 +16,6 @@ jobs:
   build-and-test:
     runs-on: ubuntu-latest
 
-    services:
-      postgres:
-        image: postgres:16-alpine
-        env:
-          POSTGRES_DB: listme
-          POSTGRES_USER: listme
-          POSTGRES_PASSWORD: listme
-        options: >-
-          --health-cmd pg_isready
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-        ports:
-          - 5432:5432
-
     steps:
       - uses: actions/checkout@v4
 
@@ -48,10 +33,6 @@ jobs:
       - name: Test with coverage
         working-directory: listme-backend
         run: ./mvnw verify -B
-        env:
-          SPRING_DATASOURCE_URL: jdbc:postgresql://localhost:5432/listme
-          SPRING_DATASOURCE_USERNAME: listme
-          SPRING_DATASOURCE_PASSWORD: listme
 
       - name: Generate JaCoCo badge
         id: jacoco
