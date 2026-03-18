@@ -16,7 +16,16 @@
       "Bash(npm run:*)",
       "Bash(npx vitest:*)",
       "Bash(node_modules/.bin/vitest run:*)",
-      "Bash(node -e \"const p=require\\(''./package.json''\\); console.log\\(''test:run:'', p.scripts[''test:run'']\\); console.log\\(''coverage-v8:'', p.devDependencies[''@vitest/coverage-v8''] || p.dependencies?.[''@vitest/coverage-v8''] || ''NOT FOUND''\\)\")"
+      "Bash(node -e \"const p=require\\(''./package.json''\\); console.log\\(''test:run:'', p.scripts[''test:run'']\\); console.log\\(''coverage-v8:'', p.devDependencies[''@vitest/coverage-v8''] || p.dependencies?.[''@vitest/coverage-v8''] || ''NOT FOUND''\\)\")",
+      "Bash(node -e \"const p=require\\(''./package.json''\\); const keys=[...Object.keys\\(p.dependencies||{}\\),...Object.keys\\(p.devDependencies||{}\\)].filter\\(k=>k.includes\\(''test''\\)||k.includes\\(''vue-utils''\\)||k.includes\\(''testing''\\)\\); console.log\\(keys.join\\(''\\\\n''\\)\\)\")",
+      "Bash(find c:/Users/OliGa/Documents/code/syt5-gek1051-mobile-application-listme/listme-backend/src -name *.java)",
+      "Bash(for f:*)",
+      "Bash(do)",
+      "Bash(echo \"=== $f ===\")",
+      "Read(//c/Users/OliGa/Documents/code/syt5-gek1051-mobile-application-listme/**)",
+      "Bash(done)",
+      "Bash(do echo:*)",
+      "Read(//c/Users/OliGa/Documents/code/syt5-gek1051-mobile-application-listme/listme-frontend/**)"
     ]
   }
 }
