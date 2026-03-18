@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>FavoriteService.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">listme-backend</a> &gt; <a href="index.source.html" class="el_package">com.oliwier.listmebackend.domain.service</a> &gt; <span class="el_source">FavoriteService.java</span></div><h1>FavoriteService.java</h1><pre class="source lang-java linenums">package com.oliwier.listmebackend.domain.service;
+
+import com.oliwier.listmebackend.api.dto.CreateFavoriteRequest;
+import com.oliwier.listmebackend.domain.model.Device;
+import com.oliwier.listmebackend.domain.model.Favorite;
+import com.oliwier.listmebackend.domain.repository.FavoriteRepository;
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.server.ResponseStatusException;
+
+import java.util.List;
+import java.util.UUID;
+
+@Service
+@RequiredArgsConstructor
+@Transactional(readOnly = true)
+public class FavoriteService {
+
+    private final FavoriteRepository favoriteRepository;
+
+    public List&lt;Favorite&gt; getMyFavorites(Device device) {
+<span class="fc" id="L24">        return favoriteRepository.findByDeviceIdOrderByCreatedAtDesc(device.getId())</span>
+<span class="fc" id="L25">                .stream().limit(10).toList();</span>
+    }
+
+    @Transactional
+    public Favorite create(Device device, CreateFavoriteRequest req) {
+<span class="fc bfc" id="L30" title="All 2 branches covered.">        if (favoriteRepository.existsByDeviceIdAndItemName(device.getId(), req.itemName())) {</span>
+<span class="fc" id="L31">            return favoriteRepository.findByDeviceIdOrderByCreatedAtDesc(device.getId())</span>
+<span class="fc" id="L32">                    .stream()</span>
+<span class="fc" id="L33">                    .filter(f -&gt; f.getItemName().equals(req.itemName()))</span>
+<span class="fc" id="L34">                    .findFirst()</span>
+<span class="fc" id="L35">                    .orElseThrow();</span>
+        }
+<span class="fc" id="L37">        Favorite favorite = new Favorite();</span>
+<span class="fc" id="L38">        favorite.setDevice(device);</span>
+<span class="fc" id="L39">        favorite.setItemName(req.itemName());</span>
+<span class="fc" id="L40">        favorite.setEmoji(req.emoji());</span>
+<span class="fc" id="L41">        return favoriteRepository.save(favorite);</span>
+    }
+
+    @Transactional
+    public void delete(UUID favoriteId, Device device) {
+<span class="fc" id="L46">        Favorite favorite = favoriteRepository.findById(favoriteId)</span>
+<span class="fc" id="L47">                .orElseThrow(() -&gt; new ResponseStatusException(HttpStatus.NOT_FOUND, &quot;Favorite not found&quot;));</span>
+<span class="fc bfc" id="L48" title="All 2 branches covered.">        if (!favorite.getDevice().getId().equals(device.getId())) {</span>
+<span class="fc" id="L49">            throw new ResponseStatusException(HttpStatus.FORBIDDEN, &quot;Not your favorite&quot;);</span>
+        }
+<span class="fc" id="L51">        favoriteRepository.delete(favorite);</span>
+<span class="fc" id="L52">    }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

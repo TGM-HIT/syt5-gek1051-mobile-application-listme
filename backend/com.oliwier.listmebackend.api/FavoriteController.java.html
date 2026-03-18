@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>FavoriteController.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">listme-backend</a> &gt; <a href="index.source.html" class="el_package">com.oliwier.listmebackend.api</a> &gt; <span class="el_source">FavoriteController.java</span></div><h1>FavoriteController.java</h1><pre class="source lang-java linenums">package com.oliwier.listmebackend.api;
+
+import com.oliwier.listmebackend.api.dto.CreateFavoriteRequest;
+import com.oliwier.listmebackend.api.dto.FavoriteResponse;
+import com.oliwier.listmebackend.domain.model.Device;
+import com.oliwier.listmebackend.domain.service.FavoriteService;
+import com.oliwier.listmebackend.identity.CurrentDevice;
+import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
+import java.util.UUID;
+
+@RestController
+@RequestMapping(&quot;/api/favorites&quot;)
+@RequiredArgsConstructor
+@Transactional(readOnly = true)
+public class FavoriteController {
+
+    private final FavoriteService favoriteService;
+
+    @GetMapping
+    public List&lt;FavoriteResponse&gt; getMyFavorites(@CurrentDevice Device device) {
+<span class="nc" id="L27">        return favoriteService.getMyFavorites(device).stream().map(FavoriteResponse::from).toList();</span>
+    }
+
+    @PostMapping
+    @ResponseStatus(HttpStatus.CREATED)
+    @Transactional
+    public FavoriteResponse create(@CurrentDevice Device device,
+                                   @Valid @RequestBody CreateFavoriteRequest req) {
+<span class="nc" id="L35">        return FavoriteResponse.from(favoriteService.create(device, req));</span>
+    }
+
+    @DeleteMapping(&quot;/{favoriteId}&quot;)
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    @Transactional
+    public void delete(@PathVariable UUID favoriteId, @CurrentDevice Device device) {
+<span class="nc" id="L42">        favoriteService.delete(favoriteId, device);</span>
+<span class="nc" id="L43">    }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

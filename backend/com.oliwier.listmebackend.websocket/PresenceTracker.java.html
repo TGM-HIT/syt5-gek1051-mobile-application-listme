@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>PresenceTracker.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">listme-backend</a> &gt; <a href="index.source.html" class="el_package">com.oliwier.listmebackend.websocket</a> &gt; <span class="el_source">PresenceTracker.java</span></div><h1>PresenceTracker.java</h1><pre class="source lang-java linenums">package com.oliwier.listmebackend.websocket;
+
+import org.springframework.stereotype.Component;
+
+import java.util.Collections;
+import java.util.Map;
+import java.util.Set;
+import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
+
+/**
+ * Thread-safe in-memory tracker of which devices are currently
+ * subscribed to (viewing) which lists.
+ *
+ * listId → Set&lt;deviceId&gt;
+ */
+@Component
+<span class="fc" id="L18">public class PresenceTracker {</span>
+
+<span class="fc" id="L20">    private final Map&lt;UUID, Set&lt;String&gt;&gt; listToDevices = new ConcurrentHashMap&lt;&gt;();</span>
+
+    public void join(UUID listId, String deviceId) {
+<span class="nc" id="L23">        listToDevices</span>
+<span class="nc" id="L24">                .computeIfAbsent(listId, k -&gt; ConcurrentHashMap.newKeySet())</span>
+<span class="nc" id="L25">                .add(deviceId);</span>
+<span class="nc" id="L26">    }</span>
+
+    public void leave(UUID listId, String deviceId) {
+<span class="nc" id="L29">        Set&lt;String&gt; devices = listToDevices.get(listId);</span>
+<span class="nc bnc" id="L30" title="All 2 branches missed.">        if (devices != null) {</span>
+<span class="nc" id="L31">            devices.remove(deviceId);</span>
+<span class="nc bnc" id="L32" title="All 2 branches missed.">            if (devices.isEmpty()) listToDevices.remove(listId);</span>
+        }
+<span class="nc" id="L34">    }</span>
+
+    /** Remove a device from ALL lists (called on WebSocket disconnect). */
+    public void disconnectDevice(String deviceId) {
+<span class="nc" id="L38">        listToDevices.values().forEach(devices -&gt; devices.remove(deviceId));</span>
+<span class="nc" id="L39">        listToDevices.entrySet().removeIf(e -&gt; e.getValue().isEmpty());</span>
+<span class="nc" id="L40">    }</span>
+
+    public Set&lt;String&gt; getOnlineDevices(UUID listId) {
+<span class="nc" id="L43">        return Collections.unmodifiableSet(</span>
+<span class="nc" id="L44">                listToDevices.getOrDefault(listId, Collections.emptySet())</span>
+        );
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

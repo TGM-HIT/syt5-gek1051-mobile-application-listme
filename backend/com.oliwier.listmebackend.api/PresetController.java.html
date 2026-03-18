@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>PresetController.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">listme-backend</a> &gt; <a href="index.source.html" class="el_package">com.oliwier.listmebackend.api</a> &gt; <span class="el_source">PresetController.java</span></div><h1>PresetController.java</h1><pre class="source lang-java linenums">package com.oliwier.listmebackend.api;
+
+import com.oliwier.listmebackend.api.dto.CreatePresetRequest;
+import com.oliwier.listmebackend.api.dto.PresetItemResponse;
+import com.oliwier.listmebackend.api.dto.PresetResponse;
+import com.oliwier.listmebackend.domain.model.Device;
+import com.oliwier.listmebackend.domain.service.PresetService;
+import com.oliwier.listmebackend.identity.CurrentDevice;
+import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
+import java.util.UUID;
+
+@RestController
+@RequestMapping(&quot;/api/presets&quot;)
+@RequiredArgsConstructor
+@Transactional(readOnly = true)
+public class PresetController {
+
+    private final PresetService presetService;
+
+    @GetMapping
+    public List&lt;PresetResponse&gt; getAll(@CurrentDevice Device device) {
+<span class="nc" id="L28">        return presetService.getForDevice(device).stream().map(PresetResponse::from).toList();</span>
+    }
+
+    @GetMapping(&quot;/{presetId}/items&quot;)
+    public List&lt;PresetItemResponse&gt; getItems(@PathVariable UUID presetId) {
+<span class="nc" id="L33">        return presetService.getItems(presetId).stream().map(PresetItemResponse::from).toList();</span>
+    }
+
+    @PostMapping
+    @ResponseStatus(HttpStatus.CREATED)
+    @Transactional
+    public PresetResponse create(@CurrentDevice Device device,
+                                 @Valid @RequestBody CreatePresetRequest req) {
+<span class="nc" id="L41">        return PresetResponse.from(</span>
+<span class="nc" id="L42">                presetService.createFromList(device, req.fromListId(), req.name(), req.emoji()));</span>
+    }
+
+    @DeleteMapping(&quot;/{presetId}&quot;)
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    @Transactional
+    public void delete(@CurrentDevice Device device, @PathVariable UUID presetId) {
+<span class="nc" id="L49">        presetService.delete(device, presetId);</span>
+<span class="nc" id="L50">    }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

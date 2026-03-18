@@ -1,0 +1,232 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>SyncEngine.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">listme-backend</a> &gt; <a href="index.source.html" class="el_package">com.oliwier.listmebackend.crdt</a> &gt; <span class="el_source">SyncEngine.java</span></div><h1>SyncEngine.java</h1><pre class="source lang-java linenums">package com.oliwier.listmebackend.crdt;
+
+import com.oliwier.listmebackend.domain.model.*;
+import com.oliwier.listmebackend.domain.repository.*;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+
+/**
+ * Core CRDT sync service.
+ *
+ * Responsibilities:
+ *  - Record every mutation as a CrdtOperation with a vector clock snapshot
+ *  - Maintain the per-(list,device) vector clock counter in the DB
+ *  - Provide access to a list's full operation log
+ *  - Apply incoming operations from remote devices (idempotent)
+ */
+@Service
+@RequiredArgsConstructor
+public class SyncEngine {
+
+    private final CrdtOperationRepository operationRepository;
+    private final VectorClockEntryRepository clockRepository;
+    private final ShoppingListRepository listRepository;
+    private final ItemRepository itemRepository;
+
+    // ── Record a local mutation ────────────────────────────────────────────
+
+    /**
+     * Called by services (ItemService, etc.) after every mutation.
+     * Increments this device's clock for the list and persists the operation.
+     */
+    @Transactional
+    public CrdtOperation record(ShoppingList list, Device device,
+                                OperationType type, Map&lt;String, Object&gt; payload) {
+        // 1. Load current clock for this (list, device)
+<span class="fc" id="L41">        VectorClockEntryId vcId = new VectorClockEntryId(list.getId(), device.getId());</span>
+<span class="fc" id="L42">        VectorClockEntry entry = clockRepository.findById(vcId).orElseGet(() -&gt; {</span>
+<span class="fc" id="L43">            VectorClockEntry e = new VectorClockEntry();</span>
+<span class="fc" id="L44">            e.setId(vcId);</span>
+<span class="fc" id="L45">            e.setList(list);</span>
+<span class="fc" id="L46">            e.setDevice(device);</span>
+<span class="fc" id="L47">            e.setCounter(0L);</span>
+<span class="fc" id="L48">            return e;</span>
+        });
+
+        // 2. Increment own counter
+<span class="fc" id="L52">        entry.setCounter(entry.getCounter() + 1);</span>
+<span class="fc" id="L53">        clockRepository.save(entry);</span>
+
+        // 3. Build current vector clock snapshot (all devices for this list)
+<span class="fc" id="L56">        VectorClock currentClock = buildClock(list.getId())</span>
+<span class="fc" id="L57">                .increment(device.getId().toString()); // reflect incremented value</span>
+
+        // 4. Persist the operation
+<span class="fc" id="L60">        CrdtOperation op = new CrdtOperation();</span>
+<span class="fc" id="L61">        op.setList(list);</span>
+<span class="fc" id="L62">        op.setDevice(device);</span>
+<span class="fc" id="L63">        op.setOperationType(type.name());</span>
+<span class="fc" id="L64">        op.setPayload(payload);</span>
+<span class="fc" id="L65">        op.setVectorClock(currentClock.toMap());</span>
+<span class="fc" id="L66">        return operationRepository.save(op);</span>
+    }
+
+    // ── Pull: ops the client hasn't seen yet ──────────────────────────────
+
+    /**
+     * Returns all operations for a list that are newer than the given client clock.
+     * An op is &quot;new&quot; to the client if the op's device counter exceeds what the
+     * client has already seen from that device.
+     */
+    @Transactional(readOnly = true)
+    public List&lt;CrdtOperation&gt; getOperationsSince(UUID listId, Map&lt;String, Long&gt; clientClock) {
+<span class="fc" id="L78">        VectorClock since = VectorClock.of(clientClock);</span>
+<span class="fc" id="L79">        return operationRepository.findByListIdOrderByCreatedAtAsc(listId)</span>
+<span class="fc" id="L80">                .stream()</span>
+<span class="fc" id="L81">                .filter(op -&gt; {</span>
+<span class="fc" id="L82">                    String deviceId = op.getDevice().getId().toString();</span>
+<span class="fc" id="L83">                    long opCounter = VectorClock.of(op.getVectorClock()).get(deviceId);</span>
+<span class="fc" id="L84">                    long clientKnows = since.get(deviceId);</span>
+<span class="pc bpc" id="L85" title="1 of 2 branches missed.">                    return opCounter &gt; clientKnows;</span>
+                })
+<span class="fc" id="L87">                .toList();</span>
+    }
+
+    // ── Push: apply incoming ops from a remote device ────────────────────
+
+    /**
+     * Idempotently applies a set of incoming CRDT operations from a client.
+     * Operations already known to the server (by ID) are skipped.
+     * For each new op, the actual Item/List state is updated via LWW.
+     */
+    @Transactional
+    public void applyIncoming(List&lt;IncomingOperation&gt; incoming, Device device) {
+<span class="fc bfc" id="L99" title="All 2 branches covered.">        for (IncomingOperation inOp : incoming) {</span>
+            // Idempotency: skip if already stored
+<span class="fc bfc" id="L101" title="All 2 branches covered.">            if (operationRepository.existsById(inOp.id())) continue;</span>
+
+<span class="fc" id="L103">            ShoppingList list = listRepository.findById(inOp.listId()).orElse(null);</span>
+<span class="pc bpc" id="L104" title="1 of 2 branches missed.">            if (list == null) continue;</span>
+
+            // Persist the operation record as-is (with its original vector clock)
+<span class="fc" id="L107">            CrdtOperation op = new CrdtOperation();</span>
+<span class="fc" id="L108">            op.setId(inOp.id());</span>
+<span class="fc" id="L109">            op.setList(list);</span>
+<span class="fc" id="L110">            op.setDevice(device);</span>
+<span class="fc" id="L111">            op.setOperationType(inOp.operationType());</span>
+<span class="fc" id="L112">            op.setPayload(inOp.payload());</span>
+<span class="fc" id="L113">            op.setVectorClock(inOp.vectorClock());</span>
+<span class="fc" id="L114">            operationRepository.save(op);</span>
+
+            // Apply effect to current state using LWW
+<span class="fc" id="L117">            applyEffect(inOp, list, device);</span>
+
+            // Merge incoming clock into server's clock for this device+list
+<span class="fc" id="L120">            mergeIncomingClock(list, device, VectorClock.of(inOp.vectorClock()));</span>
+<span class="fc" id="L121">        }</span>
+<span class="fc" id="L122">    }</span>
+
+    // ── Current vector clock for a list ──────────────────────────────────
+
+    @Transactional(readOnly = true)
+    public Map&lt;String, Long&gt; getCurrentClock(UUID listId) {
+<span class="fc" id="L128">        return buildClock(listId).toMap();</span>
+    }
+
+    // ── Private helpers ───────────────────────────────────────────────────
+
+    private VectorClock buildClock(UUID listId) {
+<span class="fc" id="L134">        VectorClock vc = new VectorClock();</span>
+<span class="fc bfc" id="L135" title="All 2 branches covered.">        for (VectorClockEntry entry : clockRepository.findByListId(listId)) {</span>
+<span class="fc" id="L136">            String deviceId = entry.getId().getDeviceId().toString();</span>
+            // Manually build from counter entries
+<span class="fc" id="L138">            vc = VectorClock.of(vc.toMap());</span>
+<span class="fc" id="L139">            Map&lt;String, Long&gt; m = vc.toMap();</span>
+<span class="fc" id="L140">            m.put(deviceId, entry.getCounter());</span>
+<span class="fc" id="L141">            vc = VectorClock.of(m);</span>
+<span class="fc" id="L142">        }</span>
+<span class="fc" id="L143">        return vc;</span>
+    }
+
+    private void applyEffect(IncomingOperation op, ShoppingList list, Device device) {
+<span class="fc" id="L147">        Map&lt;String, Object&gt; payload = op.payload();</span>
+<span class="pc bpc" id="L148" title="5 of 6 branches missed.">        switch (op.operationType()) {</span>
+            case &quot;ITEM_CHECK&quot; -&gt; {
+<span class="fc" id="L150">                String itemId = (String) payload.get(&quot;itemId&quot;);</span>
+<span class="fc" id="L151">                Boolean checked = (Boolean) payload.get(&quot;checked&quot;);</span>
+<span class="pc bpc" id="L152" title="2 of 4 branches missed.">                if (itemId == null || checked == null) return;</span>
+<span class="fc" id="L153">                itemRepository.findById(UUID.fromString(itemId)).ifPresent(item -&gt; {</span>
+<span class="fc" id="L154">                    item.setChecked(checked);</span>
+<span class="fc" id="L155">                    itemRepository.save(item);</span>
+<span class="fc" id="L156">                });</span>
+<span class="fc" id="L157">            }</span>
+            case &quot;ITEM_CREATE&quot; -&gt; {
+<span class="nc" id="L159">                String itemId = (String) payload.get(&quot;itemId&quot;);</span>
+<span class="nc" id="L160">                String name = (String) payload.get(&quot;name&quot;);</span>
+<span class="nc bnc" id="L161" title="All 4 branches missed.">                if (itemId == null || name == null) return;</span>
+                // Idempotent: only create if not already exists
+<span class="nc bnc" id="L163" title="All 2 branches missed.">                if (!itemRepository.existsById(UUID.fromString(itemId))) {</span>
+<span class="nc" id="L164">                    Item item = new Item();</span>
+<span class="nc" id="L165">                    item.setId(UUID.fromString(itemId));</span>
+<span class="nc" id="L166">                    item.setList(list);</span>
+<span class="nc" id="L167">                    item.setName(name);</span>
+<span class="nc" id="L168">                    item.setChecked(false);</span>
+<span class="nc" id="L169">                    item.setPosition(itemRepository.countByListIdAndDeletedAtIsNull(list.getId()));</span>
+<span class="nc" id="L170">                    item.setCreatedByDevice(device);</span>
+<span class="nc" id="L171">                    itemRepository.save(item);</span>
+                }
+<span class="nc" id="L173">            }</span>
+            case &quot;ITEM_UPDATE&quot; -&gt; {
+<span class="nc" id="L175">                String itemId = (String) payload.get(&quot;itemId&quot;);</span>
+<span class="nc" id="L176">                String name = (String) payload.get(&quot;name&quot;);</span>
+<span class="nc bnc" id="L177" title="All 4 branches missed.">                if (itemId == null || name == null) return;</span>
+<span class="nc" id="L178">                itemRepository.findById(UUID.fromString(itemId)).ifPresent(item -&gt; {</span>
+                    // LWW: only update if incoming timestamp is newer
+<span class="nc" id="L180">                    long incomingTs = toLong(payload.get(&quot;timestamp&quot;));</span>
+<span class="nc" id="L181">                    long localTs = item.getUpdatedAt().toEpochMilli();</span>
+<span class="nc bnc" id="L182" title="All 2 branches missed.">                    if (incomingTs &gt;= localTs) {</span>
+<span class="nc" id="L183">                        item.setName(name);</span>
+<span class="nc" id="L184">                        itemRepository.save(item);</span>
+                    }
+<span class="nc" id="L186">                });</span>
+<span class="nc" id="L187">            }</span>
+            case &quot;ITEM_DELETE&quot; -&gt; {
+<span class="nc" id="L189">                String itemId = (String) payload.get(&quot;itemId&quot;);</span>
+<span class="nc bnc" id="L190" title="All 2 branches missed.">                if (itemId == null) return;</span>
+<span class="nc" id="L191">                itemRepository.findById(UUID.fromString(itemId))</span>
+<span class="nc" id="L192">                        .ifPresent(itemRepository::delete);</span>
+<span class="nc" id="L193">            }</span>
+            case &quot;LIST_UPDATE&quot; -&gt; {
+<span class="nc" id="L195">                String name = (String) payload.get(&quot;name&quot;);</span>
+<span class="nc" id="L196">                String emoji = (String) payload.get(&quot;emoji&quot;);</span>
+<span class="nc" id="L197">                long incomingTs = toLong(payload.get(&quot;timestamp&quot;));</span>
+<span class="nc" id="L198">                long localTs = list.getUpdatedAt().toEpochMilli();</span>
+<span class="nc bnc" id="L199" title="All 2 branches missed.">                if (incomingTs &gt;= localTs) {</span>
+<span class="nc bnc" id="L200" title="All 2 branches missed.">                    if (name != null) list.setName(name);</span>
+<span class="nc bnc" id="L201" title="All 2 branches missed.">                    if (emoji != null) list.setEmoji(emoji);</span>
+<span class="nc" id="L202">                    listRepository.save(list);</span>
+                }
+            }
+        }
+<span class="fc" id="L206">    }</span>
+
+    private void mergeIncomingClock(ShoppingList list, Device device, VectorClock incoming) {
+<span class="fc" id="L209">        VectorClockEntryId vcId = new VectorClockEntryId(list.getId(), device.getId());</span>
+<span class="fc" id="L210">        VectorClockEntry entry = clockRepository.findById(vcId).orElseGet(() -&gt; {</span>
+<span class="fc" id="L211">            VectorClockEntry e = new VectorClockEntry();</span>
+<span class="fc" id="L212">            e.setId(vcId);</span>
+<span class="fc" id="L213">            e.setList(list);</span>
+<span class="fc" id="L214">            e.setDevice(device);</span>
+<span class="fc" id="L215">            e.setCounter(0L);</span>
+<span class="fc" id="L216">            return e;</span>
+        });
+<span class="fc" id="L218">        long incomingCounter = incoming.get(device.getId().toString());</span>
+<span class="pc bpc" id="L219" title="1 of 2 branches missed.">        if (incomingCounter &gt; entry.getCounter()) {</span>
+<span class="fc" id="L220">            entry.setCounter(incomingCounter);</span>
+<span class="fc" id="L221">            clockRepository.save(entry);</span>
+        }
+<span class="fc" id="L223">    }</span>
+
+    private long toLong(Object value) {
+<span class="nc bnc" id="L226" title="All 2 branches missed.">        if (value instanceof Long l) return l;</span>
+<span class="nc bnc" id="L227" title="All 2 branches missed.">        if (value instanceof Integer i) return i.longValue();</span>
+<span class="nc bnc" id="L228" title="All 2 branches missed.">        if (value instanceof Number n) return n.longValue();</span>
+<span class="nc" id="L229">        return 0L;</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

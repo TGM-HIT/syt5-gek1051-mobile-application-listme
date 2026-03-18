@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>ConflictDetector.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">listme-backend</a> &gt; <a href="index.source.html" class="el_package">com.oliwier.listmebackend.crdt</a> &gt; <span class="el_source">ConflictDetector.java</span></div><h1>ConflictDetector.java</h1><pre class="source lang-java linenums">package com.oliwier.listmebackend.crdt;
+
+import com.oliwier.listmebackend.domain.model.CrdtOperation;
+
+import java.util.ArrayList;
+import java.util.List;
+
+/**
+ * Detects conflicting (concurrent) operations in a list of CRDT operations.
+ *
+ * Two operations on the same target (same itemId) are concurrent if
+ * neither of their vector clocks is causally before the other.
+ */
+<span class="nc" id="L14">public class ConflictDetector {</span>
+
+<span class="fc" id="L16">    public record Conflict(CrdtOperation a, CrdtOperation b) {}</span>
+
+    /**
+     * Returns all pairs of operations that are CONCURRENT on the same item.
+     * Caller is responsible for applying merge strategy to resolve them.
+     */
+    public static List&lt;Conflict&gt; detect(List&lt;CrdtOperation&gt; ops) {
+<span class="fc" id="L23">        List&lt;Conflict&gt; conflicts = new ArrayList&lt;&gt;();</span>
+
+<span class="fc bfc" id="L25" title="All 2 branches covered.">        for (int i = 0; i &lt; ops.size(); i++) {</span>
+<span class="fc bfc" id="L26" title="All 2 branches covered.">            for (int j = i + 1; j &lt; ops.size(); j++) {</span>
+<span class="fc" id="L27">                CrdtOperation a = ops.get(i);</span>
+<span class="fc" id="L28">                CrdtOperation b = ops.get(j);</span>
+
+                // Only compare ops that target the same item
+<span class="fc bfc" id="L31" title="All 2 branches covered.">                if (!sameTarget(a, b)) continue;</span>
+
+<span class="fc" id="L33">                VectorClock clockA = VectorClock.of(a.getVectorClock());</span>
+<span class="fc" id="L34">                VectorClock clockB = VectorClock.of(b.getVectorClock());</span>
+
+<span class="fc bfc" id="L36" title="All 2 branches covered.">                if (clockA.compare(clockB) == VectorClock.Relation.CONCURRENT) {</span>
+<span class="fc" id="L37">                    conflicts.add(new Conflict(a, b));</span>
+                }
+            }
+        }
+<span class="fc" id="L41">        return conflicts;</span>
+    }
+
+    /** Extract itemId from payload for target comparison. */
+    private static boolean sameTarget(CrdtOperation a, CrdtOperation b) {
+<span class="fc" id="L46">        Object targetA = a.getPayload().get(&quot;itemId&quot;);</span>
+<span class="fc" id="L47">        Object targetB = b.getPayload().get(&quot;itemId&quot;);</span>
+<span class="pc bpc" id="L48" title="1 of 4 branches missed.">        if (targetA == null || targetB == null) return false;</span>
+<span class="fc" id="L49">        return targetA.equals(targetB);</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

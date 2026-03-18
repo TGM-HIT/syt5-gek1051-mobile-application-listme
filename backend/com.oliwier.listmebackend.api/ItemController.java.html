@@ -1,0 +1,94 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>ItemController.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">listme-backend</a> &gt; <a href="index.source.html" class="el_package">com.oliwier.listmebackend.api</a> &gt; <span class="el_source">ItemController.java</span></div><h1>ItemController.java</h1><pre class="source lang-java linenums">package com.oliwier.listmebackend.api;
+
+import com.oliwier.listmebackend.api.dto.CreateItemRequest;
+import com.oliwier.listmebackend.api.dto.ItemResponse;
+import com.oliwier.listmebackend.api.dto.UpdateItemRequest;
+import com.oliwier.listmebackend.domain.model.Device;
+import com.oliwier.listmebackend.domain.service.ItemService;
+import com.oliwier.listmebackend.identity.CurrentDevice;
+import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
+import java.util.UUID;
+
+@RestController
+@RequestMapping(&quot;/api/lists/{listId}/items&quot;)
+@RequiredArgsConstructor
+@Transactional(readOnly = true)
+public class ItemController {
+
+    private final ItemService itemService;
+
+    @GetMapping
+    public List&lt;ItemResponse&gt; getItems(@PathVariable UUID listId,
+                                       @CurrentDevice Device device,
+                                       @RequestParam(required = false) String q) {
+<span class="fc" id="L30">        return itemService.getByList(listId, device, q).stream().map(ItemResponse::from).toList();</span>
+    }
+
+    @GetMapping(&quot;/trash&quot;)
+    public List&lt;ItemResponse&gt; getTrash(@PathVariable UUID listId,
+                                       @CurrentDevice Device device) {
+<span class="nc" id="L36">        return itemService.getTrash(listId, device).stream().map(ItemResponse::from).toList();</span>
+    }
+
+    @PostMapping
+    @ResponseStatus(HttpStatus.CREATED)
+    @Transactional
+    public ItemResponse create(@PathVariable UUID listId,
+                               @CurrentDevice Device device,
+                               @Valid @RequestBody CreateItemRequest req) {
+<span class="fc" id="L45">        return ItemResponse.from(itemService.create(listId, device, req));</span>
+    }
+
+    @PutMapping(&quot;/{itemId}&quot;)
+    @Transactional
+    public ItemResponse update(@PathVariable UUID listId,
+                               @PathVariable UUID itemId,
+                               @CurrentDevice Device device,
+                               @Valid @RequestBody UpdateItemRequest req) {
+<span class="fc" id="L54">        return ItemResponse.from(itemService.update(listId, itemId, device, req));</span>
+    }
+
+    @PatchMapping(&quot;/{itemId}/check&quot;)
+    @Transactional
+    public ItemResponse toggleCheck(@PathVariable UUID listId,
+                                    @PathVariable UUID itemId,
+                                    @CurrentDevice Device device) {
+<span class="fc" id="L62">        return ItemResponse.from(itemService.toggleCheck(listId, itemId, device));</span>
+    }
+
+    /** Soft-delete: moves item to trash. */
+    @DeleteMapping(&quot;/{itemId}&quot;)
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    @Transactional
+    public void delete(@PathVariable UUID listId,
+                       @PathVariable UUID itemId,
+                       @CurrentDevice Device device) {
+<span class="fc" id="L72">        itemService.delete(listId, itemId, device);</span>
+<span class="fc" id="L73">    }</span>
+
+    /** Restore an item from trash. */
+    @PatchMapping(&quot;/{itemId}/restore&quot;)
+    @Transactional
+    public ItemResponse restore(@PathVariable UUID listId,
+                                @PathVariable UUID itemId,
+                                @CurrentDevice Device device) {
+<span class="nc" id="L81">        return ItemResponse.from(itemService.restore(listId, itemId, device));</span>
+    }
+
+    /** Permanently delete a trashed item — irreversible. */
+    @DeleteMapping(&quot;/{itemId}/permanent&quot;)
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    @Transactional
+    public void permanentDelete(@PathVariable UUID listId,
+                                @PathVariable UUID itemId,
+                                @CurrentDevice Device device) {
+<span class="nc" id="L91">        itemService.permanentDelete(listId, itemId, device);</span>
+<span class="nc" id="L92">    }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

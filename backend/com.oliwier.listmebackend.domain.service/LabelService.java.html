@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>LabelService.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">listme-backend</a> &gt; <a href="index.source.html" class="el_package">com.oliwier.listmebackend.domain.service</a> &gt; <span class="el_source">LabelService.java</span></div><h1>LabelService.java</h1><pre class="source lang-java linenums">package com.oliwier.listmebackend.domain.service;
+
+import com.oliwier.listmebackend.api.dto.CreateLabelRequest;
+import com.oliwier.listmebackend.domain.model.Device;
+import com.oliwier.listmebackend.domain.model.Label;
+import com.oliwier.listmebackend.domain.model.ShoppingList;
+import com.oliwier.listmebackend.domain.repository.LabelRepository;
+import com.oliwier.listmebackend.domain.repository.ListDeviceRepository;
+import com.oliwier.listmebackend.domain.repository.ShoppingListRepository;
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.server.ResponseStatusException;
+
+import java.util.List;
+import java.util.UUID;
+
+@Service
+@RequiredArgsConstructor
+@Transactional(readOnly = true)
+public class LabelService {
+
+    private final LabelRepository labelRepository;
+    private final ShoppingListRepository listRepository;
+    private final ListDeviceRepository listDeviceRepository;
+
+    public List&lt;Label&gt; getByList(UUID listId, Device device) {
+<span class="fc" id="L29">        requireAccess(listId, device);</span>
+<span class="fc" id="L30">        return labelRepository.findByListId(listId);</span>
+    }
+
+    @Transactional
+    public Label create(UUID listId, Device device, CreateLabelRequest req) {
+<span class="fc" id="L35">        ShoppingList list = requireAccess(listId, device);</span>
+
+<span class="fc" id="L37">        Label label = new Label();</span>
+<span class="fc" id="L38">        label.setList(list);</span>
+<span class="fc" id="L39">        label.setName(req.name());</span>
+<span class="fc" id="L40">        label.setColor(req.color());</span>
+
+<span class="fc" id="L42">        return labelRepository.save(label);</span>
+    }
+
+    @Transactional
+    public Label update(UUID listId, UUID labelId, Device device, CreateLabelRequest req) {
+<span class="fc" id="L47">        requireAccess(listId, device);</span>
+<span class="fc" id="L48">        Label label = requireLabel(labelId, listId);</span>
+
+<span class="fc" id="L50">        label.setName(req.name());</span>
+<span class="fc" id="L51">        label.setColor(req.color());</span>
+
+<span class="fc" id="L53">        return labelRepository.save(label);</span>
+    }
+
+    @Transactional
+    public void delete(UUID listId, UUID labelId, Device device) {
+<span class="fc" id="L58">        requireAccess(listId, device);</span>
+<span class="fc" id="L59">        Label label = requireLabel(labelId, listId);</span>
+<span class="fc" id="L60">        labelRepository.delete(label);</span>
+<span class="fc" id="L61">    }</span>
+
+    private ShoppingList requireAccess(UUID listId, Device device) {
+<span class="fc" id="L64">        ShoppingList list = listRepository.findById(listId)</span>
+<span class="pc" id="L65">                .orElseThrow(() -&gt; new ResponseStatusException(HttpStatus.NOT_FOUND, &quot;List not found&quot;));</span>
+<span class="pc bpc" id="L66" title="1 of 2 branches missed.">        if (!listDeviceRepository.existsByListIdAndDeviceId(listId, device.getId())) {</span>
+<span class="nc" id="L67">            throw new ResponseStatusException(HttpStatus.FORBIDDEN, &quot;Not a participant of this list&quot;);</span>
+        }
+<span class="fc" id="L69">        return list;</span>
+    }
+
+    private Label requireLabel(UUID labelId, UUID listId) {
+<span class="fc" id="L73">        Label label = labelRepository.findById(labelId)</span>
+<span class="pc" id="L74">                .orElseThrow(() -&gt; new ResponseStatusException(HttpStatus.NOT_FOUND, &quot;Label not found&quot;));</span>
+<span class="fc bfc" id="L75" title="All 2 branches covered.">        if (!label.getList().getId().equals(listId)) {</span>
+<span class="fc" id="L76">            throw new ResponseStatusException(HttpStatus.NOT_FOUND, &quot;Label not found in this list&quot;);</span>
+        }
+<span class="fc" id="L78">        return label;</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

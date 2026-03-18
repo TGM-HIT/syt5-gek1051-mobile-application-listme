@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>SyncController.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">listme-backend</a> &gt; <a href="index.source.html" class="el_package">com.oliwier.listmebackend.api</a> &gt; <span class="el_source">SyncController.java</span></div><h1>SyncController.java</h1><pre class="source lang-java linenums">package com.oliwier.listmebackend.api;
+
+import com.oliwier.listmebackend.api.dto.CrdtOperationResponse;
+import com.oliwier.listmebackend.crdt.IncomingOperation;
+import com.oliwier.listmebackend.crdt.SyncEngine;
+import com.oliwier.listmebackend.domain.model.CrdtOperation;
+import com.oliwier.listmebackend.domain.model.Device;
+import com.oliwier.listmebackend.domain.repository.ListDeviceRepository;
+import com.oliwier.listmebackend.identity.CurrentDevice;
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.bind.annotation.*;
+import org.springframework.web.server.ResponseStatusException;
+
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+
+/**
+ * CRDT sync endpoints.
+ *
+ * GET  /api/lists/{listId}/crdt/clock          → current server vector clock for a list
+ * GET  /api/lists/{listId}/crdt/ops            → ops the client hasn't seen yet (since given clock)
+ * POST /api/lists/{listId}/crdt/ops            → push ops from client to server
+ */
+@RestController
+@RequestMapping(&quot;/api/lists/{listId}/crdt&quot;)
+@RequiredArgsConstructor
+@Transactional(readOnly = true)
+public class SyncController {
+
+    private final SyncEngine syncEngine;
+    private final ListDeviceRepository listDeviceRepository;
+
+    @GetMapping(&quot;/clock&quot;)
+    public Map&lt;String, Long&gt; getClock(@PathVariable UUID listId, @CurrentDevice Device device) {
+<span class="fc" id="L38">        requireAccess(listId, device);</span>
+<span class="fc" id="L39">        return syncEngine.getCurrentClock(listId);</span>
+    }
+
+    @GetMapping(&quot;/ops&quot;)
+    public List&lt;CrdtOperationResponse&gt; getOps(
+            @PathVariable UUID listId,
+            @CurrentDevice Device device,
+            @RequestParam(required = false) Map&lt;String, Long&gt; since) {
+<span class="fc" id="L47">        requireAccess(listId, device);</span>
+<span class="pc bpc" id="L48" title="1 of 2 branches missed.">        Map&lt;String, Long&gt; clientClock = since != null ? since : Map.of();</span>
+<span class="fc" id="L49">        return syncEngine.getOperationsSince(listId, clientClock)</span>
+<span class="fc" id="L50">                .stream()</span>
+<span class="fc" id="L51">                .map(CrdtOperationResponse::from)</span>
+<span class="fc" id="L52">                .toList();</span>
+    }
+
+    @PostMapping(&quot;/ops&quot;)
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    @Transactional
+    public void pushOps(
+            @PathVariable UUID listId,
+            @CurrentDevice Device device,
+            @RequestBody List&lt;IncomingOperation&gt; ops) {
+<span class="fc" id="L62">        requireAccess(listId, device);</span>
+<span class="fc" id="L63">        syncEngine.applyIncoming(ops, device);</span>
+<span class="fc" id="L64">    }</span>
+
+    private void requireAccess(UUID listId, Device device) {
+<span class="pc bpc" id="L67" title="1 of 2 branches missed.">        if (!listDeviceRepository.existsByListIdAndDeviceId(listId, device.getId())) {</span>
+<span class="nc" id="L68">            throw new ResponseStatusException(HttpStatus.FORBIDDEN, &quot;Not a participant of this list&quot;);</span>
+        }
+<span class="fc" id="L70">    }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>ShareController.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">listme-backend</a> &gt; <a href="index.source.html" class="el_package">com.oliwier.listmebackend.api</a> &gt; <span class="el_source">ShareController.java</span></div><h1>ShareController.java</h1><pre class="source lang-java linenums">package com.oliwier.listmebackend.api;
+
+import com.oliwier.listmebackend.api.dto.ListResponse;
+import com.oliwier.listmebackend.api.dto.ShareTokenResponse;
+import com.oliwier.listmebackend.domain.model.Device;
+import com.oliwier.listmebackend.domain.model.ShoppingList;
+import com.oliwier.listmebackend.domain.repository.ListDeviceRepository;
+import com.oliwier.listmebackend.domain.repository.ShoppingListRepository;
+import com.oliwier.listmebackend.domain.service.ShareService;
+import com.oliwier.listmebackend.identity.CurrentDevice;
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.bind.annotation.*;
+import org.springframework.web.server.ResponseStatusException;
+
+import java.util.UUID;
+
+@RestController
+@RequiredArgsConstructor
+@Transactional(readOnly = true)
+public class ShareController {
+
+    private final ShareService shareService;
+    private final ShoppingListRepository listRepository;
+    private final ListDeviceRepository listDeviceRepository;
+
+    @PostMapping(&quot;/api/lists/{listId}/share&quot;)
+    @Transactional
+    public ShareTokenResponse share(@CurrentDevice Device device, @PathVariable UUID listId) {
+<span class="fc" id="L31">        ShoppingList list = getListForDevice(listId, device);</span>
+<span class="fc" id="L32">        String token = shareService.generateShareToken(list);</span>
+<span class="fc" id="L33">        return new ShareTokenResponse(token, list.getId(), list.getName());</span>
+    }
+
+    @DeleteMapping(&quot;/api/lists/{listId}/share&quot;)
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    @Transactional
+    public void revokeShare(@CurrentDevice Device device, @PathVariable UUID listId) {
+<span class="nc" id="L40">        ShoppingList list = getListForDevice(listId, device);</span>
+<span class="nc" id="L41">        shareService.revokeShareToken(list);</span>
+<span class="nc" id="L42">    }</span>
+
+    @GetMapping(&quot;/api/share/{token}&quot;)
+    public ListResponse preview(@PathVariable String token) {
+<span class="fc" id="L46">        ShoppingList list = shareService.findByShareToken(token);</span>
+<span class="fc" id="L47">        return ListResponse.from(list);</span>
+    }
+
+    @PostMapping(&quot;/api/share/{token}/join&quot;)
+    @Transactional
+    public ListResponse join(@CurrentDevice Device device, @PathVariable String token) {
+<span class="fc" id="L53">        ShoppingList list = shareService.joinViaShareToken(token, device);</span>
+<span class="fc" id="L54">        return ListResponse.from(list);</span>
+    }
+
+    private ShoppingList getListForDevice(UUID listId, Device device) {
+<span class="fc" id="L58">        ShoppingList list = listRepository.findById(listId)</span>
+<span class="pc" id="L59">                .orElseThrow(() -&gt; new ResponseStatusException(HttpStatus.NOT_FOUND, &quot;List not found&quot;));</span>
+<span class="pc bpc" id="L60" title="1 of 2 branches missed.">        if (!listDeviceRepository.existsByListIdAndDeviceId(listId, device.getId())) {</span>
+<span class="nc" id="L61">            throw new ResponseStatusException(HttpStatus.FORBIDDEN, &quot;You don't have access to this list&quot;);</span>
+        }
+<span class="fc" id="L63">        return list;</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

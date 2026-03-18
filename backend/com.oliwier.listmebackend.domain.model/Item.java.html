@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>Item.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">listme-backend</a> &gt; <a href="index.source.html" class="el_package">com.oliwier.listmebackend.domain.model</a> &gt; <span class="el_source">Item.java</span></div><h1>Item.java</h1><pre class="source lang-java linenums">package com.oliwier.listmebackend.domain.model;
+
+import jakarta.persistence.*;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
+import java.math.BigDecimal;
+import java.time.Instant;
+import java.util.HashSet;
+import java.util.Set;
+import java.util.UUID;
+
+@Entity
+@Table(name = &quot;items&quot;)
+@Getter @Setter @NoArgsConstructor
+public class Item {
+
+    @Id
+    private UUID id;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = &quot;list_id&quot;, nullable = false)
+    private ShoppingList list;
+
+    @Column(nullable = false, length = 500)
+    private String name;
+
+    @Column(nullable = false)
+    private boolean checked;
+
+    @Column(nullable = false)
+    private int position;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = &quot;category_id&quot;)
+    private Category category;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = &quot;created_by_device&quot;, nullable = false, updatable = false)
+    private Device createdByDevice;
+
+    @Column(name = &quot;quantity&quot;, precision = 10, scale = 2)
+    private BigDecimal quantity;
+
+    @Column(name = &quot;quantity_unit&quot;, length = 20)
+    private String quantityUnit;
+
+    @Column(name = &quot;price&quot;, precision = 10, scale = 2)
+    private BigDecimal price;
+
+    @Column(name = &quot;image_url&quot;, length = 500)
+    private String imageUrl;
+
+    @ManyToMany
+    @JoinTable(
+        name = &quot;item_labels&quot;,
+        joinColumns = @JoinColumn(name = &quot;item_id&quot;),
+        inverseJoinColumns = @JoinColumn(name = &quot;label_id&quot;)
+    )
+    private Set&lt;Label&gt; labels = new HashSet&lt;&gt;();
+
+    @Column(name = &quot;created_at&quot;, nullable = false, updatable = false)
+    private Instant createdAt;
+
+    @Column(name = &quot;updated_at&quot;, nullable = false)
+    private Instant updatedAt;
+
+    @Column(name = &quot;deleted_at&quot;)
+    private Instant deletedAt;
+
+    @PrePersist
+    void prePersist() {
+<span class="pc bpc" id="L74" title="1 of 2 branches missed.">        if (id == null) id = UUID.randomUUID();</span>
+<span class="fc" id="L75">        Instant now = Instant.now();</span>
+<span class="pc bpc" id="L76" title="1 of 2 branches missed.">        if (createdAt == null) createdAt = now;</span>
+<span class="pc bpc" id="L77" title="1 of 2 branches missed.">        if (updatedAt == null) updatedAt = now;</span>
+<span class="fc" id="L78">    }</span>
+
+    @PreUpdate
+    void preUpdate() {
+<span class="fc" id="L82">        updatedAt = Instant.now();</span>
+<span class="fc" id="L83">    }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>
