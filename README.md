@@ -17,8 +17,8 @@ No accounts. No passwords. Open the app and start.
 [![Deploy](https://github.com/TGM-HIT/syt5-gek1051-mobile-application-listme/actions/workflows/deploy.yml/badge.svg)](https://github.com/TGM-HIT/syt5-gek1051-mobile-application-listme/actions/workflows/deploy.yml)
 
 <!-- Code Coverage -->
-[![Backend Coverage](https://raw.githubusercontent.com/TGM-HIT/syt5-gek1051-mobile-application-listme/badges/.github/badges/backend-coverage.svg)](https://github.com/TGM-HIT/syt5-gek1051-mobile-application-listme/actions/workflows/backend-ci.yml)
-[![Frontend Coverage](https://raw.githubusercontent.com/TGM-HIT/syt5-gek1051-mobile-application-listme/badges/.github/badges/frontend-coverage.svg)](https://github.com/TGM-HIT/syt5-gek1051-mobile-application-listme/actions/workflows/frontend-ci.yml)
+[![Backend Coverage](https://tgm-hit.github.io/syt5-gek1051-mobile-application-listme/backend/badges/jacoco.svg)](https://tgm-hit.github.io/syt5-gek1051-mobile-application-listme/backend/index.html)
+[![Frontend Coverage](https://tgm-hit.github.io/syt5-gek1051-mobile-application-listme/frontend/badges/coverage.svg)](https://github.com/TGM-HIT/syt5-gek1051-mobile-application-listme/actions/workflows/frontend-ci.yml)
 
 <!-- Backend stack -->
 [![Java](https://img.shields.io/badge/Java-21-f89820?logo=openjdk&logoColor=white)](https://adoptium.net/)
