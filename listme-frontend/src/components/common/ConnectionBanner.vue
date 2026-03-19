@@ -16,6 +16,7 @@
 <script setup lang="ts">
 import { ref, watch, computed, onMounted } from 'vue'
 import { useOffline } from '../../composables/useOffline'
+import { reconnectAttempt } from '../../services/websocket'
 
 const props = defineProps<{ connected: boolean }>()
 
@@ -43,7 +44,11 @@ const dotClass = computed(() => ({
 
 const message = computed(() => {
   if (status.value === 'offline') return 'Kein Internet — Offline gespeichert'
-  if (status.value === 'syncing') return 'Verbindung wird hergestellt…'
+  if (status.value === 'syncing') {
+    return reconnectAttempt.value > 0
+      ? `Erneut verbinden… Versuch ${reconnectAttempt.value}`
+      : 'Verbindung wird hergestellt…'
+  }
   return 'Verbunden'
 })
 

@@ -3,9 +3,11 @@ import { OperationQueue } from '../crdt/OperationQueue'
 import api from '../services/api'
 import { useOffline } from './useOffline'
 import { useItemsStore } from '../stores/items'
+import { onReconnect } from '../services/websocket'
 import type { CrdtOperation } from '../crdt/types'
 
 let flushInProgress = false
+let reconnectListenerRegistered = false
 
 /**
  * Composable that watches the online state and flushes any queued CRDT
@@ -18,6 +20,7 @@ export function useSyncQueue() {
   const { isOnline } = useOffline()
   const itemsStore = useItemsStore()
 
+  // Flush when navigator.onLine recovers (full network loss scenario)
   watch(isOnline, async (online) => {
     if (online) {
       const flushedListIds = await flushQueue()
@@ -25,6 +28,17 @@ export function useSyncQueue() {
       await Promise.allSettled(flushedListIds.map(id => itemsStore.fetchAll(id)))
     }
   })
+
+  // Also flush when the WebSocket reconnects after a server-side drop
+  // (navigator.onLine stays true, but the WS connection was lost temporarily)
+  if (!reconnectListenerRegistered) {
+    reconnectListenerRegistered = true
+    onReconnect(async () => {
+      const store = useItemsStore()
+      const flushedListIds = await flushQueue()
+      await Promise.allSettled(flushedListIds.map(id => store.fetchAll(id)))
+    })
+  }
 
   return { flushQueue }
 }
