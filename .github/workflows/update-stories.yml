@@ -1,47 +1,86 @@
-- name: Update STORIES.md
-  env:
-    ISSUE_NUMBER: ${{ github.event.issue.number }}
-    ISSUE_TITLE: ${{ github.event.issue.title }}
-    ISSUE_STATE: ${{ github.event.issue.state }}
-  run: |
-    python3 << 'EOF'
-    import re, os
+name: Update STORIES.md on Issue Change
 
-    gh_issue_num = os.environ["ISSUE_NUMBER"]
-    gh_issue_title = os.environ["ISSUE_TITLE"]
-    issue_state = os.environ["ISSUE_STATE"]
-    file_path = "STORIES.md"
+on:
+  issues:
+    types: [opened, closed, reopened]
 
-    id_match = re.search(r'ID-(\d+)', gh_issue_title)
-    if not id_match:
-        print(f"Issue #{gh_issue_num}: Keine ID → Skip")
-        exit(0)
-    
-    stories_id_raw = id_match.group(1)  # "05"
-    stories_id = str(int(stories_id_raw))  # "05" → 5 (Zeros weg!)
-    
-    print(f"Issue #{gh_issue_num} '{gh_issue_title}' → Stories ID: '{stories_id_raw}' → '{stories_id}'")
+jobs:
+  update-stories:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      issues: read
 
-    with open(file_path, "r", encoding="utf-8") as f:
-        lines = f.readlines()
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
 
-    updated = False
-    for i, line in enumerate(lines):
-        line_stripped = line.strip()
-        if re.match(r'^\|\s*' + stories_id + r'\s*\|', line_stripped):
-            # Saubere Spalten-Extraktion
-            cols = re.split(r'\s*\|\s*', line_stripped)
-            if len(cols) >= 6:  # Mind. 6 Spalten (ID,Desc,SP,HEAD,Prio,Status)
-                cols[5] = issue_state  # Status ist Index 5
-                new_line = "| " + " | ".join(cols) + " |"
-                lines[i] = new_line + "\n"
-                updated = True
-                break
+      - name: Update STORIES.md
+        env:
+          ISSUE_NUMBER: ${{ github.event.issue.number }}
+          ISSUE_TITLE: ${{ github.event.issue.title }}
+          ISSUE_STATE: ${{ github.event.issue.state }}
+        run: |
+          python3 << 'EOF'
+          import re
+          import os
+          import sys
 
-    if updated:
-        with open(file_path, "w", encoding="utf-8") as f:
-            f.writelines(lines)
-        print(f"✅ Stories ID {stories_id} → '{issue_state}'")
-    else:
-        print(f"❌ Stories Zeile '| {stories_id} |' nicht gefunden")
-    EOF
+          gh_issue_num = os.environ.get('ISSUE_NUMBER', 'unknown')
+          gh_issue_title = os.environ.get('ISSUE_TITLE', 'no-title')
+          issue_state = os.environ.get('ISSUE_STATE', 'unknown')
+          file_path = 'STORIES.md'
+
+          print(f'DEBUG: Issue #{gh_issue_num}, Title: "{gh_issue_title}", State: {issue_state}')
+
+          id_match = re.search(r'ID-(\\d+)', gh_issue_title)
+          if not id_match:
+              print(f'No ID in title, skipping')
+              sys.exit(0)
+
+          stories_id_raw = id_match.group(1)
+          stories_id = str(int(stories_id_raw))  # 05 → 5
+
+          print(f'Stories ID: {stories_id_raw} → {stories_id}')
+
+          try:
+              with open(file_path, 'r', encoding='utf-8') as f:
+                  lines = f.readlines()
+          except FileNotFoundError:
+              print(f'❌ File {file_path} not found!')
+              sys.exit(1)
+
+          updated = False
+          for i, line in enumerate(lines):
+              line_stripped = line.strip()
+              if re.match(r'^\\|\\s*' + re.escape(stories_id) + r'\\s*\\|', line_stripped):
+                  cols = re.split(r'\\s*\\|\\s*', line_stripped)
+                  if len(cols) >= 6:
+                      cols[5] = issue_state  # Status-Spalte
+                      new_line = '| ' + ' | '.join(cols) + ' |'
+                      lines[i] = new_line + '\\n'
+                      updated = True
+                      print(f'✅ Updated line {i}')
+                      break
+
+          if updated:
+              with open(file_path, 'w', encoding='utf-8') as f:
+                  f.writelines(lines)
+              print(f'🎉 SUCCESS: Stories ID {stories_id} → {issue_state}')
+          else:
+              print(f'❌ FAILED: No line "| {stories_id} |" found')
+          EOF
+
+      - name: Commit and Push
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email 'github-actions[bot]@users.noreply.github.com'
+          git add STORIES.md
+          if git diff --cached --quiet; then
+            echo 'No changes → Skip commit'
+          else
+            git commit -m "chore: STORIES.md issue #${{ github.event.issue.number }} (${{ github.event.issue.state }})"
+            git push
+          fi
