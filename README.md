@@ -1,3 +1,5 @@
+<div align="center">
+
 <img width="150" height="150" alt="logo_no_bg_1" src="https://github.com/user-attachments/assets/13e9342e-0ec6-4e78-a5fc-cd70eab52e8e" />
 
 # ListMe
@@ -45,6 +47,8 @@ No accounts. No passwords. Open the app and start.
 [![License](https://img.shields.io/badge/license-MIT-8b949e)](LICENSE)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-3fb950)](https://github.com/TGM-HIT/syt5-gek1051-mobile-application-listme/pulls)
 [![Made with love](https://img.shields.io/badge/made%20with-%E2%9D%A4-e05d44)](https://github.com/TGM-HIT)
+
+</div>
 
 ---
 
