@@ -5,7 +5,7 @@ listme-backend,com.oliwier.listmebackend.api,FavoriteController,0,22,0,0,0,4,0,3
 listme-backend,com.oliwier.listmebackend.api,ShareController,12,63,1,1,1,14,2,5,1,5
 listme-backend,com.oliwier.listmebackend.api,ItemHistoryController,1,48,1,1,0,6,1,2,0,2
 listme-backend,com.oliwier.listmebackend.api,LabelController,0,34,0,0,0,5,0,4,0,4
-listme-backend,com.oliwier.listmebackend.api,SyncController,7,46,2,2,1,13,2,4,0,4
+listme-backend,com.oliwier.listmebackend.api,SyncController,7,58,2,2,1,14,2,5,0,5
 listme-backend,com.oliwier.listmebackend.api,ItemController,25,43,0,0,4,6,3,5,3,5
 listme-backend,com.oliwier.listmebackend.api,CategoryController,0,34,0,0,0,5,0,4,0,4
 listme-backend,com.oliwier.listmebackend.api,PresetController,0,36,0,0,0,6,0,4,0,4
@@ -37,7 +37,7 @@ listme-backend,com.oliwier.listmebackend.crdt,VectorClock.Relation,0,27,0,0,0,1,
 listme-backend,com.oliwier.listmebackend.crdt,ConflictDetector.Conflict,0,9,0,0,0,1,0,1,0,1
 listme-backend,com.oliwier.listmebackend.crdt,OperationType,0,33,0,0,0,6,0,1,0,1
 listme-backend,com.oliwier.listmebackend.crdt,ConflictDetector,3,80,1,11,1,15,2,7,1,2
-listme-backend,com.oliwier.listmebackend.crdt,SyncEngine,195,343,36,12,41,78,25,14,2,11
+listme-backend,com.oliwier.listmebackend.crdt,SyncEngine,195,352,36,12,41,80,25,14,2,11
 listme-backend,com.oliwier.listmebackend,ListmeBackendApplication,5,3,0,0,2,1,1,1,1,1
 listme-backend,com.oliwier.listmebackend.identity,DeviceArgumentResolver,13,44,4,6,3,10,4,3,0,2
 listme-backend,com.oliwier.listmebackend.api.dto,DeviceResponse,0,27,0,0,0,2,0,2,0,2

@@ -7,6 +7,7 @@ import com.oliwier.listmebackend.domain.model.CrdtOperation;
 import com.oliwier.listmebackend.domain.model.Device;
 import com.oliwier.listmebackend.domain.repository.ListDeviceRepository;
 import com.oliwier.listmebackend.identity.CurrentDevice;
+import com.oliwier.listmebackend.websocket.ListSyncBroadcaster;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.transaction.annotation.Transactional;
@@ -32,11 +33,12 @@ public class SyncController {
 
     private final SyncEngine syncEngine;
     private final ListDeviceRepository listDeviceRepository;
+    private final ListSyncBroadcaster broadcaster;
 
     @GetMapping(&quot;/clock&quot;)
     public Map&lt;String, Long&gt; getClock(@PathVariable UUID listId, @CurrentDevice Device device) {
-<span class="fc" id="L38">        requireAccess(listId, device);</span>
-<span class="fc" id="L39">        return syncEngine.getCurrentClock(listId);</span>
+<span class="fc" id="L40">        requireAccess(listId, device);</span>
+<span class="fc" id="L41">        return syncEngine.getCurrentClock(listId);</span>
     }
 
     @GetMapping(&quot;/ops&quot;)
@@ -44,12 +46,12 @@ public class SyncController {
             @PathVariable UUID listId,
             @CurrentDevice Device device,
             @RequestParam(required = false) Map&lt;String, Long&gt; since) {
-<span class="fc" id="L47">        requireAccess(listId, device);</span>
-<span class="pc bpc" id="L48" title="1 of 2 branches missed.">        Map&lt;String, Long&gt; clientClock = since != null ? since : Map.of();</span>
-<span class="fc" id="L49">        return syncEngine.getOperationsSince(listId, clientClock)</span>
-<span class="fc" id="L50">                .stream()</span>
-<span class="fc" id="L51">                .map(CrdtOperationResponse::from)</span>
-<span class="fc" id="L52">                .toList();</span>
+<span class="fc" id="L49">        requireAccess(listId, device);</span>
+<span class="pc bpc" id="L50" title="1 of 2 branches missed.">        Map&lt;String, Long&gt; clientClock = since != null ? since : Map.of();</span>
+<span class="fc" id="L51">        return syncEngine.getOperationsSince(listId, clientClock)</span>
+<span class="fc" id="L52">                .stream()</span>
+<span class="fc" id="L53">                .map(CrdtOperationResponse::from)</span>
+<span class="fc" id="L54">                .toList();</span>
     }
 
     @PostMapping(&quot;/ops&quot;)
@@ -59,14 +61,15 @@ public class SyncController {
             @PathVariable UUID listId,
             @CurrentDevice Device device,
             @RequestBody List&lt;IncomingOperation&gt; ops) {
-<span class="fc" id="L62">        requireAccess(listId, device);</span>
-<span class="fc" id="L63">        syncEngine.applyIncoming(ops, device);</span>
-<span class="fc" id="L64">    }</span>
+<span class="fc" id="L64">        requireAccess(listId, device);</span>
+<span class="fc" id="L65">        List&lt;CrdtOperation&gt; applied = syncEngine.applyIncoming(ops, device);</span>
+<span class="fc" id="L66">        applied.forEach(op -&gt; broadcaster.broadcastOp(listId, op));</span>
+<span class="fc" id="L67">    }</span>
 
     private void requireAccess(UUID listId, Device device) {
-<span class="pc bpc" id="L67" title="1 of 2 branches missed.">        if (!listDeviceRepository.existsByListIdAndDeviceId(listId, device.getId())) {</span>
-<span class="nc" id="L68">            throw new ResponseStatusException(HttpStatus.FORBIDDEN, &quot;Not a participant of this list&quot;);</span>
+<span class="pc bpc" id="L70" title="1 of 2 branches missed.">        if (!listDeviceRepository.existsByListIdAndDeviceId(listId, device.getId())) {</span>
+<span class="nc" id="L71">            throw new ResponseStatusException(HttpStatus.FORBIDDEN, &quot;Not a participant of this list&quot;);</span>
         }
-<span class="fc" id="L70">    }</span>
+<span class="fc" id="L73">    }</span>
 }
 </pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>
