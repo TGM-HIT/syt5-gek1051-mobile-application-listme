@@ -20,50 +20,63 @@ jobs:
           GH_TITLE: ${{ github.event.issue.title }}
           GH_STATE: ${{ github.event.issue.state }}
         run: |
-          python3 -c "
-          import re, os
+          python3 << 'EOF'
+          import re, os, sys
+
           num = os.getenv('GH_ISSUE_NUM')
           title = os.getenv('GH_TITLE', '')
           state = os.getenv('GH_STATE', 'unknown')
-          print(f'🔍 Issue #{num}: \"{title}\" → {state}')
-          
-          m = re.search(r'ID-(\\\\d+)', title)
+
+          print(f'🔍 Issue #{num}: "{title}" → {state}')
+
+          # Suche nach ID-## im Titel
+          m = re.search(r'ID-(\d+)', title)
           if not m:
-              print('❌ No ID-## in title')
-              exit(0)
-          
+              print('❌ No ID-## in title found')
+              sys.exit(0)
+
           raw_id = m.group(1)
-          id = str(int(raw_id))
-          print(f'📱 Stories ID {raw_id} → {id}')
-          
-          lines = open('STORIES.md').readlines()
+          story_id = str(int(raw_id)) # Wandelt "05" in "5" um
+          print(f'📱 Stories ID {raw_id} → {story_id}')
+
+          try:
+              with open('STORIES.md', 'r', encoding='utf-8') as f:
+                  lines = f.readlines()
+          except FileNotFoundError:
+              print('❌ File STORIES.md not found')
+              sys.exit(1)
+
           updated = False
-          
+          pattern = r'^\|\s*' + re.escape(story_id) + r'\s*\|'
+
           for i, line in enumerate(lines):
-              if re.match(r'^\\|\\\\s*' + re.escape(id) + r'\\\\s*\\\\|', line.strip()):
-                  cols = re.split(r'\\\\|', line.strip())
-                  cols = [c.strip() for c in cols if c.strip()]
-                  if len(cols) >= 6:
-                      cols[5] = state
-                      new_cols = [''] + cols + ['']
-                      lines[i] = '| ' + ' | '.join(new_cols[:-1]) + ' |\n'
+              if re.match(pattern, line):
+                  cols = line.split('|')
+                  # In deiner Tabelle ist der Status in der 6. Spalte (Index 6)
+                  # [0]: Leer, [1]: ID, [2]: Desc, [3]: SP, [4]: HEAD, [5]: Prio, [6]: Status, [7]: Leer
+                  if len(cols) >= 7:
+                      cols[6] = f" {state} " 
+                      lines[i] = "|".join(cols)
                       updated = True
-                      print(f'✅ FIXED line {i}: ID {id} → {state}')
+                      print(f'✅ Updated line {i + 1}')
                       break
-          
+
           if updated:
-              open('STORIES.md', 'w').writelines(lines)
+              with open('STORIES.md', 'w', encoding='utf-8') as f:
+                  f.writelines(lines)
               print('💾 File saved!')
           else:
-              print(f'❌ No | {id} | line found')
-          "
+              print(f'❌ No line matching | {story_id} | found in STORIES.md')
+          EOF
 
-      - name: Commit
+      - name: Commit and Push
         run: |
-          git config user.name github-actions[bot]
-          git config user.email github-actions[bot]@users.noreply.github.com
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
           git add STORIES.md
-          if ! git diff --cached --quiet; then
-            git commit -m "stories: #\${{ github.event.issue.number }} → \${{ github.event.issue.state }}"
+          if git diff --cached --quiet; then
+            echo "No changes"
+          else
+            git commit -m "chore: update STORIES.md for issue #${{ github.event.issue.number }} (${{ github.event.issue.state }})"
             git push
-          fi || echo 'No changes'
+          fi
