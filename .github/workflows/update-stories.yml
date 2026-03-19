@@ -1,4 +1,4 @@
-name: Update Stories.md on Issue Change
+name: Update STORIES.md on Issue Change
 
 on:
   issues:
@@ -17,46 +17,56 @@ jobs:
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Update Stories.md
+      - name: Update STORIES.md
         env:
           ISSUE_NUMBER: ${{ github.event.issue.number }}
+          ISSUE_TITLE: ${{ github.event.issue.title }}
           ISSUE_STATE: ${{ github.event.issue.state }}
         run: |
           python3 << 'EOF'
           import re, os
 
-          issue_number = os.environ["ISSUE_NUMBER"]
-          issue_state  = os.environ["ISSUE_STATE"]   # "open" oder "closed"
-          file_path    = "Stories.md"
+          gh_issue_num = os.environ["ISSUE_NUMBER"]
+          gh_issue_title = os.environ["ISSUE_TITLE"]
+          issue_state = os.environ["ISSUE_STATE"]
+          file_path = "STORIES.md"  # ← Groß, Root
 
-          with open(file_path, "r", encoding="utf-8") as f:
-              lines = f.readlines()
+          id_match = re.search(r'ID-(\d+)', gh_issue_title)
+          if not id_match:
+              print(f"Issue #{gh_issue_num}: Keine ID in '{gh_issue_title}' → Skip")
+              exit(0)
+          
+          stories_id = id_match.group(1)
+          print(f"Issue #{gh_issue_num} '{gh_issue_title}' → Stories ID: {stories_id}")
+
+          try:
+              with open(file_path, "r", encoding="utf-8") as f:
+                  lines = f.readlines()
+          except FileNotFoundError:
+              print(f"STORIES.md nicht gefunden!")
+              exit(1)
 
           updated = False
-          new_lines = []
-          for line in lines:
-              # Zeile muss mit | <nummer> | beginnen
-              if re.match(r'^\|\s*' + re.escape(issue_number) + r'\s*\|', line):
-                  # Spalten aufteilen
-                  cols = line.split("|")
-                  # Status ist die letzte nicht-leere Spalte (Index -2)
-                  cols[-2] = f" {issue_state} "
-                  line = "|".join(cols)
+          for i, line in enumerate(lines):
+              if re.match(r'^\|\s*' + stories_id + r'\s*\|', line.strip()):
+                  cols = [c.strip() for c in line.split("|")]
+                  cols[-2] = issue_state  # Status-Spalte
+                  lines[i] = "|".join([""] + cols) + "\n"
                   updated = True
-              new_lines.append(line)
+                  break
 
           if updated:
               with open(file_path, "w", encoding="utf-8") as f:
-                  f.writelines(new_lines)
-              print(f"Issue #{issue_number} → '{issue_state}' in Stories.md gesetzt.")
+                  f.writelines(lines)
+              print(f"✅ Stories ID {stories_id} → '{issue_state}'")
           else:
-              print(f"Issue #{issue_number} nicht in Stories.md gefunden.")
+              print(f"❌ Stories ID {stories_id} nicht in STORIES.md gefunden")
           EOF
 
-      - name: Commit and push changes
+      - name: Commit changes
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add Stories.md
-          git diff --cached --quiet || git commit -m "chore: set issue #${{ github.event.issue.number }} to ${{ github.event.issue.state }} in Stories.md"
+          git add STORIES.md
+          git diff --cached --quiet || git commit -m "chore: update STORIES.md issue #${{ github.event.issue.number }} (${{ github.event.issue.state }})"
           git push
