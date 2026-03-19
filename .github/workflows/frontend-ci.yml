@@ -32,13 +32,9 @@ jobs:
         working-directory: listme-frontend
         run: npm install
 
-      - name: Type check
-        working-directory: listme-frontend
-        run: npx vue-tsc --noEmit
-
       - name: Build
         working-directory: listme-frontend
-        run: npx vite build
+        run: npm run build
 
       - name: Run tests with coverage
         working-directory: listme-frontend
