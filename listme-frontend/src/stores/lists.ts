@@ -1,8 +1,14 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
+import axios from 'axios'
 import { listService } from '../services/list'
 import { CacheService } from '../services/cache'
+import { cacheDb } from '../services/db'
 import type { ShoppingList, CreateListRequest, UpdateListRequest } from '../types'
+
+function isNetworkError(e: unknown): boolean {
+  return axios.isAxiosError(e) && !e.response
+}
 
 export const useListsStore = defineStore('lists', () => {
     const lists = ref<ShoppingList[]>([])
@@ -35,10 +41,33 @@ export const useListsStore = defineStore('lists', () => {
     }
 
     async function create(req: CreateListRequest): Promise<ShoppingList> {
-        const list = await listService.create(req)
-        lists.value.unshift(list)
-        await CacheService.saveList(list)
-        return list
+        try {
+            const list = await listService.create(req)
+            lists.value.unshift(list)
+            await CacheService.saveList(list)
+            return list
+        } catch (e) {
+            if (!isNetworkError(e)) throw e
+
+            // Offline: create locally with a client-generated UUID, queue for sync on reconnect
+            const tempId = crypto.randomUUID()
+            const now = new Date().toISOString()
+            const list: ShoppingList = {
+                id: tempId,
+                name: req.name,
+                emoji: req.emoji ?? '🛒',
+                shareToken: null,
+                itemCount: 0,
+                checkedCount: 0,
+                participantCount: 1,
+                createdAt: now,
+                updatedAt: now,
+            }
+            lists.value.unshift(list)
+            await CacheService.saveList(list)
+            await cacheDb.pendingLists.put({ tempId, name: req.name, emoji: list.emoji, createdAt: Date.now() })
+            return list
+        }
     }
 
     async function update(listId: string, req: UpdateListRequest): Promise<void> {

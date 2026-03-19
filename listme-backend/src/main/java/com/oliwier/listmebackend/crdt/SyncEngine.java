@@ -93,9 +93,11 @@ public class SyncEngine {
      * Idempotently applies a set of incoming CRDT operations from a client.
      * Operations already known to the server (by ID) are skipped.
      * For each new op, the actual Item/List state is updated via LWW.
+     * Returns the list of operations that were newly applied (not duplicates).
      */
     @Transactional
-    public void applyIncoming(List<IncomingOperation> incoming, Device device) {
+    public List<CrdtOperation> applyIncoming(List<IncomingOperation> incoming, Device device) {
+        List<CrdtOperation> applied = new java.util.ArrayList<>();
         for (IncomingOperation inOp : incoming) {
             // Idempotency: skip if already stored
             if (operationRepository.existsById(inOp.id())) continue;
@@ -118,7 +120,10 @@ public class SyncEngine {
 
             // Merge incoming clock into server's clock for this device+list
             mergeIncomingClock(list, device, VectorClock.of(inOp.vectorClock()));
+
+            applied.add(op);
         }
+        return applied;
     }
 
     // ── Current vector clock for a list ──────────────────────────────────

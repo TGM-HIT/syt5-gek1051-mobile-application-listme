@@ -15,10 +15,18 @@ export interface LocalClock {
   counter: number
 }
 
+export interface PendingList {
+  tempId: string
+  name: string
+  emoji: string
+  createdAt: number
+}
+
 class ListMeCacheDb extends Dexie {
   lists!: Table<CachedList, string>
   items!: Table<CachedItem, string>
   localClocks!: Table<LocalClock, [string, string]>
+  pendingLists!: Table<PendingList, string>
 
   constructor() {
     super('listme-cache')
@@ -30,6 +38,12 @@ class ListMeCacheDb extends Dexie {
       lists: 'id, _savedAt',
       items: 'id, listId, _savedAt',
       localClocks: '[listId+deviceId]',
+    })
+    this.version(3).stores({
+      lists: 'id, _savedAt',
+      items: 'id, listId, _savedAt',
+      localClocks: '[listId+deviceId]',
+      pendingLists: 'tempId',
     })
   }
 }

@@ -7,6 +7,7 @@ import com.oliwier.listmebackend.domain.model.CrdtOperation;
 import com.oliwier.listmebackend.domain.model.Device;
 import com.oliwier.listmebackend.domain.repository.ListDeviceRepository;
 import com.oliwier.listmebackend.identity.CurrentDevice;
+import com.oliwier.listmebackend.websocket.ListSyncBroadcaster;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.transaction.annotation.Transactional;
@@ -32,6 +33,7 @@ public class SyncController {
 
     private final SyncEngine syncEngine;
     private final ListDeviceRepository listDeviceRepository;
+    private final ListSyncBroadcaster broadcaster;
 
     @GetMapping("/clock")
     public Map<String, Long> getClock(@PathVariable UUID listId, @CurrentDevice Device device) {
@@ -60,7 +62,8 @@ public class SyncController {
             @CurrentDevice Device device,
             @RequestBody List<IncomingOperation> ops) {
         requireAccess(listId, device);
-        syncEngine.applyIncoming(ops, device);
+        List<CrdtOperation> applied = syncEngine.applyIncoming(ops, device);
+        applied.forEach(op -> broadcaster.broadcastOp(listId, op));
     }
 
     private void requireAccess(UUID listId, Device device) {

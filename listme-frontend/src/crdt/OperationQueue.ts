@@ -51,6 +51,12 @@ export const OperationQueue = {
     await db.queue.bulkUpdate(opIds.map(id => ({ key: id, changes: { _synced: 1 as const } })))
   },
 
+  /** Update all queued ops that reference tempId to use serverId instead. */
+  async remapListId(tempId: string, serverId: string): Promise<void> {
+    const ops = await db.queue.where('listId').equals(tempId).toArray()
+    await Promise.all(ops.map(op => db.queue.update(op.id, { listId: serverId })))
+  },
+
   /** Remove synced operations older than given age (ms) to keep DB small. */
   async pruneOld(maxAgeMs = 7 * 24 * 60 * 60 * 1000): Promise<void> {
     const cutoff = Date.now() - maxAgeMs
