@@ -28,7 +28,9 @@
       "Read(//c/Users/OliGa/Documents/code/syt5-gek1051-mobile-application-listme/listme-frontend/**)",
       "Bash(find /c/Users/OliGa/Documents/code/syt5-gek1051-mobile-application-listme/listme-backend/src/main/java/com/oliwier/listmebackend/websocket -type f -name *.java)",
       "Bash(find /c/Users/OliGa/Documents/code/syt5-gek1051-mobile-application-listme/listme-backend/src/test -type f -name *.java)",
-      "Bash(./mvnw test:*)"
+      "Bash(./mvnw test:*)",
+      "Bash(npx tsc:*)",
+      "Bash(xargs wc:*)"
     ]
   }
 }
