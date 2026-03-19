@@ -97,4 +97,113 @@ class Phase4IntegrationTest {
                 .andExpect(status().isOk());
     }
 
+    // ── WebSocket helpers ──
+
+    StompSession connect(String deviceId) throws Exception {
+        String url = "ws://localhost:" + port + "/ws/websocket?deviceId=" + deviceId;
+        return stompClient()
+                .connectAsync(url, new StompSessionHandlerAdapter() {})
+                .get(5, TimeUnit.SECONDS);
+    }
+
+    BlockingQueue<Map<String, Object>> subscribePresence(StompSession session, String lid) {
+        BlockingQueue<Map<String, Object>> q = new ArrayBlockingQueue<>(10);
+        session.subscribe("/topic/list/" + lid + "/presence", new StompFrameHandler() {
+            @Override public Type getPayloadType(StompHeaders h) { return String.class; }
+            @Override public void handleFrame(StompHeaders h, Object p) {
+                try { q.add(parseMsg((String) p)); } catch (Exception e) { throw new RuntimeException(e); }
+            }
+        });
+        return q;
+    }
+
+    // ── Tests ──
+
+    @Test
+    @Order(20)
+    void join_broadcastsJoinedPresenceEvent() throws Exception {
+        StompSession sessionA = connect(DEVICE_A);
+        BlockingQueue<Map<String, Object>> queue = subscribePresence(sessionA, listId);
+
+        sessionA.send("/app/list/" + listId + "/join", "");
+
+        Map<String, Object> msg = queue.poll(5, TimeUnit.SECONDS);
+        assertThat(msg).isNotNull();
+        assertThat(msg.get("event")).isEqualTo("joined");
+        assertThat(msg.get("deviceId")).isEqualTo(DEVICE_A);
+
+        sessionA.disconnect();
+    }
+
+    @Test
+    @Order(30)
+    void join_onlineDevicesIncludesJoiningDevice() throws Exception {
+        StompSession sessionA = connect(DEVICE_A);
+        BlockingQueue<Map<String, Object>> queue = subscribePresence(sessionA, listId);
+
+        sessionA.send("/app/list/" + listId + "/join", "");
+
+        Map<String, Object> msg = queue.poll(5, TimeUnit.SECONDS);
+        assertThat(msg).isNotNull();
+        @SuppressWarnings("unchecked")
+        var online = (java.util.List<String>) msg.get("onlineDevices");
+        assertThat(online).contains(DEVICE_A);
+
+        sessionA.disconnect();
+    }
+
+    @Test
+    @Order(40)
+    void leave_broadcastsLeftPresenceEvent() throws Exception {
+        StompSession sessionA = connect(DEVICE_A);
+        BlockingQueue<Map<String, Object>> queue = subscribePresence(sessionA, listId);
+
+        sessionA.send("/app/list/" + listId + "/join", "");
+        queue.poll(5, TimeUnit.SECONDS); // consume join event
+
+        sessionA.send("/app/list/" + listId + "/leave", "");
+
+        Map<String, Object> msg = queue.poll(5, TimeUnit.SECONDS);
+        assertThat(msg).isNotNull();
+        assertThat(msg.get("event")).isEqualTo("left");
+        assertThat(msg.get("deviceId")).isEqualTo(DEVICE_A);
+
+        sessionA.disconnect();
+    }
+
+    @Test
+    @Order(50)
+    void twoDevices_bothReceivePresenceEvents() throws Exception {
+        StompSession sessionA = connect(DEVICE_A);
+        StompSession sessionB = connect(DEVICE_B);
+
+        BlockingQueue<Map<String, Object>> queueA = subscribePresence(sessionA, listId);
+        BlockingQueue<Map<String, Object>> queueB = subscribePresence(sessionB, listId);
+
+        sessionA.send("/app/list/" + listId + "/join", "");
+        sessionB.send("/app/list/" + listId + "/join", "");
+
+        // Both sessions receive events
+        Map<String, Object> msgA = queueA.poll(5, TimeUnit.SECONDS);
+        assertThat(msgA).isNotNull();
+
+        Map<String, Object> msgB = queueB.poll(5, TimeUnit.SECONDS);
+        assertThat(msgB).isNotNull();
+
+        sessionA.disconnect();
+        sessionB.disconnect();
+    }
+
+    @Test
+    @Order(60)
+    void connectWithoutDeviceId_doesNotCrash() throws Exception {
+        // deviceId-less connections should be allowed (interceptor returns true always)
+        String url = "ws://localhost:" + port + "/ws/websocket";
+        StompSession session = stompClient()
+                .connectAsync(url, new StompSessionHandlerAdapter() {})
+                .get(5, TimeUnit.SECONDS);
+        assertThat(session.isConnected()).isTrue();
+        session.disconnect();
+    }
+
 }
