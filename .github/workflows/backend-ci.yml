@@ -38,6 +38,7 @@ jobs:
           jacoco-csv-file: listme-backend/target/site/jacoco/jacoco.csv
           badges-directory: listme-backend/target/site/jacoco/badges
           generate-coverage-badge: true
+          badge-label: Backend Coverage
 
       - name: Publish coverage report to GitHub Pages
         if: github.ref == 'refs/heads/main' && github.event_name == 'push'

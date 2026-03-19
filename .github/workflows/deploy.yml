@@ -1,23 +1,27 @@
 name: Deploy
 
 on:
-  push:
+  workflow_run:
+    workflows: ["Backend CI"]
     branches: [main]
+    types:
+      - completed
   workflow_dispatch:
 
 jobs:
   deploy:
+    if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v4
-
-      - name: Build backend image
-        run: docker build -t listme-backend ./listme-backend
-
-      - name: Build frontend image
-        run: docker build -t listme-frontend ./listme-frontend
-
-      # Deployment steps (AWS Lightsail) go here once infrastructure is provisioned
-      - name: Deploy notice
-        run: echo "Build succeeded. Deployment to Lightsail not yet configured."
+      - name: Deploy to Lightsail via SSH
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.LIGHTSAIL_IP }}
+          username: ${{ secrets.LIGHTSAIL_USER }}
+          key: ${{ secrets.LIGHTSAIL_KEY }}
+          port: 22
+          script: |
+            cd /home/ubuntu/syt5-gek1051-mobile-application-listme
+            git pull origin main
+            docker compose -f docker-compose.prod.yml up --build -d

@@ -49,11 +49,11 @@ jobs:
             if   [ "$PCT" -ge 80 ]; then COLOR="3fb950"
             elif [ "$PCT" -ge 60 ]; then COLOR="d29922"
             else COLOR="f85149"; fi
-            curl -sf "https://img.shields.io/badge/coverage-${PCT}%25-${COLOR}?style=flat" \
+            curl -sf "https://img.shields.io/badge/Frontend%20Coverage-${PCT}%25-${COLOR}?style=flat&logo=vuedotjs&logoColor=white" \
               -o frontend-report/badges/coverage.svg \
-              || printf '<svg xmlns="http://www.w3.org/2000/svg" width="110" height="20"><rect width="110" height="20" rx="3" fill="%s"/><text x="6" y="14" font-family="sans-serif" font-size="11" fill="#fff">coverage: %s%%</text></svg>' "#$COLOR" "$PCT" > frontend-report/badges/coverage.svg
+              || printf '<svg xmlns="http://www.w3.org/2000/svg" width="160" height="20"><rect width="160" height="20" rx="3" fill="%s"/><text x="6" y="14" font-family="sans-serif" font-size="11" fill="#fff">Frontend Coverage: %s%%</text></svg>' "#$COLOR" "$PCT" > frontend-report/badges/coverage.svg
           else
-            curl -sf "https://img.shields.io/badge/coverage-unknown-6e7681?style=flat" \
+            curl -sf "https://img.shields.io/badge/Frontend%20Coverage-unknown-6e7681?style=flat&logo=vuedotjs&logoColor=white" \
               -o frontend-report/badges/coverage.svg || true
           fi
 
