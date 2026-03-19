@@ -1,62 +1,47 @@
-name: Update Stories.md on Issue Change
+- name: Update STORIES.md
+  env:
+    ISSUE_NUMBER: ${{ github.event.issue.number }}
+    ISSUE_TITLE: ${{ github.event.issue.title }}
+    ISSUE_STATE: ${{ github.event.issue.state }}
+  run: |
+    python3 << 'EOF'
+    import re, os
 
-on:
-  issues:
-    types: [opened, closed, reopened]
+    gh_issue_num = os.environ["ISSUE_NUMBER"]
+    gh_issue_title = os.environ["ISSUE_TITLE"]
+    issue_state = os.environ["ISSUE_STATE"]
+    file_path = "STORIES.md"
 
-jobs:
-  update-stories:
-    runs-on: ubuntu-latest
-    permissions:
-      contents: write
-      issues: read
+    id_match = re.search(r'ID-(\d+)', gh_issue_title)
+    if not id_match:
+        print(f"Issue #{gh_issue_num}: Keine ID → Skip")
+        exit(0)
+    
+    stories_id_raw = id_match.group(1)  # "05"
+    stories_id = str(int(stories_id_raw))  # "05" → 5 (Zeros weg!)
+    
+    print(f"Issue #{gh_issue_num} '{gh_issue_title}' → Stories ID: '{stories_id_raw}' → '{stories_id}'")
 
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
+    with open(file_path, "r", encoding="utf-8") as f:
+        lines = f.readlines()
 
-      - name: Update Stories.md
-        env:
-          ISSUE_NUMBER: ${{ github.event.issue.number }}
-          ISSUE_STATE: ${{ github.event.issue.state }}
-        run: |
-          python3 << 'EOF'
-          import re, os
+    updated = False
+    for i, line in enumerate(lines):
+        line_stripped = line.strip()
+        if re.match(r'^\|\s*' + stories_id + r'\s*\|', line_stripped):
+            # Saubere Spalten-Extraktion
+            cols = re.split(r'\s*\|\s*', line_stripped)
+            if len(cols) >= 6:  # Mind. 6 Spalten (ID,Desc,SP,HEAD,Prio,Status)
+                cols[5] = issue_state  # Status ist Index 5
+                new_line = "| " + " | ".join(cols) + " |"
+                lines[i] = new_line + "\n"
+                updated = True
+                break
 
-          issue_number = os.environ["ISSUE_NUMBER"]
-          issue_state  = os.environ["ISSUE_STATE"]   # "open" oder "closed"
-          file_path    = "Stories.md"
-
-          with open(file_path, "r", encoding="utf-8") as f:
-              lines = f.readlines()
-
-          updated = False
-          new_lines = []
-          for line in lines:
-              # Zeile muss mit | <nummer> | beginnen
-              if re.match(r'^\|\s*' + re.escape(issue_number) + r'\s*\|', line):
-                  # Spalten aufteilen
-                  cols = line.split("|")
-                  # Status ist die letzte nicht-leere Spalte (Index -2)
-                  cols[-2] = f" {issue_state} "
-                  line = "|".join(cols)
-                  updated = True
-              new_lines.append(line)
-
-          if updated:
-              with open(file_path, "w", encoding="utf-8") as f:
-                  f.writelines(new_lines)
-              print(f"Issue #{issue_number} → '{issue_state}' in Stories.md gesetzt.")
-          else:
-              print(f"Issue #{issue_number} nicht in Stories.md gefunden.")
-          EOF
-
-      - name: Commit and push changes
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add Stories.md
-          git diff --cached --quiet || git commit -m "chore: set issue #${{ github.event.issue.number }} to ${{ github.event.issue.state }} in Stories.md"
-          git push
+    if updated:
+        with open(file_path, "w", encoding="utf-8") as f:
+            f.writelines(lines)
+        print(f"✅ Stories ID {stories_id} → '{issue_state}'")
+    else:
+        print(f"❌ Stories Zeile '| {stories_id} |' nicht gefunden")
+    EOF
