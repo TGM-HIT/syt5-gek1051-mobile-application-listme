@@ -1,86 +1,69 @@
-name: Update STORIES.md on Issue Change
+name: Update STORIES.md
 
 on:
   issues:
     types: [opened, closed, reopened]
 
 jobs:
-  update-stories:
+  update:
     runs-on: ubuntu-latest
     permissions:
       contents: write
       issues: read
 
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
+      - uses: actions/checkout@v4
 
       - name: Update STORIES.md
         env:
-          ISSUE_NUMBER: ${{ github.event.issue.number }}
-          ISSUE_TITLE: ${{ github.event.issue.title }}
-          ISSUE_STATE: ${{ github.event.issue.state }}
+          GH_ISSUE_NUM: ${{ github.event.issue.number }}
+          GH_TITLE: ${{ github.event.issue.title }}
+          GH_STATE: ${{ github.event.issue.state }}
         run: |
-          python3 << 'EOF'
-          import re
-          import os
-          import sys
-
-          gh_issue_num = os.environ.get('ISSUE_NUMBER', 'unknown')
-          gh_issue_title = os.environ.get('ISSUE_TITLE', 'no-title')
-          issue_state = os.environ.get('ISSUE_STATE', 'unknown')
-          file_path = 'STORIES.md'
-
-          print(f'DEBUG: Issue #{gh_issue_num}, Title: "{gh_issue_title}", State: {issue_state}')
-
-          id_match = re.search(r'ID-(\\d+)', gh_issue_title)
-          if not id_match:
-              print(f'No ID in title, skipping')
-              sys.exit(0)
-
-          stories_id_raw = id_match.group(1)
-          stories_id = str(int(stories_id_raw))  # 05 → 5
-
-          print(f'Stories ID: {stories_id_raw} → {stories_id}')
-
-          try:
-              with open(file_path, 'r', encoding='utf-8') as f:
-                  lines = f.readlines()
-          except FileNotFoundError:
-              print(f'❌ File {file_path} not found!')
-              sys.exit(1)
-
+          python3 -c "
+          import re, os
+          num = os.getenv('GH_ISSUE_NUM')
+          title = os.getenv('GH_TITLE', '')
+          state = os.getenv('GH_STATE', 'unknown')
+          print(f'🔍 Issue #{num}: \"{title}\" → {state}')
+          
+          m = re.search(r'ID-(\\\\d+)', title)
+          if not m:
+              print('❌ No ID-## in title')
+              exit(0)
+          
+          raw_id = m.group(1)
+          id = str(int(raw_id))
+          print(f'📱 Stories ID {raw_id} → {id}')
+          
+          lines = open('STORIES.md').readlines()
           updated = False
+          
           for i, line in enumerate(lines):
-              line_stripped = line.strip()
-              if re.match(r'^\\|\\s*' + re.escape(stories_id) + r'\\s*\\|', line_stripped):
-                  cols = re.split(r'\\s*\\|\\s*', line_stripped)
+              if re.match(r'^\\|\\\\s*' + re.escape(id) + r'\\\\s*\\\\|', line.strip()):
+                  cols = re.split(r'\\\\|', line.strip())
+                  cols = [c.strip() for c in cols if c.strip()]
                   if len(cols) >= 6:
-                      cols[5] = issue_state  # Status-Spalte
-                      new_line = '| ' + ' | '.join(cols) + ' |'
-                      lines[i] = new_line + '\\n'
+                      cols[5] = state
+                      new_cols = [''] + cols + ['']
+                      lines[i] = '| ' + ' | '.join(new_cols[:-1]) + ' |\n'
                       updated = True
-                      print(f'✅ Updated line {i}')
+                      print(f'✅ FIXED line {i}: ID {id} → {state}')
                       break
-
+          
           if updated:
-              with open(file_path, 'w', encoding='utf-8') as f:
-                  f.writelines(lines)
-              print(f'🎉 SUCCESS: Stories ID {stories_id} → {issue_state}')
+              open('STORIES.md', 'w').writelines(lines)
+              print('💾 File saved!')
           else:
-              print(f'❌ FAILED: No line "| {stories_id} |" found')
-          EOF
+              print(f'❌ No | {id} | line found')
+          "
 
-      - name: Commit and Push
+      - name: Commit
         run: |
-          git config user.name 'github-actions[bot]'
-          git config user.email 'github-actions[bot]@users.noreply.github.com'
+          git config user.name github-actions[bot]
+          git config user.email github-actions[bot]@users.noreply.github.com
           git add STORIES.md
-          if git diff --cached --quiet; then
-            echo 'No changes → Skip commit'
-          else
-            git commit -m "chore: STORIES.md issue #${{ github.event.issue.number }} (${{ github.event.issue.state }})"
+          if ! git diff --cached --quiet; then
+            git commit -m "stories: #\${{ github.event.issue.number }} → \${{ github.event.issue.state }}"
             git push
-          fi
+          fi || echo 'No changes'
