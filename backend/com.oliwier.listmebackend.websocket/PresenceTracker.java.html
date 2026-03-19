@@ -20,28 +20,28 @@ import java.util.concurrent.ConcurrentHashMap;
 <span class="fc" id="L20">    private final Map&lt;UUID, Set&lt;String&gt;&gt; listToDevices = new ConcurrentHashMap&lt;&gt;();</span>
 
     public void join(UUID listId, String deviceId) {
-<span class="nc" id="L23">        listToDevices</span>
-<span class="nc" id="L24">                .computeIfAbsent(listId, k -&gt; ConcurrentHashMap.newKeySet())</span>
-<span class="nc" id="L25">                .add(deviceId);</span>
-<span class="nc" id="L26">    }</span>
+<span class="fc" id="L23">        listToDevices</span>
+<span class="fc" id="L24">                .computeIfAbsent(listId, k -&gt; ConcurrentHashMap.newKeySet())</span>
+<span class="fc" id="L25">                .add(deviceId);</span>
+<span class="fc" id="L26">    }</span>
 
     public void leave(UUID listId, String deviceId) {
-<span class="nc" id="L29">        Set&lt;String&gt; devices = listToDevices.get(listId);</span>
-<span class="nc bnc" id="L30" title="All 2 branches missed.">        if (devices != null) {</span>
-<span class="nc" id="L31">            devices.remove(deviceId);</span>
-<span class="nc bnc" id="L32" title="All 2 branches missed.">            if (devices.isEmpty()) listToDevices.remove(listId);</span>
+<span class="fc" id="L29">        Set&lt;String&gt; devices = listToDevices.get(listId);</span>
+<span class="fc bfc" id="L30" title="All 2 branches covered.">        if (devices != null) {</span>
+<span class="fc" id="L31">            devices.remove(deviceId);</span>
+<span class="fc bfc" id="L32" title="All 2 branches covered.">            if (devices.isEmpty()) listToDevices.remove(listId);</span>
         }
-<span class="nc" id="L34">    }</span>
+<span class="fc" id="L34">    }</span>
 
     /** Remove a device from ALL lists (called on WebSocket disconnect). */
     public void disconnectDevice(String deviceId) {
-<span class="nc" id="L38">        listToDevices.values().forEach(devices -&gt; devices.remove(deviceId));</span>
-<span class="nc" id="L39">        listToDevices.entrySet().removeIf(e -&gt; e.getValue().isEmpty());</span>
-<span class="nc" id="L40">    }</span>
+<span class="fc" id="L38">        listToDevices.values().forEach(devices -&gt; devices.remove(deviceId));</span>
+<span class="fc" id="L39">        listToDevices.entrySet().removeIf(e -&gt; e.getValue().isEmpty());</span>
+<span class="fc" id="L40">    }</span>
 
     public Set&lt;String&gt; getOnlineDevices(UUID listId) {
-<span class="nc" id="L43">        return Collections.unmodifiableSet(</span>
-<span class="nc" id="L44">                listToDevices.getOrDefault(listId, Collections.emptySet())</span>
+<span class="fc" id="L43">        return Collections.unmodifiableSet(</span>
+<span class="fc" id="L44">                listToDevices.getOrDefault(listId, Collections.emptySet())</span>
         );
     }
 }

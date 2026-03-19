@@ -23,20 +23,20 @@ import java.util.Map;
     @Override
     public boolean beforeHandshake(ServerHttpRequest request, ServerHttpResponse response,
                                    WebSocketHandler wsHandler, Map&lt;String, Object&gt; attributes) {
-<span class="nc" id="L26">        List&lt;String&gt; deviceIds = UriComponentsBuilder</span>
-<span class="nc" id="L27">                .fromUri(request.getURI())</span>
-<span class="nc" id="L28">                .build()</span>
-<span class="nc" id="L29">                .getQueryParams()</span>
-<span class="nc" id="L30">                .get(&quot;deviceId&quot;);</span>
+<span class="fc" id="L26">        List&lt;String&gt; deviceIds = UriComponentsBuilder</span>
+<span class="fc" id="L27">                .fromUri(request.getURI())</span>
+<span class="fc" id="L28">                .build()</span>
+<span class="fc" id="L29">                .getQueryParams()</span>
+<span class="fc" id="L30">                .get(&quot;deviceId&quot;);</span>
 
-<span class="nc bnc" id="L32" title="All 4 branches missed.">        if (deviceIds != null &amp;&amp; !deviceIds.isEmpty()) {</span>
-<span class="nc" id="L33">            attributes.put(DEVICE_ID_ATTR, deviceIds.get(0));</span>
+<span class="pc bpc" id="L32" title="1 of 4 branches missed.">        if (deviceIds != null &amp;&amp; !deviceIds.isEmpty()) {</span>
+<span class="fc" id="L33">            attributes.put(DEVICE_ID_ATTR, deviceIds.get(0));</span>
         }
-<span class="nc" id="L35">        return true; // always allow — missing deviceId just means no presence tracking</span>
+<span class="fc" id="L35">        return true; // always allow — missing deviceId just means no presence tracking</span>
     }
 
     @Override
     public void afterHandshake(ServerHttpRequest request, ServerHttpResponse response,
-<span class="nc" id="L40">                                WebSocketHandler wsHandler, Exception exception) {}</span>
+<span class="fc" id="L40">                                WebSocketHandler wsHandler, Exception exception) {}</span>
 }
 </pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>
