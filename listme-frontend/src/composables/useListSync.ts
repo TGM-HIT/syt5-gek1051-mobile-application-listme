@@ -1,5 +1,5 @@
 import { ref, onUnmounted } from 'vue'
-import { connectWebSocket, subscribe, send, wsConnected } from '../services/websocket'
+import { connectWebSocket, subscribe, send, onReconnect, wsConnected } from '../services/websocket'
 import { useItemsStore } from '../stores/items'
 import { usePresenceStore } from '../stores/presence'
 import { getDeviceId } from '../services/device'
@@ -17,9 +17,10 @@ import type { Item } from '../types'
  */
 export function useListSync() {
   const conflicts = ref<Conflict[]>([])
-  const unsubscribers: Array<() => void> = []
+  const topicUnsubs: Array<() => void> = []
   let currentListId: string | null = null
   const sessionOps: CrdtOperation[] = []
+  let unregisterReconnect: (() => void) | null = null
 
   async function startSync(listId: string) {
     currentListId = listId
@@ -35,34 +36,49 @@ export function useListSync() {
     const presenceStore = usePresenceStore()
     const myDeviceId = await getDeviceId()
 
-    // Subscribe to CRDT operation stream
-    const unsubOps = subscribe(`/topic/list/${listId}`, (payload) => {
-      const op = payload as CrdtOperation
-      // Skip ops originating from this device — already applied locally via HTTP response
-      if (op.deviceId === myDeviceId) return
-      sessionOps.push(op)
-      conflicts.value = detectConflicts(sessionOps)
-      applyOp(listId, op, itemsStore)
+    function subscribeToTopics() {
+      // Clean up any stale subscriptions from the previous session
+      topicUnsubs.forEach(fn => fn())
+      topicUnsubs.length = 0
+
+      const unsubOps = subscribe(`/topic/list/${listId}`, (payload) => {
+        const op = payload as CrdtOperation
+        // Skip ops originating from this device — already applied locally via HTTP response
+        if (op.deviceId === myDeviceId) return
+        sessionOps.push(op)
+        conflicts.value = detectConflicts(sessionOps)
+        applyOp(listId, op, itemsStore)
+      })
+
+      const unsubPresence = subscribe(`/topic/list/${listId}/presence`, (payload) => {
+        const msg = payload as { event: string; deviceId: string; onlineDevices: string[] }
+        if (msg.event === 'snapshot') presenceStore.setSnapshot(listId, msg.onlineDevices)
+        else if (msg.event === 'joined') presenceStore.addDevice(listId, msg.deviceId)
+        else if (msg.event === 'left') presenceStore.removeDevice(listId, msg.deviceId)
+      })
+
+      topicUnsubs.push(unsubOps, unsubPresence)
+
+      // Announce presence (also re-announces on reconnect so server tracks us again)
+      send(`/app/list/${listId}/join`)
+    }
+
+    subscribeToTopics()
+
+    // Re-subscribe every time the WebSocket reconnects — each reconnect is a new
+    // STOMP session so previous subscriptions are gone.
+    unregisterReconnect = onReconnect(() => {
+      console.debug('[Sync] reconnected, re-subscribing to list', listId)
+      subscribeToTopics()
     })
-
-    // Subscribe to presence events
-    const unsubPresence = subscribe(`/topic/list/${listId}/presence`, (payload) => {
-      const msg = payload as { event: string; deviceId: string; onlineDevices: string[] }
-      if (msg.event === 'snapshot') presenceStore.setSnapshot(listId, msg.onlineDevices)
-      else if (msg.event === 'joined') presenceStore.addDevice(listId, msg.deviceId)
-      else if (msg.event === 'left') presenceStore.removeDevice(listId, msg.deviceId)
-    })
-
-    unsubscribers.push(unsubOps, unsubPresence)
-
-    // Announce presence
-    send(`/app/list/${listId}/join`)
   }
 
   function stopSync() {
     if (currentListId) send(`/app/list/${currentListId}/leave`)
-    unsubscribers.forEach(fn => fn())
-    unsubscribers.length = 0
+    topicUnsubs.forEach(fn => fn())
+    topicUnsubs.length = 0
+    unregisterReconnect?.()
+    unregisterReconnect = null
     currentListId = null
     sessionOps.length = 0
     conflicts.value = []
