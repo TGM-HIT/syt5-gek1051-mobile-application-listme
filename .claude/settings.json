@@ -31,7 +31,8 @@
       "Bash(./mvnw test:*)",
       "Bash(npx tsc:*)",
       "Bash(xargs wc:*)",
-      "Bash(npm install:*)"
+      "Bash(npm install:*)",
+      "Bash(curl -s \"https://repo.maven.apache.org/maven2/nl/martijndwars/web-push/maven-metadata.xml\")"
     ]
   }
 }
