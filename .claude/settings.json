@@ -30,7 +30,8 @@
       "Bash(find /c/Users/OliGa/Documents/code/syt5-gek1051-mobile-application-listme/listme-backend/src/test -type f -name *.java)",
       "Bash(./mvnw test:*)",
       "Bash(npx tsc:*)",
-      "Bash(xargs wc:*)"
+      "Bash(xargs wc:*)",
+      "Bash(npm install:*)"
     ]
   }
 }

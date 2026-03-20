@@ -1,5 +1,5 @@
 import { ref, onUnmounted } from 'vue'
-import { connectWebSocket, subscribe, send, isConnected } from '../services/websocket'
+import { connectWebSocket, subscribe, send, wsConnected } from '../services/websocket'
 import { useItemsStore } from '../stores/items'
 import { usePresenceStore } from '../stores/presence'
 import { getDeviceId } from '../services/device'
@@ -16,7 +16,6 @@ import type { Item } from '../types'
  * Presence join/leave events are tracked in the presence store.
  */
 export function useListSync() {
-  const connected = ref(false)
   const conflicts = ref<Conflict[]>([])
   const unsubscribers: Array<() => void> = []
   let currentListId: string | null = null
@@ -27,7 +26,6 @@ export function useListSync() {
 
     try {
       await connectWebSocket()
-      connected.value = isConnected()
     } catch (e) {
       console.warn('[Sync] WebSocket unavailable, running offline', e)
       return
@@ -76,7 +74,7 @@ export function useListSync() {
 
   onUnmounted(stopSync)
 
-  return { connected, conflicts, dismissConflicts, startSync, stopSync }
+  return { connected: wsConnected, conflicts, dismissConflicts, startSync, stopSync }
 }
 
 /**

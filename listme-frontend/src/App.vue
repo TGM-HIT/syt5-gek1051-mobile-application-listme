@@ -1,16 +1,26 @@
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import AppHeader from './components/common/AppHeader.vue'
 import BottomNav from './components/common/BottomNav.vue'
+import NotificationPermissionBanner from './components/common/NotificationPermissionBanner.vue'
 import { useOffline } from './composables/useOffline'
 import { useSyncQueue } from './composables/useSyncQueue'
+import { subscribeToPush } from './services/pushNotification'
 
 const route = useRoute()
 const { isOnline } = useOffline()
 
 // Flush queued ops whenever connectivity returns
 useSyncQueue()
+
+// If the user already granted permission in a previous session, re-sync the
+// push subscription with the backend (endpoint can rotate after SW update)
+onMounted(() => {
+  if ('Notification' in window && Notification.permission === 'granted') {
+    subscribeToPush().catch(() => {})
+  }
+})
 
 const hideChrome = computed(() => !!route.meta.hideChrome)
 
@@ -36,6 +46,7 @@ const offlineBannerClass = computed(() =>
 <template>
   <div class="min-h-dvh bg-ctp-base text-ctp-text">
     <AppHeader v-if="!hideChrome" />
+    <NotificationPermissionBanner v-if="!hideChrome" />
 
     <!-- Global offline / back-online banner (home + other non-list pages) -->
     <Transition name="banner">
