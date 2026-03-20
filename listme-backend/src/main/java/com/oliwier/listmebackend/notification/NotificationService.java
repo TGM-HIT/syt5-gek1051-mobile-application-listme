@@ -10,10 +10,10 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import nl.martijndwars.webpush.Notification;
 import nl.martijndwars.webpush.PushService;
-import nl.martijndwars.webpush.Utils;
 import org.bouncycastle.jce.ECNamedCurveTable;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.bouncycastle.jce.spec.ECNamedCurveParameterSpec;
+import org.bouncycastle.util.BigIntegers;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
@@ -65,7 +65,7 @@ public class NotificationService {
                         (org.bouncycastle.jce.interfaces.ECPrivateKey) kp.getPrivate();
 
                 byte[] pubBytes = pub.getQ().getEncoded(false);
-                byte[] privBytes = Utils.toByteArray(priv.getD(), 32);
+                byte[] privBytes = BigIntegers.asUnsignedByteArray(32, priv.getD());
 
                 Base64.Encoder enc = Base64.getUrlEncoder().withoutPadding();
                 vapidPublicKey = enc.encodeToString(pubBytes);
