@@ -3,7 +3,6 @@
 import com.oliwier.listmebackend.identity.DeviceArgumentResolver;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.scheduling.annotation.EnableAsync;
 import org.springframework.web.method.support.HandlerMethodArgumentResolver;
 import org.springframework.web.servlet.config.annotation.CorsRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
@@ -11,7 +10,6 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 import java.util.List;
 
 @Configuration
-@EnableAsync
 @RequiredArgsConstructor
 public class WebConfig implements WebMvcConfigurer {
 
@@ -19,18 +17,18 @@ public class WebConfig implements WebMvcConfigurer {
 
     @Override
     public void addArgumentResolvers(List&lt;HandlerMethodArgumentResolver&gt; resolvers) {
-<span class="fc" id="L22">        resolvers.add(deviceArgumentResolver);</span>
-<span class="fc" id="L23">    }</span>
+<span class="fc" id="L20">        resolvers.add(deviceArgumentResolver);</span>
+<span class="fc" id="L21">    }</span>
 
     @Override
     public void addCorsMappings(CorsRegistry registry) {
-<span class="fc" id="L27">        registry.addMapping(&quot;/api/**&quot;)</span>
-<span class="fc" id="L28">                .allowedOriginPatterns(&quot;*&quot;)</span>
-<span class="fc" id="L29">                .allowedMethods(&quot;GET&quot;, &quot;POST&quot;, &quot;PUT&quot;, &quot;DELETE&quot;, &quot;PATCH&quot;, &quot;OPTIONS&quot;)</span>
-<span class="fc" id="L30">                .allowedHeaders(&quot;*&quot;)</span>
-<span class="fc" id="L31">                .exposedHeaders(&quot;X-Device-Id&quot;)</span>
-<span class="fc" id="L32">                .allowCredentials(true)</span>
-<span class="fc" id="L33">                .maxAge(3600);</span>
-<span class="fc" id="L34">    }</span>
+<span class="fc" id="L25">        registry.addMapping(&quot;/api/**&quot;)</span>
+<span class="fc" id="L26">                .allowedOriginPatterns(&quot;*&quot;)</span>
+<span class="fc" id="L27">                .allowedMethods(&quot;GET&quot;, &quot;POST&quot;, &quot;PUT&quot;, &quot;DELETE&quot;, &quot;PATCH&quot;, &quot;OPTIONS&quot;)</span>
+<span class="fc" id="L28">                .allowedHeaders(&quot;*&quot;)</span>
+<span class="fc" id="L29">                .exposedHeaders(&quot;X-Device-Id&quot;)</span>
+<span class="fc" id="L30">                .allowCredentials(true)</span>
+<span class="fc" id="L31">                .maxAge(3600);</span>
+<span class="fc" id="L32">    }</span>
 }
 </pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>
