@@ -1,6 +1,6 @@
 package com.oliwier.listmebackend.notification;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.ObjectMapper;
 import com.oliwier.listmebackend.domain.model.Device;
 import com.oliwier.listmebackend.domain.model.Item;
 import com.oliwier.listmebackend.domain.model.ListDevice;
