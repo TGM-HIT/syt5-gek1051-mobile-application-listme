@@ -26,7 +26,7 @@ export async function subscribeToPush(): Promise<void> {
 }
 
 export async function unsubscribeFromPush(): Promise<void> {
-  if (!('serviceWorker' in navigator)) return
+  if (!navigator.serviceWorker) return
   const registration = await navigator.serviceWorker.ready
   const subscription = await registration.pushManager.getSubscription()
   if (!subscription) return

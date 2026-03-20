@@ -35,7 +35,8 @@
       "Bash(curl -s \"https://repo.maven.apache.org/maven2/nl/martijndwars/web-push/maven-metadata.xml\")",
       "Bash(./mvnw compile:*)",
       "Bash(docker run:*)",
-      "Bash(MSYS_NO_PATHCONV=1 docker run --rm -v \"C:/Users/OliGa/Documents/code/syt5-gek1051-mobile-application-listme/listme-backend:/app\" -v \"listme_maven_cache:/root/.m2\" -w \"/app\" maven:3.9-eclipse-temurin-21 mvn compile -q)"
+      "Bash(MSYS_NO_PATHCONV=1 docker run --rm -v \"C:/Users/OliGa/Documents/code/syt5-gek1051-mobile-application-listme/listme-backend:/app\" -v \"listme_maven_cache:/root/.m2\" -w \"/app\" maven:3.9-eclipse-temurin-21 mvn compile -q)",
+      "Bash(docker compose:*)"
     ]
   }
 }

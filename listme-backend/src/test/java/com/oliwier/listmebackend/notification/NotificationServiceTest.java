@@ -6,6 +6,7 @@ import com.oliwier.listmebackend.domain.model.Item;
 import com.oliwier.listmebackend.domain.model.ListDevice;
 import com.oliwier.listmebackend.domain.model.ShoppingList;
 import com.oliwier.listmebackend.domain.repository.ListDeviceRepository;
+import nl.martijndwars.webpush.PushService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -20,7 +21,6 @@ import java.util.Optional;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -29,6 +29,7 @@ class NotificationServiceTest {
     @Mock PushSubscriptionRepository subscriptionRepository;
     @Mock ListDeviceRepository listDeviceRepository;
     @Mock ObjectMapper objectMapper;
+    @Mock PushService mockPushService;
 
     @InjectMocks NotificationService notificationService;
 
@@ -124,10 +125,9 @@ class NotificationServiceTest {
 
     @Test
     void notifyItemChecked_skipsTheTriggeringDevice() throws Exception {
-        // Inject a sentinel non-null object so the early-return guard passes,
+        // Inject a mock PushService so the early-return guard passes,
         // but subscriptionRepository returns empty so no actual send occurs.
-        Object fakePushService = new Object();
-        ReflectionTestUtils.setField(notificationService, "pushService", fakePushService);
+        ReflectionTestUtils.setField(notificationService, "pushService", mockPushService);
 
         Device other = new Device();
         other.setId(UUID.randomUUID());

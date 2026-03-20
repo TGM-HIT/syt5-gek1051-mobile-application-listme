@@ -47,7 +47,11 @@ public class NotificationService {
 
     @PostConstruct
     public void init() {
-        Security.addProvider(new BouncyCastleProvider());
+        try {
+            Security.addProvider(new BouncyCastleProvider());
+        } catch (Exception ignored) {
+            // provider may already be registered
+        }
 
         if (vapidPublicKey.isBlank() || vapidPrivateKey.isBlank()) {
             log.warn("=======================================================");

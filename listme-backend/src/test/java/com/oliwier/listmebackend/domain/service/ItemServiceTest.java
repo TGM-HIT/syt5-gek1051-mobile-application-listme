@@ -6,6 +6,7 @@ import com.oliwier.listmebackend.domain.model.Device;
 import com.oliwier.listmebackend.domain.model.Item;
 import com.oliwier.listmebackend.domain.model.ShoppingList;
 import com.oliwier.listmebackend.domain.repository.*;
+import com.oliwier.listmebackend.notification.NotificationService;
 import com.oliwier.listmebackend.websocket.ListSyncBroadcaster;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -35,6 +36,7 @@ class ItemServiceTest {
     @Mock LabelRepository labelRepository;
     @Mock SyncEngine syncEngine;
     @Mock ListSyncBroadcaster broadcaster;
+    @Mock NotificationService notificationService;
 
     @InjectMocks ItemService itemService;
 
