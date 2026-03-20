@@ -1,0 +1,176 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>NotificationService.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">listme-backend</a> &gt; <a href="index.source.html" class="el_package">com.oliwier.listmebackend.notification</a> &gt; <span class="el_source">NotificationService.java</span></div><h1>NotificationService.java</h1><pre class="source lang-java linenums">package com.oliwier.listmebackend.notification;
+
+import tools.jackson.databind.ObjectMapper;
+import com.oliwier.listmebackend.domain.model.Device;
+import com.oliwier.listmebackend.domain.model.Item;
+import com.oliwier.listmebackend.domain.model.ShoppingList;
+import com.oliwier.listmebackend.domain.repository.ListDeviceRepository;
+import jakarta.annotation.PostConstruct;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import nl.martijndwars.webpush.Notification;
+import nl.martijndwars.webpush.PushService;
+import org.bouncycastle.jce.ECNamedCurveTable;
+import org.bouncycastle.jce.provider.BouncyCastleProvider;
+import org.bouncycastle.jce.spec.ECNamedCurveParameterSpec;
+import org.bouncycastle.util.BigIntegers;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.scheduling.annotation.Async;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.security.*;
+import java.util.Base64;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+
+@Service
+@RequiredArgsConstructor
+<span class="fc" id="L30">@Slf4j</span>
+public class NotificationService {
+
+    @Value(&quot;${vapid.public-key:}&quot;)
+    private String vapidPublicKey;
+
+    @Value(&quot;${vapid.private-key:}&quot;)
+    private String vapidPrivateKey;
+
+    @Value(&quot;${vapid.subject:mailto:admin@listme.app}&quot;)
+    private String vapidSubject;
+
+    private final PushSubscriptionRepository subscriptionRepository;
+    private final ListDeviceRepository listDeviceRepository;
+    private final ObjectMapper objectMapper;
+
+    private PushService pushService;
+
+    @PostConstruct
+    public void init() {
+        try {
+<span class="fc" id="L51">            Security.addProvider(new BouncyCastleProvider());</span>
+<span class="nc" id="L52">        } catch (Exception ignored) {</span>
+            // provider may already be registered
+<span class="fc" id="L54">        }</span>
+
+<span class="pc bpc" id="L56" title="3 of 4 branches missed.">        if (vapidPublicKey.isBlank() || vapidPrivateKey.isBlank()) {</span>
+<span class="fc" id="L57">            log.warn(&quot;=======================================================&quot;);</span>
+<span class="fc" id="L58">            log.warn(&quot;  VAPID keys not set — generating temporary keys.&quot;);</span>
+<span class="fc" id="L59">            log.warn(&quot;  Add these to application.properties to persist them:&quot;);</span>
+            try {
+<span class="fc" id="L61">                ECNamedCurveParameterSpec spec = ECNamedCurveTable.getParameterSpec(&quot;prime256v1&quot;);</span>
+<span class="fc" id="L62">                KeyPairGenerator gen = KeyPairGenerator.getInstance(&quot;ECDH&quot;, &quot;BC&quot;);</span>
+<span class="fc" id="L63">                gen.initialize(spec, new SecureRandom());</span>
+<span class="fc" id="L64">                KeyPair kp = gen.generateKeyPair();</span>
+
+<span class="fc" id="L66">                org.bouncycastle.jce.interfaces.ECPublicKey pub =</span>
+<span class="fc" id="L67">                        (org.bouncycastle.jce.interfaces.ECPublicKey) kp.getPublic();</span>
+<span class="fc" id="L68">                org.bouncycastle.jce.interfaces.ECPrivateKey priv =</span>
+<span class="fc" id="L69">                        (org.bouncycastle.jce.interfaces.ECPrivateKey) kp.getPrivate();</span>
+
+<span class="fc" id="L71">                byte[] pubBytes = pub.getQ().getEncoded(false);</span>
+<span class="fc" id="L72">                byte[] privBytes = BigIntegers.asUnsignedByteArray(32, priv.getD());</span>
+
+<span class="fc" id="L74">                Base64.Encoder enc = Base64.getUrlEncoder().withoutPadding();</span>
+<span class="fc" id="L75">                vapidPublicKey = enc.encodeToString(pubBytes);</span>
+<span class="fc" id="L76">                vapidPrivateKey = enc.encodeToString(privBytes);</span>
+
+<span class="fc" id="L78">                log.warn(&quot;  vapid.public-key={}&quot;, vapidPublicKey);</span>
+<span class="fc" id="L79">                log.warn(&quot;  vapid.private-key={}&quot;, vapidPrivateKey);</span>
+<span class="fc" id="L80">                log.warn(&quot;=======================================================&quot;);</span>
+<span class="nc" id="L81">            } catch (Exception e) {</span>
+<span class="nc" id="L82">                log.error(&quot;Failed to generate VAPID keys — push notifications disabled&quot;, e);</span>
+<span class="nc" id="L83">                return;</span>
+<span class="fc" id="L84">            }</span>
+        }
+
+        try {
+<span class="fc" id="L88">            pushService = new PushService(vapidPublicKey, vapidPrivateKey, vapidSubject);</span>
+<span class="fc" id="L89">            log.info(&quot;Push notification service initialized&quot;);</span>
+<span class="nc" id="L90">        } catch (Exception e) {</span>
+<span class="nc" id="L91">            log.error(&quot;Failed to initialize PushService — push notifications disabled&quot;, e);</span>
+<span class="fc" id="L92">        }</span>
+<span class="fc" id="L93">    }</span>
+
+    public String getVapidPublicKey() {
+<span class="fc" id="L96">        return vapidPublicKey;</span>
+    }
+
+    @Async
+    public void notifyItemChecked(ShoppingList list, Item item, Device triggerDevice) {
+<span class="fc bfc" id="L101" title="All 2 branches covered.">        if (pushService == null) return;</span>
+<span class="fc bfc" id="L102" title="All 2 branches covered.">        String title = item.isChecked() ? &quot;Abgehakt ✓&quot; : &quot;Wieder offen&quot;;</span>
+<span class="fc bfc" id="L103" title="All 2 branches covered.">        String body = item.isChecked()</span>
+<span class="fc" id="L104">                ? item.getName() + &quot; wurde gekauft&quot;</span>
+<span class="fc" id="L105">                : item.getName() + &quot; ist wieder offen&quot;;</span>
+<span class="fc" id="L106">        sendToListDevices(list, triggerDevice, title, body);</span>
+<span class="fc" id="L107">    }</span>
+
+    @Async
+    public void notifyItemDeleted(ShoppingList list, Item item, Device triggerDevice) {
+<span class="fc bfc" id="L111" title="All 2 branches covered.">        if (pushService == null) return;</span>
+<span class="fc" id="L112">        sendToListDevices(list, triggerDevice,</span>
+                &quot;Artikel entfernt&quot;,
+<span class="fc" id="L114">                item.getName() + &quot; wurde aus der Liste entfernt&quot;);</span>
+<span class="fc" id="L115">    }</span>
+
+    private void sendToListDevices(ShoppingList list, Device except, String title, String body) {
+<span class="fc" id="L118">        List&lt;UUID&gt; deviceIds = listDeviceRepository.findByListId(list.getId())</span>
+<span class="fc" id="L119">                .stream()</span>
+<span class="fc" id="L120">                .map(ld -&gt; ld.getDevice().getId())</span>
+<span class="fc bfc" id="L121" title="All 2 branches covered.">                .filter(id -&gt; !id.equals(except.getId()))</span>
+<span class="fc" id="L122">                .toList();</span>
+
+<span class="fc bfc" id="L124" title="All 2 branches covered.">        for (UUID deviceId : deviceIds) {</span>
+<span class="pc bpc" id="L125" title="1 of 2 branches missed.">            for (PushSubscription sub : subscriptionRepository.findByDeviceId(deviceId)) {</span>
+<span class="nc" id="L126">                send(sub, title, body, list.getId());</span>
+<span class="nc" id="L127">            }</span>
+<span class="fc" id="L128">        }</span>
+<span class="fc" id="L129">    }</span>
+
+    private void send(PushSubscription sub, String title, String body, UUID listId) {
+        try {
+<span class="nc" id="L133">            byte[] payload = objectMapper.writeValueAsBytes(Map.of(</span>
+                    &quot;title&quot;, title,
+                    &quot;body&quot;, body,
+<span class="nc" id="L136">                    &quot;listId&quot;, listId.toString(),</span>
+                    &quot;url&quot;, &quot;/list/&quot; + listId
+            ));
+<span class="nc" id="L139">            Notification notification = new Notification(</span>
+<span class="nc" id="L140">                    sub.getEndpoint(),</span>
+<span class="nc" id="L141">                    sub.getP256dh(),</span>
+<span class="nc" id="L142">                    sub.getAuthKey(),</span>
+                    payload
+            );
+<span class="nc" id="L145">            pushService.send(notification);</span>
+<span class="nc" id="L146">        } catch (Exception e) {</span>
+<span class="nc" id="L147">            log.warn(&quot;Push failed for endpoint {}: {}&quot;, sub.getEndpoint(), e.getMessage());</span>
+<span class="nc" id="L148">        }</span>
+<span class="nc" id="L149">    }</span>
+
+    @Transactional
+    public void saveSubscription(Device device, String endpoint, String p256dh, String auth) {
+<span class="fc" id="L153">        subscriptionRepository.findByDeviceIdAndEndpoint(device.getId(), endpoint)</span>
+<span class="fc" id="L154">                .ifPresentOrElse(</span>
+                        existing -&gt; {
+<span class="fc" id="L156">                            existing.setP256dh(p256dh);</span>
+<span class="fc" id="L157">                            existing.setAuthKey(auth);</span>
+<span class="fc" id="L158">                            subscriptionRepository.save(existing);</span>
+<span class="fc" id="L159">                        },</span>
+                        () -&gt; {
+<span class="fc" id="L161">                            PushSubscription sub = new PushSubscription();</span>
+<span class="fc" id="L162">                            sub.setDevice(device);</span>
+<span class="fc" id="L163">                            sub.setEndpoint(endpoint);</span>
+<span class="fc" id="L164">                            sub.setP256dh(p256dh);</span>
+<span class="fc" id="L165">                            sub.setAuthKey(auth);</span>
+<span class="fc" id="L166">                            subscriptionRepository.save(sub);</span>
+<span class="fc" id="L167">                        }</span>
+                );
+<span class="fc" id="L169">    }</span>
+
+    @Transactional
+    public void removeSubscription(Device device, String endpoint) {
+<span class="fc" id="L173">        subscriptionRepository.deleteByDeviceIdAndEndpoint(device.getId(), endpoint);</span>
+<span class="fc" id="L174">    }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>
