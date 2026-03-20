@@ -3,11 +3,12 @@ import { setActivePinia, createPinia } from 'pinia'
 import type { CrdtOperation } from '../crdt/types'
 
 // ── mocks ──────────────────────────────────────────────────────────────────
-const { mockConnect, mockSubscribe, mockSend, mockGetDeviceId, mockDetect, mockWsConnected } =
+const { mockConnect, mockSubscribe, mockSend, mockOnReconnect, mockGetDeviceId, mockDetect, mockWsConnected } =
   vi.hoisted(() => ({
     mockConnect: vi.fn(),
     mockSubscribe: vi.fn(),
     mockSend: vi.fn(),
+    mockOnReconnect: vi.fn(),
     mockGetDeviceId: vi.fn(),
     mockDetect: vi.fn(),
     // Plain ref-like object — useListSync returns wsConnected directly from the module
@@ -26,6 +27,7 @@ vi.mock('../services/websocket', () => ({
   connectWebSocket: mockConnect,
   subscribe: mockSubscribe,
   send: mockSend,
+  onReconnect: mockOnReconnect,
   wsConnected: mockWsConnected,
 }))
 
@@ -74,6 +76,7 @@ describe('useListSync', () => {
     mockConnect.mockImplementation(async () => { mockWsConnected.value = true })
     mockGetDeviceId.mockResolvedValue('my-device')
     mockSubscribe.mockReturnValue(() => {})
+    mockOnReconnect.mockReturnValue(() => {})
     mockDetect.mockReturnValue([])
   })
 
