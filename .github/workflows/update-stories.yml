@@ -1,75 +1,68 @@
-name: Update Issue Status Badge on GH-Pages
+name: Update STORIES.md
 
 on:
   issues:
     types: [opened, closed, reopened]
 
 jobs:
-  update-status:
+  update-stories-text:
     runs-on: ubuntu-latest
     permissions:
-      contents: write # Wichtig für gh-pages Push
+      contents: write
+      pull-requests: write # Wichtig für die PR-Erstellung
       issues: read
 
     steps:
-      - name: Checkout gh-pages branch
-        uses: actions/checkout@v4
-        with:
-          ref: gh-pages # Wir checken direkt gh-pages aus!
-          token: ${{ secrets.GITHUB_TOKEN }}
+      - uses: actions/checkout@v4
 
-      - name: Generate Badge JSON
+      - name: Update STORIES.md File
         env:
           GH_ISSUE_NUM: ${{ github.event.issue.number }}
           GH_TITLE: ${{ github.event.issue.title }}
           GH_STATE: ${{ github.event.issue.state }}
         run: |
           python3 << 'EOF'
-          import os, json, re, sys
+          import re, os, sys
 
           num = os.getenv('GH_ISSUE_NUM')
           title = os.getenv('GH_TITLE', '')
           state = os.getenv('GH_STATE', 'unknown')
 
-          # ID aus dem Titel extrahieren
           m = re.search(r'ID-(\d+)', title)
           if not m:
-              print('❌ No ID-## in title found')
               sys.exit(0)
 
           story_id = str(int(m.group(1))) # "05" -> "5"
 
-          # Ordnerstruktur erstellen
-          os.makedirs('status', exist_ok=True)
-          file_path = f'status/{story_id}.json'
+          with open('STORIES.md', 'r', encoding='utf-8') as f:
+              lines = f.readlines()
 
-          # Shields.io Endpoint JSON Format generieren
-          # Farben: Grün für Open, Rot/Lila für Closed
-          color = "green" if state == "open" else "red"
-          
-          badge_data = {
-              "schemaVersion": 1,
-              "label": "Status",
-              "message": state,
-              "color": color
-          }
+          updated = False
+          pattern = r'^\|\s*' + re.escape(story_id) + r'\s*\|'
 
-          # JSON speichern
-          with open(file_path, 'w') as f:
-              json.dump(badge_data, f)
-              
-          print(f"✅ Created {file_path} with state '{state}'")
+          for i, line in enumerate(lines):
+              if re.match(pattern, line):
+                  cols = line.split('|')
+                  if len(cols) >= 7:
+                      # Überschreibt den Status-Text mit " open " oder " closed " (und Link zum Issue)
+                      issue_link = f"[{state}](https://github.com/TGM-HIT/syt5-gek1051-mobile-application-listme/issues/{num})"
+                      cols[6] = f" {issue_link} " 
+                      lines[i] = "|".join(cols)
+                      updated = True
+                      break
+
+          if updated:
+              with open('STORIES.md', 'w', encoding='utf-8') as f:
+                  f.writelines(lines)
           EOF
 
-      - name: Commit and Push to gh-pages
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add status/*.json
-          
-          if git diff --cached --quiet; then
-            echo "No changes to commit"
-          else
-            git commit -m "Update badge for issue #${{ github.event.issue.number }} (${{ github.event.issue.state }})"
-            git push origin gh-pages
-          fi
+      # Dies erstellt einen automatischen Pull Request (umgeht die Branch Protection!)
+      - name: Create Pull Request
+        uses: peter-evans/create-pull-request@v6
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          commit-message: "chore: update issue #${{ github.event.issue.number }} to ${{ github.event.issue.state }}"
+          title: "Update STORIES.md: Issue #${{ github.event.issue.number }} is ${{ github.event.issue.state }}"
+          body: "Auto-updated by GitHub Actions. Please merge to update STORIES.md."
+          branch: "update-stories-${{ github.event.issue.number }}"
+          base: main
