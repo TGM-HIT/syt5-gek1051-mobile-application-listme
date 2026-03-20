@@ -3,14 +3,15 @@ import { setActivePinia, createPinia } from 'pinia'
 import type { CrdtOperation } from '../crdt/types'
 
 // ── mocks ──────────────────────────────────────────────────────────────────
-const { mockConnect, mockSubscribe, mockSend, mockIsConnected, mockGetDeviceId, mockDetect } =
+const { mockConnect, mockSubscribe, mockSend, mockGetDeviceId, mockDetect, mockWsConnected } =
   vi.hoisted(() => ({
     mockConnect: vi.fn(),
     mockSubscribe: vi.fn(),
     mockSend: vi.fn(),
-    mockIsConnected: vi.fn(),
     mockGetDeviceId: vi.fn(),
     mockDetect: vi.fn(),
+    // Plain ref-like object — useListSync returns wsConnected directly from the module
+    mockWsConnected: { value: false },
   }))
 
 const mockItemsByList: Record<string, ReturnType<typeof vi.fn>> = {}
@@ -25,7 +26,7 @@ vi.mock('../services/websocket', () => ({
   connectWebSocket: mockConnect,
   subscribe: mockSubscribe,
   send: mockSend,
-  isConnected: mockIsConnected,
+  wsConnected: mockWsConnected,
 }))
 
 vi.mock('../services/device', () => ({ getDeviceId: mockGetDeviceId }))
@@ -68,8 +69,9 @@ describe('useListSync', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     setActivePinia(createPinia())
-    mockConnect.mockResolvedValue(undefined)
-    mockIsConnected.mockReturnValue(true)
+    mockWsConnected.value = false
+    // Simulate the real websocket behaviour: connectWebSocket sets wsConnected.value = true
+    mockConnect.mockImplementation(async () => { mockWsConnected.value = true })
     mockGetDeviceId.mockResolvedValue('my-device')
     mockSubscribe.mockReturnValue(() => {})
     mockDetect.mockReturnValue([])
@@ -90,7 +92,7 @@ describe('useListSync', () => {
   })
 
   it('connected is true after startSync succeeds', async () => {
-    mockIsConnected.mockReturnValue(true)
+    // mockConnect sets mockWsConnected.value = true (see beforeEach)
     const { connected, startSync } = useListSync()
     await startSync('l1')
     expect(connected.value).toBe(true)
@@ -100,6 +102,7 @@ describe('useListSync', () => {
     mockConnect.mockRejectedValue(new Error('WS unavailable'))
     const { connected, startSync } = useListSync()
     await startSync('l1')
+    // mockConnect threw, so it never set mockWsConnected.value = true
     expect(connected.value).toBe(false)
   })
 

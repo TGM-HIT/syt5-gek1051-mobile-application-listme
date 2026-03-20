@@ -13,31 +13,18 @@ export default defineConfig({
     VitePWA({
       registerType: 'autoUpdate',
       injectRegister: 'auto',
-      // Enable SW in dev so the install prompt fires during development
+      // Use injectManifest so we can write a custom SW with push event handlers
+      strategies: 'injectManifest',
+      srcDir: 'src',
+      filename: 'sw.ts',
+      injectManifest: {
+        // Cache all static app-shell assets (JS, CSS, HTML, fonts, icons)
+        globPatterns: ['**/*.{js,css,html,ico,png,svg,woff,woff2}'],
+      },
+      // Enable SW in dev so the install prompt and push work during development
       devOptions: {
         enabled: true,
         type: 'module',
-      },
-      workbox: {
-        // Cache all static app-shell assets (JS, CSS, HTML, fonts, icons)
-        globPatterns: ['**/*.{js,css,html,ico,png,svg,woff,woff2}'],
-        // API responses are cached in IndexedDB (Dexie) by the app layer,
-        // so we intentionally do NOT add a runtimeCaching rule for /api/**
-        // to avoid header-keying issues with X-Device-Id.
-        runtimeCaching: [
-          {
-            // Cache immutable assets from CDN/static with long TTL
-            urlPattern: /\.(woff2|png|svg|ico)$/,
-            handler: 'CacheFirst',
-            options: {
-              cacheName: 'assets',
-              expiration: { maxEntries: 60, maxAgeSeconds: 30 * 24 * 60 * 60 },
-            },
-          },
-        ],
-        // Skip waiting so new SW activates immediately
-        skipWaiting: true,
-        clientsClaim: true,
       },
       manifest: {
         name: 'ListMe',

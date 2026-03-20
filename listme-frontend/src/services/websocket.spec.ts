@@ -52,6 +52,7 @@ import {
   subscribe,
   send,
   reconnectAttempt,
+  wsConnected,
   onReconnect,
 } from './websocket'
 
@@ -222,6 +223,43 @@ describe('websocketService', () => {
     await vi.runAllTimersAsync()
     expect(cb).not.toHaveBeenCalled()
     vi.useRealTimers()
+  })
+
+  // ── wsConnected reactive ref ───────────────────────────────────────────────
+
+  it('wsConnected is false before connecting', () => {
+    expect(wsConnected.value).toBe(false)
+  })
+
+  it('wsConnected becomes true after onConnect fires', async () => {
+    await connectWebSocket()
+    expect(wsConnected.value).toBe(true)
+  })
+
+  it('wsConnected becomes false after onDisconnect fires', async () => {
+    vi.useFakeTimers()
+    await connectWebSocket()
+    expect(wsConnected.value).toBe(true)
+    wsState.onDisconnect?.()
+    expect(wsConnected.value).toBe(false)
+    vi.useRealTimers()
+  })
+
+  it('wsConnected becomes true again after successful reconnect', async () => {
+    vi.useFakeTimers()
+    await connectWebSocket()
+    wsState.onDisconnect?.()
+    expect(wsConnected.value).toBe(false)
+    await vi.runAllTimersAsync() // backoff fires → onConnect → wsConnected = true
+    expect(wsConnected.value).toBe(true)
+    vi.useRealTimers()
+  })
+
+  it('wsConnected is false after disconnectWebSocket()', async () => {
+    await connectWebSocket()
+    expect(wsConnected.value).toBe(true)
+    disconnectWebSocket()
+    expect(wsConnected.value).toBe(false)
   })
 
   it('disconnectWebSocket clears pending reconnect timer', async () => {
