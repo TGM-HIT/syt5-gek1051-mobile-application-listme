@@ -3,7 +3,7 @@ import { setActivePinia, createPinia } from 'pinia'
 import type { Item } from '../types'
 
 const {
-  mockItemService, mockCacheService, mockEnqueue,
+  mockItemService, mockCacheService, mockEnqueue, mockGetAllPending,
   mockGetNextClock, mockGetDeviceId, mockPatchCounts,
 } = vi.hoisted(() => ({
   mockItemService: {
@@ -20,6 +20,7 @@ const {
     removeItem: vi.fn().mockResolvedValue(undefined),
   },
   mockEnqueue: vi.fn().mockResolvedValue(undefined),
+  mockGetAllPending: vi.fn().mockResolvedValue([]),
   mockGetNextClock: vi.fn().mockResolvedValue({ 'dev-1': 1 }),
   mockGetDeviceId: vi.fn().mockResolvedValue('dev-1'),
   mockPatchCounts: vi.fn(),
@@ -27,7 +28,7 @@ const {
 
 vi.mock('../services/item', () => ({ itemService: mockItemService }))
 vi.mock('../services/cache', () => ({ CacheService: mockCacheService }))
-vi.mock('../crdt/OperationQueue', () => ({ OperationQueue: { enqueue: mockEnqueue } }))
+vi.mock('../crdt/OperationQueue', () => ({ OperationQueue: { enqueue: mockEnqueue, getAllPending: mockGetAllPending } }))
 vi.mock('../services/clock', () => ({ LocalClockService: { getNextClock: mockGetNextClock } }))
 vi.mock('../services/device', () => ({ getDeviceId: mockGetDeviceId }))
 vi.mock('./lists', () => ({ useListsStore: () => ({ patchCounts: mockPatchCounts }) }))

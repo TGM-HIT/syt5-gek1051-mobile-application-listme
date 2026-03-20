@@ -3,6 +3,7 @@ import { connectWebSocket, subscribe, send, onReconnect, wsConnected } from '../
 import { useItemsStore } from '../stores/items'
 import { usePresenceStore } from '../stores/presence'
 import { getDeviceId } from '../services/device'
+import { OperationQueue } from '../crdt/OperationQueue'
 import { detectConflicts } from '../crdt/ConflictDetector'
 import type { Conflict } from '../crdt/ConflictDetector'
 import type { CrdtOperation } from '../crdt/types'
@@ -67,9 +68,15 @@ export function useListSync() {
 
     // Re-subscribe every time the WebSocket reconnects — each reconnect is a new
     // STOMP session so previous subscriptions are gone.
-    unregisterReconnect = onReconnect(() => {
+    // Also re-fetch items to pick up remote changes made while offline, but only
+    // if we have no pending ops (those are handled by useSyncQueue → flushAll → fetchAll).
+    unregisterReconnect = onReconnect(async () => {
       console.debug('[Sync] reconnected, re-subscribing to list', listId)
       subscribeToTopics()
+      const pending = await OperationQueue.getAllPending()
+      if (!pending.some(op => op.listId === listId)) {
+        itemsStore.fetchAll(listId)
+      }
     })
   }
 
