@@ -10,11 +10,20 @@
 1. [What Is This App?](#1-what-is-this-app)
 2. [The Big Picture](#2-the-big-picture)
 3. [Core Concepts](#3-core-concepts)
-   - [3.1 Account-Free Device Identity](#31-account-free-device-identity)
-   - [3.2 Offline-First Architecture](#32-offline-first-architecture)
-   - [3.3 CRDTs — Conflict-Free Replication](#33-crdts--conflict-free-replication)
-   - [3.4 Vector Clocks — Tracking Causality](#34-vector-clocks--tracking-causality)
-   - [3.5 Real-Time Sync with WebSocket/STOMP](#35-real-time-sync-with-websocketstomp)
+   - [3.1 Account-Free Device Identity](3.1_device_identity.md)
+   - [3.2 Offline-First Architecture](3.2_offline_first.md)
+   - [3.3 CRDTs — Conflict-Free Replication](3.3_crdts.md)
+   - [3.4 Vector Clocks — Tracking Causality](3.4_vector_clocks.md)
+   - [3.5 Real-Time Sync with WebSocket/STOMP](3.5_real_time_sync.md)
+4. [User Stories Features](#4-user-stories-features)
+   - **6. Sharing via Invite Code**
+     - [6.1 Invite Code Generation](6.1_invite_code_generation.md)
+     - [6.2 Joining Lists via Code](6.2_joining_lists.md)
+     - [6.3 Permissions & Access Control](6.3_permissions_access_control.md)
+   - **8. Item Management (Edit & Delete)**
+     - [8.1 Item Editing](8.1_item_editing.md)
+     - [8.2 Item Deletion](8.2_item_deletion.md)
+     - [8.3 Real-Time Updates](8.3_real_time_updates.md)
 
 ---
 
