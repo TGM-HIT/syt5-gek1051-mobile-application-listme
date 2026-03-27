@@ -5,6 +5,7 @@ export interface Preset {
   name: string
   emoji: string
   itemCount: number
+  system: boolean
   createdAt: string
 }
 

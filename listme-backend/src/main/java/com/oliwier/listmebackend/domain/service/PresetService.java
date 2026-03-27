@@ -23,7 +23,7 @@ public class PresetService {
     private final ListDeviceRepository listDeviceRepository;
 
     public List<Preset> getForDevice(Device device) {
-        return presetRepository.findByCreatedByDeviceIdOrderByCreatedAtDesc(device.getId());
+        return presetRepository.findForDevice(device.getId());
     }
 
     public List<PresetItem> getItems(UUID presetId) {
@@ -64,8 +64,10 @@ public class PresetService {
     public void delete(Device device, UUID presetId) {
         Preset preset = presetRepository.findById(presetId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Preset not found"));
-        if (preset.getCreatedByDevice() == null ||
-                !preset.getCreatedByDevice().getId().equals(device.getId())) {
+        if (preset.getCreatedByDevice() == null) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "System presets cannot be deleted");
+        }
+        if (!preset.getCreatedByDevice().getId().equals(device.getId())) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Not your preset");
         }
         presetRepository.delete(preset);

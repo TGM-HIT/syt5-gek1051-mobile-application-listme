@@ -133,7 +133,7 @@ async function remove() {
           <button
             ref="menuButtonRef"
             @click="openMenu"
-            class="p-1 rounded-lg text-ctp-overlay0 hover:text-ctp-text hover:bg-ctp-surface1 transition-colors opacity-0 group-hover:opacity-100"
+            class="p-1 rounded-lg text-ctp-overlay0 hover:text-ctp-text hover:bg-ctp-surface1 transition-colors opacity-0 group-hover:opacity-100 [@media(hover:none)]:opacity-100"
             title="Optionen"
           >
             <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
