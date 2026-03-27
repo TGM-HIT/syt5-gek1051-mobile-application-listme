@@ -302,9 +302,10 @@ class Phase3IntegrationTest {
 
     @Test @Order(71)
     void preset_getAll_returnsList() throws Exception {
+        // 1 user-created preset + 1 system preset (seeded by migration)
         mvc.perform(get("/api/presets").header("X-Device-Id", DEVICE_A))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.length()").value(1));
+                .andExpect(jsonPath("$.length()").value(2));
     }
 
     @Test @Order(72)
@@ -332,8 +333,10 @@ class Phase3IntegrationTest {
         mvc.perform(delete("/api/presets/" + presetId).header("X-Device-Id", DEVICE_A))
                 .andExpect(status().isNoContent());
 
+        // only the system preset remains after deleting the user-created one
         mvc.perform(get("/api/presets").header("X-Device-Id", DEVICE_A))
-                .andExpect(jsonPath("$.length()").value(0));
+                .andExpect(jsonPath("$.length()").value(1))
+                .andExpect(jsonPath("$[0].system").value(true));
     }
 
     // ── BudgetController ──────────────────────────────────────────────────
