@@ -21,6 +21,7 @@ No accounts. No passwords. Open the app and start.
 <!-- Code Coverage -->
 [![Backend Coverage](https://tgm-hit.github.io/syt5-gek1051-mobile-application-listme/backend/badges/jacoco.svg)](https://tgm-hit.github.io/syt5-gek1051-mobile-application-listme/backend/index.html)
 [![Frontend Coverage](https://tgm-hit.github.io/syt5-gek1051-mobile-application-listme/frontend/badges/coverage.svg)](https://github.com/TGM-HIT/syt5-gek1051-mobile-application-listme/actions/workflows/frontend-ci.yml)
+[![E2E Tests](https://tgm-hit.github.io/syt5-gek1051-mobile-application-listme/frontend/badges/e2e.svg)](https://github.com/TGM-HIT/syt5-gek1051-mobile-application-listme/actions/workflows/frontend-ci.yml)
 
 <!-- Backend stack -->
 [![Java](https://img.shields.io/badge/Java-21-f89820?logo=openjdk&logoColor=white)](https://adoptium.net/)

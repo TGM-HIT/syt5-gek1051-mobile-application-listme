@@ -12,6 +12,8 @@ This template should help get you started developing with Vue 3 and TypeScript i
 - `npm run cypress:open`: Opens the Cypress Test Runner (GUI).
 - `npm run cypress:run`: Runs Cypress tests in headless mode.
 
+Eine detaillierte Übersicht der Tests und Anleitungen findest du in der [E2E.md](./E2E.md).
+
 #### Test Coverage
 Die Cypress-Tests sind nun modular nach Features (IDs aus STORIES.md) aufgeteilt:
 - **Offline & Sync:** `id1-offline.cy.ts`, `id5-conflict-management.cy.ts`, `id7-realtime-sync.cy.ts`, `id24-ble-sync.cy.ts`
