@@ -13,6 +13,7 @@ import com.oliwier.listmebackend.domain.repository.ItemRepository;
 import com.oliwier.listmebackend.domain.repository.LabelRepository;
 import com.oliwier.listmebackend.domain.repository.ListDeviceRepository;
 import com.oliwier.listmebackend.domain.repository.ShoppingListRepository;
+import com.oliwier.listmebackend.notification.NotificationService;
 import com.oliwier.listmebackend.websocket.ListSyncBroadcaster;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -37,6 +38,7 @@ public class ItemService {
     private final LabelRepository labelRepository;
     private final SyncEngine syncEngine;
     private final ListSyncBroadcaster broadcaster;
+    private final NotificationService notificationService;
 
     public List<Item> getByList(UUID listId, Device device, String q) {
         requireAccess(listId, device);
@@ -130,6 +132,7 @@ public class ItemService {
                 "timestamp", Instant.now().toEpochMilli()
         ));
         broadcaster.broadcastOp(list.getId(), op);
+        notificationService.notifyItemChecked(list, item, device);
 
         return item;
     }
@@ -147,6 +150,7 @@ public class ItemService {
                 "timestamp", Instant.now().toEpochMilli()
         ));
         broadcaster.broadcastOp(list.getId(), op);
+        notificationService.notifyItemDeleted(list, item, device);
     }
 
     /** Restore a trashed item to the active list. */
