@@ -2,15 +2,85 @@ name: Deploy
 
 on:
   workflow_run:
-    workflows: ["Backend CI"]
+    workflows: ["Backend CI", "Frontend CI"]
     branches: [main]
     types:
       - completed
   workflow_dispatch:
 
 jobs:
+  gate:
+    runs-on: ubuntu-latest
+    outputs:
+      should_deploy: ${{ steps.check.outputs.should_deploy }}
+    steps:
+      - name: Decide whether to deploy
+        id: check
+        uses: actions/github-script@v7
+        with:
+          script: |
+            // Manual trigger: always deploy
+            if (context.eventName === 'workflow_dispatch') {
+              core.setOutput('should_deploy', 'true');
+              return;
+            }
+
+            const run = context.payload.workflow_run;
+
+            // The triggering CI must have succeeded
+            if (run.conclusion !== 'success') {
+              core.info(`Triggering workflow "${run.name}" did not succeed (${run.conclusion}). Skipping deploy.`);
+              core.setOutput('should_deploy', 'false');
+              return;
+            }
+
+            const sha = run.head_sha;
+            core.info(`Checking CI status for commit ${sha}`);
+
+            const { data } = await github.rest.actions.listWorkflowRunsForRepo({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              head_sha: sha,
+              per_page: 100,
+            });
+
+            const ciWorkflows = ['Backend CI', 'Frontend CI'];
+
+            for (const name of ciWorkflows) {
+              const runs = data.workflow_runs.filter(r => r.name === name);
+
+              // No runs for this commit means the workflow was excluded by path
+              // filter — treat as not required for this push.
+              if (runs.length === 0) {
+                core.info(`"${name}" has no runs for this commit — skipped by path filter, OK.`);
+                continue;
+              }
+
+              // If any run is still in progress, wait for it to finish.
+              const inProgress = runs.some(r => r.status !== 'completed');
+              if (inProgress) {
+                core.info(`"${name}" is still in progress. Will re-evaluate when it completes.`);
+                core.setOutput('should_deploy', 'false');
+                return;
+              }
+
+              // At least one completed run must have succeeded.
+              const passed = runs.some(r => r.conclusion === 'success');
+              if (!passed) {
+                core.info(`"${name}" failed for this commit. Skipping deploy.`);
+                core.setOutput('should_deploy', 'false');
+                return;
+              }
+
+              core.info(`"${name}" passed.`);
+            }
+
+            core.info('All required CI pipelines passed. Proceeding with deploy.');
+            core.setOutput('should_deploy', 'true');
+
   deploy:
-    if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
+    needs: gate
+    if: needs.gate.outputs.should_deploy == 'true'
     runs-on: ubuntu-latest
 
     steps:

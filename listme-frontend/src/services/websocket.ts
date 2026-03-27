@@ -13,6 +13,9 @@ let hasConnectedOnce = false
 /** Current reconnect attempt number (0 = connected, >0 = retrying). */
 export const reconnectAttempt = ref(0)
 
+/** Reactive connection state — true only while the STOMP session is active. */
+export const wsConnected = ref(false)
+
 const reconnectListeners: Array<() => void> = []
 
 /**
@@ -62,12 +65,14 @@ export async function connectWebSocket(): Promise<void> {
       hasConnectedOnce = true
       attempt = 0
       reconnectAttempt.value = 0
+      wsConnected.value = true
       if (isReconnect) reconnectListeners.forEach(cb => cb())
       resolve() // no-op if already resolved
     }
 
     client.onDisconnect = () => {
       console.debug('[WS] disconnected')
+      wsConnected.value = false
       scheduleReconnect()
     }
 
@@ -93,6 +98,7 @@ export function disconnectWebSocket(): void {
   }
   attempt = 0
   reconnectAttempt.value = 0
+  wsConnected.value = false
   hasConnectedOnce = false
   client?.deactivate()
   client = null
