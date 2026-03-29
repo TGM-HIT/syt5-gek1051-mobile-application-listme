@@ -1,31 +1,53 @@
+// ConnectionBanner is rendered in ListDetailView — offline tests run on /list/:id
 describe('ID 1: Offline Access', () => {
+  const listId = '1';
+
   beforeEach(() => {
-    cy.intercept('GET', '**/api/v1/lists', {
+    cy.intercept('GET', '**/api/lists', {
       statusCode: 200,
-      body: []
+      body: [{ id: listId, name: 'Test', emoji: '🛒', itemCount: 0, checkedCount: 0, participantCount: 1, updatedAt: new Date().toISOString() }]
     }).as('getLists');
-    cy.visit('/');
+    cy.intercept('GET', `**/api/lists/${listId}/items`, { statusCode: 200, body: [] }).as('getItems');
+    cy.intercept('GET', '**/api/lists/*/budget', { statusCode: 200, body: { total: 0, byCategory: {} } });
+    cy.visit(`/list/${listId}`);
+    cy.wait('@getItems');
   });
 
   it('should show offline banner when connection is lost', () => {
     cy.window().then((win) => {
-      const event = new Event('offline');
-      win.dispatchEvent(event);
+      win.dispatchEvent(new Event('offline'));
     });
-    cy.contains('Kein Internet — Offline-Daten werden angezeigt').should('be.visible');
+    cy.contains('Kein Internet — Offline gespeichert').should('be.visible');
   });
 
-  it('should show back online banner when connection returns', () => {
-    // Start offline
+  it('should hide offline banner and show reconnecting state when network returns', () => {
     cy.window().then((win) => {
       win.dispatchEvent(new Event('offline'));
     });
-    
-    // Switch to online
+    cy.contains('Kein Internet — Offline gespeichert').should('be.visible');
+
     cy.window().then((win) => {
-      const event = new Event('online');
-      win.dispatchEvent(event);
+      win.dispatchEvent(new Event('online'));
     });
-    cy.contains('Wieder online — Listen werden aktualisiert').should('be.visible');
+    // After going back online the offline message disappears;
+    // without a live WebSocket the banner transitions to 'syncing' state
+    cy.contains('Kein Internet — Offline gespeichert').should('not.exist');
+    cy.contains('Verbindung wird hergestellt').should('be.visible');
+  });
+
+  it('should still display list items while offline', () => {
+    cy.intercept('GET', `**/api/lists/${listId}/items`, {
+      statusCode: 200,
+      body: [{ id: '101', name: 'Milch', checked: false }]
+    }).as('getItemsLoaded');
+    cy.visit(`/list/${listId}`);
+    cy.wait('@getItemsLoaded');
+
+    cy.window().then((win) => {
+      win.dispatchEvent(new Event('offline'));
+    });
+    cy.contains('Kein Internet — Offline gespeichert').should('be.visible');
+    // Previously loaded items remain visible
+    cy.contains('Milch').should('be.visible');
   });
 });
