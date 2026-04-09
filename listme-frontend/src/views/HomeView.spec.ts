@@ -37,6 +37,15 @@ vi.mock('../components/common/FloatingActionButton.vue', () => ({ default: { tem
 vi.mock('../components/common/AddListModal.vue', () => ({ default: { template: '<div class="add-modal"></div>', props: ['open', 'initialPresetId', 'initialPresetEmoji', 'initialPresetName'] } }))
 vi.mock('../components/list/LinkDevicesModal.vue', () => ({ default: { template: '<div class="link-modal"></div>', props: ['open'] } }))
 
+vi.mock('../services/device', () => ({
+  getDeviceId: vi.fn().mockResolvedValue('test-device-id'),
+}))
+
+vi.mock('../services/websocket', () => ({
+  connectWebSocket: vi.fn().mockResolvedValue(undefined),
+  subscribe: vi.fn().mockReturnValue(() => {}),
+}))
+
 import HomeView from './HomeView.vue'
 
 function makeList(overrides: Partial<ShoppingList> = {}): ShoppingList {

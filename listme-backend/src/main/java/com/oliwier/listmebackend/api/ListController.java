@@ -64,7 +64,7 @@ public class ListController {
             List<Item> items = new ArrayList<>();
             for (PresetItem pi : presetItems) {
                 Item item = new Item();
-                item.setList(list);
+                item.setList(savedList);
                 item.setName(pi.getName());
                 item.setChecked(false);
                 item.setPosition(pi.getPosition());
@@ -79,7 +79,7 @@ public class ListController {
             itemCount = items.size();
         }
 
-        return ListResponse.fromWithCount(list, itemCount);
+        return ListResponse.fromWithCount(savedList, itemCount);
     }
 
     @GetMapping
