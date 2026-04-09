@@ -50,6 +50,11 @@ jobs:
         run: |
           mkdir -p frontend-report/badges
           
+          # Copy HTML coverage report to the report folder
+          if [ -d listme-frontend/coverage ]; then
+            cp -r listme-frontend/coverage/* frontend-report/
+          fi
+          
           # Coverage Badge
           if [ -f listme-frontend/coverage/coverage-summary.json ]; then
             PCT=$(node -e "const s=require('./listme-frontend/coverage/coverage-summary.json');console.log(Math.round(s.total.lines.pct))")
