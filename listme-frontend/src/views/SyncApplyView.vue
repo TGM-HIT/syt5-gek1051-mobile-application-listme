@@ -33,8 +33,12 @@ async function apply() {
   applying.value = true
   try {
     const result = await shareService.applySyncToken(token)
-    profileStore.applyFromSync(result.displayName, result.profilePicture)
-    themeStore.theme = result.theme as 'dark' | 'light'
+    if (result.displayName || result.profilePicture) {
+      profileStore.applyFromSync(result.displayName, result.profilePicture)
+    }
+    if (result.theme) {
+      themeStore.theme = result.theme as 'dark' | 'light'
+    }
     await listsStore.fetchAll()
     router.push({ name: 'home' })
   } catch (e: any) {

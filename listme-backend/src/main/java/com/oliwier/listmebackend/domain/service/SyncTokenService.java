@@ -28,6 +28,7 @@ public class SyncTokenService {
     private final ShoppingListRepository listRepository;
     private final ListDeviceRepository listDeviceRepository;
     private final PresetRepository presetRepository;
+    private final DeviceRepository deviceRepository;
 
     @Transactional
     public SyncToken create(Device device, String theme) {
@@ -68,9 +69,14 @@ public class SyncTokenService {
             }
         }
 
-        // Apply source profile to the new device (device is managed — will auto-flush)
-        device.setDisplayName(syncToken.getDisplayNameSnapshot());
-        device.setProfilePicture(syncToken.getProfilePictureSnapshot());
+        // Apply source profile to the new device.
+        // The device argument is detached (resolved before this transaction started),
+        // so we must explicitly merge it via save() to persist the changes.
+        if (syncToken.getDisplayNameSnapshot() != null || syncToken.getProfilePictureSnapshot() != null) {
+            device.setDisplayName(syncToken.getDisplayNameSnapshot());
+            device.setProfilePicture(syncToken.getProfilePictureSnapshot());
+            deviceRepository.save(device);
+        }
 
         // Clone user presets from source to destination (skip if same device)
         int presetsImported = 0;

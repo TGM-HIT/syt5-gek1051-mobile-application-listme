@@ -35,6 +35,7 @@ class SyncTokenServiceTest {
     @Mock ShoppingListRepository listRepository;
     @Mock ListDeviceRepository listDeviceRepository;
     @Mock PresetRepository presetRepository;
+    @Mock com.oliwier.listmebackend.domain.repository.DeviceRepository deviceRepository;
 
     @InjectMocks SyncTokenService syncTokenService;
 
