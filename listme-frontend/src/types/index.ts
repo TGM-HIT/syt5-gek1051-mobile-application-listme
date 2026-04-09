@@ -70,6 +70,21 @@ export interface SyncTokenResponse {
   expiresAt: string
 }
 
+export interface SyncPreviewResponse {
+  lists: ShoppingList[]
+  sourceDisplayName: string | null
+  sourceProfilePicture: string | null
+  theme: string
+}
+
+export interface SyncApplyResponse {
+  lists: ShoppingList[]
+  displayName: string | null
+  profilePicture: string | null
+  theme: string
+  presetsImported: number
+}
+
 export interface ParticipantResponse {
   deviceId: string
   role: string

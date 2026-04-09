@@ -1,18 +1,13 @@
 package com.oliwier.listmebackend.api;
 
-import com.oliwier.listmebackend.api.dto.ListResponse;
-import com.oliwier.listmebackend.api.dto.SyncTokenResponse;
+import com.oliwier.listmebackend.api.dto.*;
 import com.oliwier.listmebackend.domain.model.Device;
-import com.oliwier.listmebackend.domain.model.ShoppingList;
 import com.oliwier.listmebackend.domain.model.SyncToken;
 import com.oliwier.listmebackend.domain.service.SyncTokenService;
 import com.oliwier.listmebackend.identity.CurrentDevice;
 import lombok.RequiredArgsConstructor;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
-
-import java.util.List;
-import java.util.Set;
 
 @RestController
 @RequestMapping("/api/sync")
@@ -24,21 +19,27 @@ public class SyncTokenController {
 
     @PostMapping
     @Transactional
-    public SyncTokenResponse create(@CurrentDevice Device device) {
-        SyncToken token = syncTokenService.create(device);
+    SyncTokenResponse create(@CurrentDevice Device device, @RequestBody(required = false) CreateSyncTokenRequest req) {
+        String theme = req != null ? req.theme() : null;
+        SyncToken token = syncTokenService.create(device, theme);
         return new SyncTokenResponse(token.getToken(), token.getLists().size(), token.getExpiresAt());
     }
 
     @GetMapping("/{token}")
-    public List<ListResponse> preview(@PathVariable String token) {
+    SyncPreviewResponse preview(@PathVariable String token) {
         SyncToken syncToken = syncTokenService.resolve(token);
-        return syncToken.getLists().stream().map(ListResponse::from).toList();
+        var lists = syncToken.getLists().stream().map(ListResponse::from).toList();
+        return new SyncPreviewResponse(
+                lists,
+                syncToken.getDisplayNameSnapshot(),
+                syncToken.getProfilePictureSnapshot(),
+                syncToken.getThemeSnapshot()
+        );
     }
 
     @PostMapping("/{token}/apply")
     @Transactional
-    public List<ListResponse> apply(@CurrentDevice Device device, @PathVariable String token) {
-        Set<ShoppingList> lists = syncTokenService.apply(token, device);
-        return lists.stream().map(ListResponse::from).toList();
+    SyncApplyResponse apply(@CurrentDevice Device device, @PathVariable String token) {
+        return syncTokenService.apply(token, device);
     }
 }

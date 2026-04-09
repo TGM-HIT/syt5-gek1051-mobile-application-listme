@@ -55,5 +55,19 @@ export const useProfileStore = defineStore('profile', () => {
     }
   }
 
-  return { firstName, lastName, displayName, initials, photoDataUrl, save, savePhoto, removePhoto, init }
+  function applyFromSync(rawDisplayName: string | null, rawPhoto: string | null) {
+    const parts = rawDisplayName?.split(' ') ?? []
+    const first = parts[0] ?? ''
+    const last = parts.slice(1).join(' ')
+    firstName.value = first
+    lastName.value = last
+    localStorage.setItem('profile:firstName', first)
+    localStorage.setItem('profile:lastName', last)
+    if (rawPhoto) {
+      photoDataUrl.value = rawPhoto
+      try { localStorage.setItem('profile:photo', rawPhoto) } catch { /* quota */ }
+    }
+  }
+
+  return { firstName, lastName, displayName, initials, photoDataUrl, save, savePhoto, removePhoto, init, applyFromSync }
 })

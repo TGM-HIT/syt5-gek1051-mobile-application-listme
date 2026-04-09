@@ -3,21 +3,25 @@ import { ref, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { shareService } from '../services/share'
 import { useListsStore } from '../stores/lists'
-import type { ShoppingList } from '../types'
+import { useProfileStore } from '../stores/profile'
+import { useThemeStore } from '../stores/theme'
+import type { ShoppingList, SyncPreviewResponse } from '../types'
 
 const route = useRoute()
 const router = useRouter()
 const listsStore = useListsStore()
+const profileStore = useProfileStore()
+const themeStore = useThemeStore()
 
 const token = route.params.token as string
-const lists = ref<ShoppingList[]>([])
+const preview = ref<SyncPreviewResponse | null>(null)
 const loading = ref(true)
 const applying = ref(false)
 const error = ref<'not_found' | 'expired' | null>(null)
 
 onMounted(async () => {
   try {
-    lists.value = await shareService.previewSyncToken(token)
+    preview.value = await shareService.previewSyncToken(token)
   } catch (e: any) {
     error.value = e?.response?.status === 410 ? 'expired' : 'not_found'
   } finally {
@@ -28,7 +32,9 @@ onMounted(async () => {
 async function apply() {
   applying.value = true
   try {
-    await shareService.applySyncToken(token)
+    const result = await shareService.applySyncToken(token)
+    profileStore.applyFromSync(result.displayName, result.profilePicture)
+    themeStore.theme = result.theme as 'dark' | 'light'
     await listsStore.fetchAll()
     router.push({ name: 'home' })
   } catch (e: any) {
@@ -37,6 +43,8 @@ async function apply() {
     applying.value = false
   }
 }
+
+const lists = ref<ShoppingList[]>([])
 </script>
 
 <template>
@@ -67,19 +75,49 @@ async function apply() {
     </div>
 
     <!-- Preview + apply -->
-    <div v-else class="flex flex-col gap-6 w-full max-w-sm animate-fade-up">
+    <div v-else-if="preview" class="flex flex-col gap-6 w-full max-w-sm animate-fade-up">
+      <!-- Source identity -->
       <div class="text-center">
-        <span class="text-4xl">🔗</span>
-        <h2 class="text-xl font-bold text-ctp-text mt-3">Geräte verknüpfen</h2>
+        <div class="flex items-center justify-center mb-3">
+          <div v-if="preview.sourceProfilePicture" class="w-16 h-16 rounded-full overflow-hidden border-2 border-ctp-surface1">
+            <img :src="preview.sourceProfilePicture" alt="Profilbild" class="w-full h-full object-cover" />
+          </div>
+          <div v-else class="w-16 h-16 rounded-full bg-ctp-surface0 border-2 border-ctp-surface1 flex items-center justify-center text-2xl">
+            👤
+          </div>
+        </div>
+        <h2 class="text-xl font-bold text-ctp-text">
+          {{ preview.sourceDisplayName ? `${preview.sourceDisplayName}s Gerät verknüpfen` : 'Gerät verknüpfen' }}
+        </h2>
         <p class="text-sm text-ctp-subtext0 mt-1">
-          {{ lists.length }} {{ lists.length === 1 ? 'Liste wird' : 'Listen werden' }} auf dieses Gerät übertragen
+          {{ preview.lists.length }} {{ preview.lists.length === 1 ? 'Liste wird' : 'Listen werden' }} auf dieses Gerät übertragen
         </p>
+      </div>
+
+      <!-- What gets synced -->
+      <div class="bg-ctp-surface0/40 border border-ctp-surface1/50 rounded-xl px-4 py-3 space-y-1.5 text-sm text-ctp-subtext1">
+        <div class="flex items-center gap-2">
+          <span>✅</span>
+          <span>Alle Listen & Einträge</span>
+        </div>
+        <div class="flex items-center gap-2">
+          <span>✅</span>
+          <span>Profilbild & Name</span>
+        </div>
+        <div class="flex items-center gap-2">
+          <span>✅</span>
+          <span>Vorlagen (Presets)</span>
+        </div>
+        <div class="flex items-center gap-2">
+          <span>✅</span>
+          <span>Design-Thema</span>
+        </div>
       </div>
 
       <!-- List preview -->
       <div class="space-y-2">
         <div
-          v-for="list in lists"
+          v-for="list in preview.lists"
           :key="list.id"
           class="flex items-center gap-3 bg-ctp-surface0/60 border border-ctp-surface1/50 rounded-xl px-4 py-3"
         >
@@ -95,7 +133,7 @@ async function apply() {
         <button
           @click="apply"
           :disabled="applying"
-          class="w-full py-3 bg-gradient-to-r from-ctp-teal to-ctp-sapphire text-ctp-base font-semibold rounded-xl disabled:opacity-60 transition-opacity"
+          class="w-full py-3 bg-linear-to-r from-ctp-teal to-ctp-sapphire text-ctp-base font-semibold rounded-xl disabled:opacity-60 transition-opacity"
         >
           {{ applying ? 'Importiere…' : 'Alle Listen importieren' }}
         </button>

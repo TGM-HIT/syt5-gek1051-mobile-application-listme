@@ -30,6 +30,15 @@ public class SyncToken {
     )
     private Set<ShoppingList> lists = new HashSet<>();
 
+    @Column(name = "display_name_snapshot", length = 100)
+    private String displayNameSnapshot;
+
+    @Column(name = "profile_picture_snapshot", columnDefinition = "TEXT")
+    private String profilePictureSnapshot;
+
+    @Column(name = "theme_snapshot", length = 20, nullable = false)
+    private String themeSnapshot = "dark";
+
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
 
