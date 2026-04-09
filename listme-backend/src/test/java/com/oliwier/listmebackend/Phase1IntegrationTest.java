@@ -142,7 +142,7 @@ class Phase1IntegrationTest {
     void previewSyncToken() throws Exception {
         mvc.perform(get("/api/sync/" + syncToken))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.length()").value(1));
+                .andExpect(jsonPath("$.lists.length()").value(1));
     }
 
     @Test @Order(32)
@@ -152,7 +152,7 @@ class Phase1IntegrationTest {
         mvc.perform(post("/api/sync/" + syncToken + "/apply")
                         .header("X-Device-Id", deviceC))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.length()").value(1));
+                .andExpect(jsonPath("$.lists.length()").value(1));
 
         // Verify device C now sees the list
         mvc.perform(get("/api/lists").header("X-Device-Id", deviceC))

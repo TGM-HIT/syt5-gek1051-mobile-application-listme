@@ -128,8 +128,6 @@ class SyncTokenServiceTest {
         when(syncTokenRepository.findById("tok")).thenReturn(Optional.of(token));
         when(listDeviceRepository.existsByListIdAndDeviceId(any(), eq(device.getId())))
                 .thenReturn(false);
-        when(presetRepository.findByCreatedByDeviceIdOrderByCreatedAtDesc(device.getId()))
-                .thenReturn(List.of());
 
         SyncApplyResponse result = syncTokenService.apply("tok", device);
 
@@ -147,8 +145,6 @@ class SyncTokenServiceTest {
         when(syncTokenRepository.findById("tok")).thenReturn(Optional.of(token));
         when(listDeviceRepository.existsByListIdAndDeviceId(list1.getId(), device.getId()))
                 .thenReturn(true);
-        when(presetRepository.findByCreatedByDeviceIdOrderByCreatedAtDesc(device.getId()))
-                .thenReturn(List.of());
 
         syncTokenService.apply("tok", device);
 
