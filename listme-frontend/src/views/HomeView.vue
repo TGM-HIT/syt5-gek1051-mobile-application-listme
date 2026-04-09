@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, onMounted, watch } from 'vue'
+import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useListsStore } from '../stores/lists'
 import ListSection from '../components/list/ListSection.vue'
@@ -7,6 +7,8 @@ import ListCard from '../components/list/ListCard.vue'
 import FloatingActionButton from '../components/common/FloatingActionButton.vue'
 import AddListModal from '../components/common/AddListModal.vue'
 import LinkDevicesModal from '../components/list/LinkDevicesModal.vue'
+import { connectWebSocket, subscribe } from '../services/websocket'
+import { getDeviceId } from '../services/device'
 
 const route = useRoute()
 const router = useRouter()
@@ -18,7 +20,23 @@ const initialPresetId = ref<string | null>(null)
 const initialPresetEmoji = ref<string | null>(null)
 const initialPresetName = ref<string | null>(null)
 
-onMounted(() => listsStore.fetchAll())
+let unsubscribe: (() => void) | null = null
+
+onMounted(async () => {
+  listsStore.fetchAll()
+  const deviceId = await getDeviceId()
+  await connectWebSocket()
+  unsubscribe = subscribe(`/topic/device/${deviceId}`, (msg: unknown) => {
+    const body = msg as { type?: string }
+    if (body?.type === 'LIST_ADDED') {
+      listsStore.fetchAll()
+    }
+  })
+})
+
+onUnmounted(() => {
+  unsubscribe?.()
+})
 
 // Open AddListModal pre-filled when coming from LibraryView via query params
 watch(() => route.query, (q) => {

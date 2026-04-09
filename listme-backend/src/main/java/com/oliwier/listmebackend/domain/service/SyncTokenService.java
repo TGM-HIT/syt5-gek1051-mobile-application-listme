@@ -29,6 +29,7 @@ public class SyncTokenService {
     private final ListDeviceRepository listDeviceRepository;
     private final PresetRepository presetRepository;
     private final DeviceRepository deviceRepository;
+    private final DeviceSiblingRepository deviceSiblingRepository;
 
     @Transactional
     public SyncToken create(Device device, String theme) {
@@ -76,6 +77,15 @@ public class SyncTokenService {
             device.setDisplayName(syncToken.getDisplayNameSnapshot());
             device.setProfilePicture(syncToken.getProfilePictureSnapshot());
             deviceRepository.save(device);
+        }
+
+        // Record bidirectional sibling relationship (skip if same device or already recorded)
+        if (!source.getId().equals(device.getId())) {
+            DeviceSiblingId abId = new DeviceSiblingId(source.getId(), device.getId());
+            if (!deviceSiblingRepository.existsById(abId)) {
+                deviceSiblingRepository.save(new DeviceSibling(source.getId(), device.getId()));
+                deviceSiblingRepository.save(new DeviceSibling(device.getId(), source.getId()));
+            }
         }
 
         // Clone user presets from source to destination (skip if same device)

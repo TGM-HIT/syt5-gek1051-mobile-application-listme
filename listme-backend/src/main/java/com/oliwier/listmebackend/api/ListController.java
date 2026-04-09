@@ -4,25 +4,19 @@ import com.oliwier.listmebackend.api.dto.CreateListRequest;
 import com.oliwier.listmebackend.api.dto.ListResponse;
 import com.oliwier.listmebackend.api.dto.ParticipantResponse;
 import com.oliwier.listmebackend.api.dto.UpdateListRequest;
-import com.oliwier.listmebackend.domain.model.Device;
-import com.oliwier.listmebackend.domain.model.Item;
-import com.oliwier.listmebackend.domain.model.ListDevice;
-import com.oliwier.listmebackend.domain.model.PresetItem;
-import com.oliwier.listmebackend.domain.model.ShoppingList;
-import com.oliwier.listmebackend.domain.repository.ItemRepository;
-import com.oliwier.listmebackend.domain.repository.ListDeviceRepository;
-import com.oliwier.listmebackend.domain.repository.PresetItemRepository;
-import com.oliwier.listmebackend.domain.repository.ShoppingListRepository;
+import com.oliwier.listmebackend.domain.model.*;
+import com.oliwier.listmebackend.domain.repository.*;
 import com.oliwier.listmebackend.identity.CurrentDevice;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
 
-import java.util.List;
-import java.util.UUID;
+import java.util.*;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/lists")
@@ -34,6 +28,9 @@ public class ListController {
     private final ListDeviceRepository listDeviceRepository;
     private final ItemRepository itemRepository;
     private final PresetItemRepository presetItemRepository;
+    private final DeviceRepository deviceRepository;
+    private final DeviceSiblingRepository deviceSiblingRepository;
+    private final SimpMessagingTemplate messaging;
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
@@ -48,13 +45,23 @@ public class ListController {
         ListDevice ld = new ListDevice(list, device, "owner");
         list.getListDevices().add(ld);
 
-        list = listRepository.save(list);
+        final ShoppingList savedList = listRepository.save(list);
 
-        // If a preset was specified, copy its items into the new list (saved explicitly)
+        // Add sibling devices to the new list so they see it immediately
+        List<UUID> siblingIds = deviceSiblingRepository.findSiblingIds(device.getId());
+        for (UUID siblingId : siblingIds) {
+            deviceRepository.findById(siblingId).ifPresent(sibling ->
+                listDeviceRepository.save(new ListDevice(savedList, sibling, "owner"))
+            );
+            // Notify the sibling device via WebSocket so its HomeView refreshes live
+            messaging.convertAndSend("/topic/device/" + siblingId, (Object) Map.of("type", "LIST_ADDED"));
+        }
+
+        // If a preset was specified, copy its items into the new list
         int itemCount = 0;
         if (req.presetId() != null) {
             List<PresetItem> presetItems = presetItemRepository.findByPresetIdOrderByPosition(req.presetId());
-            List<Item> items = new java.util.ArrayList<>();
+            List<Item> items = new ArrayList<>();
             for (PresetItem pi : presetItems) {
                 Item item = new Item();
                 item.setList(list);
@@ -102,8 +109,36 @@ public class ListController {
     @GetMapping("/{listId}/participants")
     public List<ParticipantResponse> getParticipants(@PathVariable UUID listId, @CurrentDevice Device device) {
         requireAccess(listId, device);
-        return listDeviceRepository.findByListId(listId).stream()
-                .map(ld -> new ParticipantResponse(ld.getDevice().getId(), ld.getRole(), ld.getJoinedAt(), ld.getDevice().getDisplayName(), ld.getDevice().getProfilePicture()))
+        List<ListDevice> all = listDeviceRepository.findByListId(listId);
+
+        // Deduplicate: sibling devices share the same identity — show only one per group.
+        // Process in priority order (owner first, then earliest joined_at) so the
+        // most prominent device in each sibling cluster is kept.
+        Set<UUID> allIds = all.stream()
+                .map(l -> l.getDevice().getId())
+                .collect(Collectors.toSet());
+
+        // A "secondary" device is only excluded when a sibling with higher priority
+        // (owner or earlier join) is also present. Walk in priority order and mark
+        // each device's siblings as excluded once the primary is encountered.
+        Set<UUID> excluded = new HashSet<>();
+        all.stream()
+                .sorted(Comparator.comparing((ListDevice l) -> "owner".equals(l.getRole()) ? 0 : 1)
+                        .thenComparing(ListDevice::getJoinedAt))
+                .forEach(l -> {
+                    UUID id = l.getDevice().getId();
+                    if (excluded.contains(id)) return;
+                    // Mark all siblings of this device that are in this list as excluded
+                    deviceSiblingRepository.findSiblingIds(id).stream()
+                            .filter(allIds::contains)
+                            .forEach(excluded::add);
+                });
+
+        return all.stream()
+                .filter(l -> !excluded.contains(l.getDevice().getId()))
+                .map(l -> new ParticipantResponse(
+                        l.getDevice().getId(), l.getRole(), l.getJoinedAt(),
+                        l.getDevice().getDisplayName(), l.getDevice().getProfilePicture()))
                 .toList();
     }
 
