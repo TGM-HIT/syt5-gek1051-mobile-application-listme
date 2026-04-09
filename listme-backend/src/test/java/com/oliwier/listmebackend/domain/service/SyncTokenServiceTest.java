@@ -1,9 +1,11 @@
 package com.oliwier.listmebackend.domain.service;
 
+import com.oliwier.listmebackend.api.dto.SyncApplyResponse;
 import com.oliwier.listmebackend.domain.model.Device;
 import com.oliwier.listmebackend.domain.model.ShoppingList;
 import com.oliwier.listmebackend.domain.model.SyncToken;
 import com.oliwier.listmebackend.domain.repository.ListDeviceRepository;
+import com.oliwier.listmebackend.domain.repository.PresetRepository;
 import com.oliwier.listmebackend.domain.repository.ShoppingListRepository;
 import com.oliwier.listmebackend.domain.repository.SyncTokenRepository;
 import org.junit.jupiter.api.BeforeEach;
@@ -32,6 +34,7 @@ class SyncTokenServiceTest {
     @Mock SyncTokenRepository syncTokenRepository;
     @Mock ShoppingListRepository listRepository;
     @Mock ListDeviceRepository listDeviceRepository;
+    @Mock PresetRepository presetRepository;
 
     @InjectMocks SyncTokenService syncTokenService;
 
@@ -52,7 +55,7 @@ class SyncTokenServiceTest {
         when(listRepository.findAllByDeviceId(device.getId())).thenReturn(List.of(list1));
         when(syncTokenRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
 
-        SyncToken result = syncTokenService.create(device);
+        SyncToken result = syncTokenService.create(device, "dark");
 
         assertThat(result.getToken()).hasSize(24).matches("[A-Za-z0-9]+");
     }
@@ -62,7 +65,7 @@ class SyncTokenServiceTest {
         when(listRepository.findAllByDeviceId(device.getId())).thenReturn(List.of());
         when(syncTokenRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
 
-        SyncToken result = syncTokenService.create(device);
+        SyncToken result = syncTokenService.create(device, "dark");
 
         Instant expected = Instant.now().plus(30, ChronoUnit.DAYS);
         assertThat(result.getExpiresAt()).isAfter(expected.minus(1, ChronoUnit.MINUTES));
@@ -74,7 +77,7 @@ class SyncTokenServiceTest {
         when(listRepository.findAllByDeviceId(device.getId())).thenReturn(List.of(list1, list2));
         when(syncTokenRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
 
-        SyncToken result = syncTokenService.create(device);
+        SyncToken result = syncTokenService.create(device, "dark");
 
         assertThat(result.getLists()).containsExactlyInAnyOrder(list1, list2);
     }
@@ -120,14 +123,17 @@ class SyncTokenServiceTest {
         SyncToken token = new SyncToken();
         token.setToken("tok");
         token.setExpiresAt(Instant.now().plus(1, ChronoUnit.DAYS));
+        token.setCreatedByDevice(device);
         token.setLists(Set.of(list1, list2));
         when(syncTokenRepository.findById("tok")).thenReturn(Optional.of(token));
         when(listDeviceRepository.existsByListIdAndDeviceId(any(), eq(device.getId())))
                 .thenReturn(false);
+        when(presetRepository.findByCreatedByDeviceIdOrderByCreatedAtDesc(device.getId()))
+                .thenReturn(List.of());
 
-        Set<ShoppingList> result = syncTokenService.apply("tok", device);
+        SyncApplyResponse result = syncTokenService.apply("tok", device);
 
-        assertThat(result).containsExactlyInAnyOrder(list1, list2);
+        assertThat(result.lists()).hasSize(2);
         verify(listDeviceRepository, times(2)).save(any());
     }
 
@@ -136,10 +142,13 @@ class SyncTokenServiceTest {
         SyncToken token = new SyncToken();
         token.setToken("tok");
         token.setExpiresAt(Instant.now().plus(1, ChronoUnit.DAYS));
+        token.setCreatedByDevice(device);
         token.setLists(Set.of(list1));
         when(syncTokenRepository.findById("tok")).thenReturn(Optional.of(token));
         when(listDeviceRepository.existsByListIdAndDeviceId(list1.getId(), device.getId()))
                 .thenReturn(true);
+        when(presetRepository.findByCreatedByDeviceIdOrderByCreatedAtDesc(device.getId()))
+                .thenReturn(List.of());
 
         syncTokenService.apply("tok", device);
 

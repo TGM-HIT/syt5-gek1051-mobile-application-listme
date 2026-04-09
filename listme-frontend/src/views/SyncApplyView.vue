@@ -5,7 +5,7 @@ import { shareService } from '../services/share'
 import { useListsStore } from '../stores/lists'
 import { useProfileStore } from '../stores/profile'
 import { useThemeStore } from '../stores/theme'
-import type { ShoppingList, SyncPreviewResponse } from '../types'
+import type { SyncPreviewResponse } from '../types'
 
 const route = useRoute()
 const router = useRouter()
@@ -43,8 +43,6 @@ async function apply() {
     applying.value = false
   }
 }
-
-const lists = ref<ShoppingList[]>([])
 </script>
 
 <template>
