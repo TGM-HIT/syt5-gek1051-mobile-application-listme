@@ -30,15 +30,6 @@ public class SyncToken {
     )
     private Set&lt;ShoppingList&gt; lists = new HashSet&lt;&gt;();
 
-    @Column(name = &quot;display_name_snapshot&quot;, length = 100)
-    private String displayNameSnapshot;
-
-    @Column(name = &quot;profile_picture_snapshot&quot;, columnDefinition = &quot;TEXT&quot;)
-    private String profilePictureSnapshot;
-
-    @Column(name = &quot;theme_snapshot&quot;, length = 20, nullable = false)
-    private String themeSnapshot = &quot;dark&quot;;
-
     @Column(name = &quot;created_at&quot;, nullable = false, updatable = false)
     private Instant createdAt;
 
@@ -47,7 +38,7 @@ public class SyncToken {
 
     @PrePersist
     void prePersist() {
-<span class="pc bpc" id="L50" title="1 of 2 branches missed.">        if (createdAt == null) createdAt = Instant.now();</span>
-<span class="fc" id="L51">    }</span>
+<span class="pc bpc" id="L41" title="1 of 2 branches missed.">        if (createdAt == null) createdAt = Instant.now();</span>
+<span class="fc" id="L42">    }</span>
 }
 </pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

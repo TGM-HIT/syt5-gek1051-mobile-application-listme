@@ -23,7 +23,7 @@ public class PresetService {
     private final ListDeviceRepository listDeviceRepository;
 
     public List&lt;Preset&gt; getForDevice(Device device) {
-<span class="fc" id="L26">        return presetRepository.findForDevice(device.getId());</span>
+<span class="fc" id="L26">        return presetRepository.findByCreatedByDeviceIdOrderByCreatedAtDesc(device.getId());</span>
     }
 
     public List&lt;PresetItem&gt; getItems(UUID presetId) {
@@ -64,13 +64,11 @@ public class PresetService {
     public void delete(Device device, UUID presetId) {
 <span class="fc" id="L65">        Preset preset = presetRepository.findById(presetId)</span>
 <span class="fc" id="L66">                .orElseThrow(() -&gt; new ResponseStatusException(HttpStatus.NOT_FOUND, &quot;Preset not found&quot;));</span>
-<span class="pc bpc" id="L67" title="1 of 2 branches missed.">        if (preset.getCreatedByDevice() == null) {</span>
-<span class="nc" id="L68">            throw new ResponseStatusException(HttpStatus.FORBIDDEN, &quot;System presets cannot be deleted&quot;);</span>
+<span class="pc bpc" id="L67" title="1 of 2 branches missed.">        if (preset.getCreatedByDevice() == null ||</span>
+<span class="fc bfc" id="L68" title="All 2 branches covered.">                !preset.getCreatedByDevice().getId().equals(device.getId())) {</span>
+<span class="fc" id="L69">            throw new ResponseStatusException(HttpStatus.FORBIDDEN, &quot;Not your preset&quot;);</span>
         }
-<span class="fc bfc" id="L70" title="All 2 branches covered.">        if (!preset.getCreatedByDevice().getId().equals(device.getId())) {</span>
-<span class="fc" id="L71">            throw new ResponseStatusException(HttpStatus.FORBIDDEN, &quot;Not your preset&quot;);</span>
-        }
-<span class="fc" id="L73">        presetRepository.delete(preset);</span>
-<span class="fc" id="L74">    }</span>
+<span class="fc" id="L71">        presetRepository.delete(preset);</span>
+<span class="fc" id="L72">    }</span>
 }
 </pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>
