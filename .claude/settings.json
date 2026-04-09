@@ -31,6 +31,9 @@
       "Bash(./mvnw test:*)",
       "Bash(npx tsc:*)",
       "Bash(xargs wc:*)"
+    ],
+    "additionalDirectories": [
+      "c:\\Users\\OliGa\\Documents\\code\\syt5-gek1051-mobile-application-listme\\listme-backend\\src\\main\\resources\\db\\migration"
     ]
   }
 }
