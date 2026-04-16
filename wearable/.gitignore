@@ -1,0 +1,38 @@
+# Gradle
+.gradle/
+build/
+**/build/
+local.properties
+gradle-wrapper.jar
+
+# Android Studio / IntelliJ
+.idea/
+*.iml
+*.iws
+*.ipr
+captures/
+.externalNativeBuild/
+.cxx/
+
+# Kotlin / Java
+*.class
+
+# APKs / bundles / mappings
+*.apk
+*.aab
+*.ap_
+*.dex
+output.json
+output-metadata.json
+
+# Signing
+*.jks
+*.keystore
+keystore.properties
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Coverage
+jacocoTestReport/
