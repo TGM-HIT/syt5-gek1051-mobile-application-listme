@@ -3,7 +3,7 @@ import { mount } from '@vue/test-utils'
 import { ref, computed } from 'vue'
 
 // ── Hoisted mocks ────────────────────────────────────────────────────────────
-const { mockRouterBack, mockRouterPush, mockRouteId, mockListsStore, mockItemsStore, mockPresenceStore, mockListSync, mockExport, mockPreset } = vi.hoisted(() => ({
+const { mockRouterBack, mockRouterPush, mockRouteId, mockListsStore, mockItemsStore, mockPresenceStore, mockCategoriesStore, mockListSync, mockExport, mockPreset } = vi.hoisted(() => ({
   mockRouterBack: vi.fn(),
   mockRouterPush: vi.fn(),
   mockRouteId: { value: 'list-abc' },
@@ -23,6 +23,7 @@ const { mockRouterBack, mockRouterPush, mockRouteId, mockListsStore, mockItemsSt
     error: null as string | null,
   },
   mockPresenceStore: { getCount: vi.fn(() => 1) },
+  mockCategoriesStore: { getForList: vi.fn(() => []), fetchForList: vi.fn() },
   mockListSync: {
     connected: { value: true },
     conflicts: { value: [] },
@@ -40,6 +41,7 @@ vi.mock('vue-router', () => ({
 vi.mock('../stores/lists', () => ({ useListsStore: () => mockListsStore }))
 vi.mock('../stores/items', () => ({ useItemsStore: () => mockItemsStore }))
 vi.mock('../stores/presence', () => ({ usePresenceStore: () => mockPresenceStore }))
+vi.mock('../stores/categories', () => ({ useCategoriesStore: () => mockCategoriesStore }))
 vi.mock('../composables/useListSync', () => ({
   useListSync: () => mockListSync,
 }))
