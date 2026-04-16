@@ -38,7 +38,7 @@ listme-backend,com.oliwier.listmebackend.websocket,SyncMessageHandler,0,62,0,8,0
 listme-backend,com.oliwier.listmebackend.websocket,ListSyncBroadcaster,0,67,0,0,0,14,0,4,0,4
 listme-backend,com.oliwier.listmebackend.websocket,PresenceMessage,0,12,0,0,0,1,0,1,0,1
 listme-backend,com.oliwier.listmebackend.websocket,DeviceHandshakeInterceptor,0,27,1,3,0,10,1,4,0,3
-listme-backend,com.oliwier.listmebackend.notification,WebPushService,161,90,11,3,37,23,11,5,5,4
+listme-backend,com.oliwier.listmebackend.notification,WebPushService,121,140,11,7,29,30,12,6,5,4
 listme-backend,com.oliwier.listmebackend.crdt,OperationType,0,33,0,0,0,6,0,1,0,1
 listme-backend,com.oliwier.listmebackend.crdt,ConflictDetector,3,80,1,11,1,15,2,7,1,2
 listme-backend,com.oliwier.listmebackend.crdt,SyncEngine,195,381,36,12,41,86,25,15,2,12
