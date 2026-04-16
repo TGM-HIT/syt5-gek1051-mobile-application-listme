@@ -74,6 +74,30 @@
       </div>
     </section>
 
+    <!-- Watch section -->
+    <section class="mb-6 animate-fade-up" style="animation-delay: 90ms">
+      <p class="text-xs font-semibold text-ctp-overlay0 uppercase tracking-wider mb-3 px-1">
+        Smartwatch
+      </p>
+      <div class="bg-ctp-surface0/60 border border-ctp-surface1/40 rounded-2xl overflow-hidden">
+        <div class="flex items-center justify-between px-4 py-4">
+          <div class="flex items-center gap-3">
+            <div class="w-9 h-9 rounded-xl bg-ctp-sapphire/15 flex items-center justify-center text-lg">⌚</div>
+            <div>
+              <p class="text-sm font-medium text-ctp-text">Pixel Watch verknüpfen</p>
+              <p class="text-xs text-ctp-subtext0">Überträgt alle Listen per Bluetooth auf die Uhr</p>
+            </div>
+          </div>
+          <button
+            @click="showWatchModal = true"
+            class="px-3 py-1.5 bg-ctp-sapphire/20 hover:bg-ctp-sapphire/30 text-ctp-sapphire text-xs font-semibold rounded-lg transition-colors"
+          >
+            Verbinden
+          </button>
+        </div>
+      </div>
+    </section>
+
     <!-- About section -->
     <section class="animate-fade-up" style="animation-delay: 120ms">
       <p class="text-xs font-semibold text-ctp-overlay0 uppercase tracking-wider mb-3 px-1">
@@ -95,12 +119,15 @@
       </div>
     </section>
   </div>
+
+  <WatchSyncModal v-if="showWatchModal" @close="showWatchModal = false" />
 </template>
 
 <script setup lang="ts">
 import { ref, computed } from 'vue'
 import { useThemeStore } from '../stores/theme'
 import { useProfileStore } from '../stores/profile'
+import WatchSyncModal from '../components/sync/WatchSyncModal.vue'
 
 const themeStore = useThemeStore()
 const profileStore = useProfileStore()
@@ -111,6 +138,7 @@ const lastName = ref(profileStore.lastName)
 const saving = ref(false)
 const saved = ref(false)
 const photoInput = ref<HTMLInputElement | null>(null)
+const showWatchModal = ref(false)
 
 async function saveProfile() {
   saving.value = true
