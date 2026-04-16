@@ -1,0 +1,142 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>WebPushService.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">listme-backend</a> &gt; <a href="index.source.html" class="el_package">com.oliwier.listmebackend.notification</a> &gt; <span class="el_source">WebPushService.java</span></div><h1>WebPushService.java</h1><pre class="source lang-java linenums">package com.oliwier.listmebackend.notification;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.oliwier.listmebackend.domain.model.PushSubscriptionEntry;
+import com.oliwier.listmebackend.domain.model.User;
+import com.oliwier.listmebackend.domain.model.VapidKey;
+import com.oliwier.listmebackend.domain.repository.PushSubscriptionRepository;
+import com.oliwier.listmebackend.domain.repository.VapidKeyRepository;
+import jakarta.annotation.PostConstruct;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import nl.martijndwars.webpush.Notification;
+import nl.martijndwars.webpush.PushService;
+import org.bouncycastle.jce.provider.BouncyCastleProvider;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.security.KeyPairGenerator;
+import java.security.Security;
+import java.security.spec.ECGenParameterSpec;
+import java.util.*;
+
+/**
+ * Manages VAPID key pair lifecycle and sends Web Push notifications.
+ *
+ * Keys are stored in X509/PKCS8 format (what the web-push library requires).
+ * The browser-friendly public key (raw 65-byte EC point) is derived on the fly.
+ *
+ * @PostConstruct does NOT carry @Transactional — JpaRepository methods are
+ * already transactional internally, and mixing @Transactional + @PostConstruct
+ * is unreliable in Spring Boot.
+ */
+@Service
+@RequiredArgsConstructor
+<span class="fc" id="L35">@Slf4j</span>
+public class WebPushService {
+
+<span class="fc" id="L38">    private static final ObjectMapper MAPPER = new ObjectMapper();</span>
+
+    private final PushSubscriptionRepository subRepo;
+    private final VapidKeyRepository vapidRepo;
+
+    private PushService pushService;
+    // Stored in X509 format for the library; served as raw EC point to the browser
+    private String vapidPublicKeyX509;
+
+    @PostConstruct
+    public void init() {
+        try {
+<span class="fc bfc" id="L50" title="All 2 branches covered.">            if (Security.getProvider(&quot;BC&quot;) == null) {</span>
+<span class="fc" id="L51">                Security.addProvider(new BouncyCastleProvider());</span>
+            }
+
+<span class="fc" id="L54">            VapidKey keys = vapidRepo.findById((short) 1).orElseGet(this::generateAndSaveKeys);</span>
+
+<span class="fc" id="L56">            vapidPublicKeyX509 = keys.getPublicKey();</span>
+<span class="nc" id="L57">            pushService = new PushService(keys.getPublicKey(), keys.getPrivateKey());</span>
+<span class="nc" id="L58">            pushService.setSubject(&quot;mailto:admin@list-me.net&quot;);</span>
+<span class="nc" id="L59">            log.info(&quot;[WebPush] Initialized with existing VAPID keys&quot;);</span>
+<span class="fc" id="L60">        } catch (Exception e) {</span>
+<span class="fc" id="L61">            log.error(&quot;[WebPush] Failed to initialize — push notifications disabled&quot;, e);</span>
+            // Don't rethrow: a push failure must never crash the application context
+<span class="nc" id="L63">        }</span>
+<span class="fc" id="L64">    }</span>
+
+    /**
+     * Returns the VAPID public key in raw uncompressed EC point format (65 bytes, base64url).
+     * This is what the browser passes to PushManager.subscribe() as applicationServerKey.
+     */
+    public String getBrowserPublicKey() {
+<span class="nc bnc" id="L71" title="All 2 branches missed.">        if (vapidPublicKeyX509 == null) return &quot;&quot;;</span>
+        // X509 SubjectPublicKeyInfo for P-256 = 26-byte header + 65-byte EC point
+<span class="nc" id="L73">        byte[] x509Bytes = Base64.getUrlDecoder().decode(vapidPublicKeyX509);</span>
+<span class="nc" id="L74">        byte[] rawPoint = Arrays.copyOfRange(x509Bytes, x509Bytes.length - 65, x509Bytes.length);</span>
+<span class="nc" id="L75">        return Base64.getUrlEncoder().withoutPadding().encodeToString(rawPoint);</span>
+    }
+
+    @Transactional
+    public void subscribe(User user, String endpoint, String p256dh, String auth) {
+<span class="nc" id="L80">        subRepo.findByEndpoint(endpoint).ifPresentOrElse(</span>
+<span class="nc" id="L81">            existing -&gt; {},</span>
+            () -&gt; {
+<span class="nc" id="L83">                PushSubscriptionEntry sub = new PushSubscriptionEntry();</span>
+<span class="nc" id="L84">                sub.setUser(user);</span>
+<span class="nc" id="L85">                sub.setEndpoint(endpoint);</span>
+<span class="nc" id="L86">                sub.setP256dh(p256dh);</span>
+<span class="nc" id="L87">                sub.setAuthKey(auth);</span>
+<span class="nc" id="L88">                subRepo.save(sub);</span>
+<span class="nc" id="L89">            }</span>
+        );
+<span class="nc" id="L91">    }</span>
+
+    @Transactional
+    public void unsubscribe(String endpoint) {
+<span class="nc" id="L95">        subRepo.deleteByEndpoint(endpoint);</span>
+<span class="nc" id="L96">    }</span>
+
+    public void sendToUser(UUID userId, String title, String body, String url) {
+<span class="pc bpc" id="L99" title="1 of 2 branches missed.">        if (pushService == null) return;</span>
+<span class="nc" id="L100">        List&lt;PushSubscriptionEntry&gt; subs = subRepo.findByUserId(userId);</span>
+<span class="nc bnc" id="L101" title="All 2 branches missed.">        for (PushSubscriptionEntry sub : subs) {</span>
+            try {
+<span class="nc" id="L103">                Map&lt;String, String&gt; payload = Map.of(&quot;title&quot;, title, &quot;body&quot;, body, &quot;url&quot;, url);</span>
+<span class="nc" id="L104">                byte[] payloadBytes = MAPPER.writeValueAsBytes(payload);</span>
+<span class="nc" id="L105">                Notification notification = new Notification(</span>
+<span class="nc" id="L106">                        sub.getEndpoint(), sub.getP256dh(), sub.getAuthKey(), payloadBytes);</span>
+<span class="nc" id="L107">                pushService.send(notification);</span>
+<span class="nc" id="L108">            } catch (Exception e) {</span>
+<span class="nc" id="L109">                String msg = e.getMessage();</span>
+<span class="nc bnc" id="L110" title="All 6 branches missed.">                if (msg != null &amp;&amp; (msg.contains(&quot;410&quot;) || msg.contains(&quot;404&quot;))) {</span>
+<span class="nc" id="L111">                    subRepo.delete(sub);</span>
+                } else {
+<span class="nc" id="L113">                    log.warn(&quot;[WebPush] Failed to send push to {}: {}&quot;, sub.getEndpoint(), msg);</span>
+                }
+<span class="nc" id="L115">            }</span>
+<span class="nc" id="L116">        }</span>
+<span class="nc" id="L117">    }</span>
+
+    private VapidKey generateAndSaveKeys() {
+        try {
+<span class="fc" id="L121">            KeyPairGenerator kpg = KeyPairGenerator.getInstance(&quot;EC&quot;, &quot;BC&quot;);</span>
+<span class="fc" id="L122">            kpg.initialize(new ECGenParameterSpec(&quot;prime256v1&quot;));</span>
+<span class="fc" id="L123">            var kp = kpg.generateKeyPair();</span>
+
+            // Store in X509 / PKCS8 format — what PushService(String, String) expects
+<span class="fc" id="L126">            String pubX509 = Base64.getUrlEncoder().withoutPadding()</span>
+<span class="fc" id="L127">                    .encodeToString(kp.getPublic().getEncoded());</span>
+<span class="fc" id="L128">            String privPkcs8 = Base64.getUrlEncoder().withoutPadding()</span>
+<span class="fc" id="L129">                    .encodeToString(kp.getPrivate().getEncoded());</span>
+
+<span class="fc" id="L131">            VapidKey k = new VapidKey();</span>
+<span class="fc" id="L132">            k.setId((short) 1);</span>
+<span class="fc" id="L133">            k.setPublicKey(pubX509);</span>
+<span class="fc" id="L134">            k.setPrivateKey(privPkcs8);</span>
+<span class="fc" id="L135">            log.info(&quot;[WebPush] Generated new VAPID key pair&quot;);</span>
+<span class="fc" id="L136">            return vapidRepo.save(k);</span>
+<span class="nc" id="L137">        } catch (Exception e) {</span>
+<span class="nc" id="L138">            throw new RuntimeException(&quot;Failed to generate VAPID keys&quot;, e);</span>
+        }
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

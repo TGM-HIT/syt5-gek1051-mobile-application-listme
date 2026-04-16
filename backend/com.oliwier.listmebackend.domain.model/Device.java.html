@@ -22,17 +22,21 @@ public class Device {
     @Column(name = &quot;profile_picture&quot;, columnDefinition = &quot;TEXT&quot;)
     private String profilePicture;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = &quot;user_id&quot;)
+    private User user;
+
     @Column(name = &quot;created_at&quot;, nullable = false, updatable = false)
     private Instant createdAt;
 
-<span class="fc" id="L28">    public Device(UUID id) {</span>
-<span class="fc" id="L29">        this.id = id;</span>
-<span class="fc" id="L30">        this.createdAt = Instant.now();</span>
-<span class="fc" id="L31">    }</span>
+<span class="fc" id="L32">    public Device(UUID id) {</span>
+<span class="fc" id="L33">        this.id = id;</span>
+<span class="fc" id="L34">        this.createdAt = Instant.now();</span>
+<span class="fc" id="L35">    }</span>
 
     @PrePersist
     void prePersist() {
-<span class="pc bpc" id="L35" title="1 of 2 branches missed.">        if (createdAt == null) createdAt = Instant.now();</span>
-<span class="fc" id="L36">    }</span>
+<span class="pc bpc" id="L39" title="1 of 2 branches missed.">        if (createdAt == null) createdAt = Instant.now();</span>
+<span class="fc" id="L40">    }</span>
 }
 </pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>
