@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">ListMe</string>
+    <string name="lists_title">Meine Listen</string>
+    <string name="empty_lists">Noch keine Listen</string>
+    <string name="refresh">Aktualisieren</string>
+    <string name="all_done">Alles erledigt</string>
+    <string name="offline">Offline</string>
+    <string name="item_checked">Erledigt</string>
+    <string name="item_unchecked">Offen</string>
+</resources>
