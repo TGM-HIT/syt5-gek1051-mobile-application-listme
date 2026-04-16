@@ -15,14 +15,21 @@ import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.math.BigInteger;
 import java.security.KeyPairGenerator;
 import java.security.Security;
-import java.security.interfaces.ECPrivateKey;
-import java.security.interfaces.ECPublicKey;
 import java.security.spec.ECGenParameterSpec;
 import java.util.*;
 
+/**
+ * Manages VAPID key pair lifecycle and sends Web Push notifications.
+ *
+ * Keys are stored in X509/PKCS8 format (what the web-push library requires).
+ * The browser-friendly public key (raw 65-byte EC point) is derived on the fly.
+ *
+ * @PostConstruct does NOT carry @Transactional — JpaRepository methods are
+ * already transactional internally, and mixing @Transactional + @PostConstruct
+ * is unreliable in Spring Boot.
+ */
 @Service
 @RequiredArgsConstructor
 @Slf4j
@@ -33,56 +40,44 @@ public class WebPushService {
     private final ObjectMapper objectMapper;
 
     private PushService pushService;
-    private String vapidPublicKey;
+    // Stored in X509 format for the library; served as raw EC point to the browser
+    private String vapidPublicKeyX509;
 
     @PostConstruct
-    @Transactional
     public void init() {
-        if (Security.getProvider("BC") == null) {
-            Security.addProvider(new BouncyCastleProvider());
-        }
-
-        VapidKey keys = vapidRepo.findById((short) 1).orElseGet(() -> {
-            try {
-                KeyPairGenerator kpg = KeyPairGenerator.getInstance("EC", "BC");
-                kpg.initialize(new ECGenParameterSpec("prime256v1"));
-                var kp = kpg.generateKeyPair();
-
-                ECPublicKey pub = (ECPublicKey) kp.getPublic();
-                byte[] pubEncoded = pub.getEncoded(); // SubjectPublicKeyInfo, last 65 bytes = raw point
-                byte[] rawPub = Arrays.copyOfRange(pubEncoded, pubEncoded.length - 65, pubEncoded.length);
-
-                ECPrivateKey priv = (ECPrivateKey) kp.getPrivate();
-                byte[] privScalar = toFixed32Bytes(priv.getS());
-
-                VapidKey k = new VapidKey();
-                k.setId((short) 1);
-                k.setPublicKey(Base64.getUrlEncoder().withoutPadding().encodeToString(rawPub));
-                k.setPrivateKey(Base64.getUrlEncoder().withoutPadding().encodeToString(privScalar));
-                log.info("[WebPush] Generated new VAPID key pair");
-                return vapidRepo.save(k);
-            } catch (Exception e) {
-                throw new RuntimeException("Failed to generate VAPID keys", e);
-            }
-        });
-
-        vapidPublicKey = keys.getPublicKey();
         try {
+            if (Security.getProvider("BC") == null) {
+                Security.addProvider(new BouncyCastleProvider());
+            }
+
+            VapidKey keys = vapidRepo.findById((short) 1).orElseGet(this::generateAndSaveKeys);
+
+            vapidPublicKeyX509 = keys.getPublicKey();
             pushService = new PushService(keys.getPublicKey(), keys.getPrivateKey());
             pushService.setSubject("mailto:admin@list-me.net");
+            log.info("[WebPush] Initialized with existing VAPID keys");
         } catch (Exception e) {
-            log.error("[WebPush] Failed to init PushService", e);
+            log.error("[WebPush] Failed to initialize — push notifications disabled", e);
+            // Don't rethrow: a push failure must never crash the application context
         }
     }
 
-    public String getPublicKey() {
-        return vapidPublicKey;
+    /**
+     * Returns the VAPID public key in raw uncompressed EC point format (65 bytes, base64url).
+     * This is what the browser passes to PushManager.subscribe() as applicationServerKey.
+     */
+    public String getBrowserPublicKey() {
+        if (vapidPublicKeyX509 == null) return "";
+        // X509 SubjectPublicKeyInfo for P-256 = 26-byte header + 65-byte EC point
+        byte[] x509Bytes = Base64.getUrlDecoder().decode(vapidPublicKeyX509);
+        byte[] rawPoint = Arrays.copyOfRange(x509Bytes, x509Bytes.length - 65, x509Bytes.length);
+        return Base64.getUrlEncoder().withoutPadding().encodeToString(rawPoint);
     }
 
     @Transactional
     public void subscribe(User user, String endpoint, String p256dh, String auth) {
         subRepo.findByEndpoint(endpoint).ifPresentOrElse(
-            existing -> {}, // already registered
+            existing -> {},
             () -> {
                 PushSubscriptionEntry sub = new PushSubscriptionEntry();
                 sub.setUser(user);
@@ -106,12 +101,13 @@ public class WebPushService {
             try {
                 Map<String, String> payload = Map.of("title", title, "body", body, "url", url);
                 byte[] payloadBytes = objectMapper.writeValueAsBytes(payload);
-                Notification notification = new Notification(sub.getEndpoint(), sub.getP256dh(), sub.getAuthKey(), payloadBytes);
+                Notification notification = new Notification(
+                        sub.getEndpoint(), sub.getP256dh(), sub.getAuthKey(), payloadBytes);
                 pushService.send(notification);
             } catch (Exception e) {
                 String msg = e.getMessage();
                 if (msg != null && (msg.contains("410") || msg.contains("404"))) {
-                    subRepo.delete(sub); // subscription expired — clean up
+                    subRepo.delete(sub);
                 } else {
                     log.warn("[WebPush] Failed to send push to {}: {}", sub.getEndpoint(), msg);
                 }
@@ -119,15 +115,26 @@ public class WebPushService {
         }
     }
 
-    private static byte[] toFixed32Bytes(BigInteger n) {
-        byte[] raw = n.toByteArray();
-        if (raw.length == 32) return raw;
-        byte[] fixed = new byte[32];
-        if (raw.length > 32) {
-            System.arraycopy(raw, raw.length - 32, fixed, 0, 32);
-        } else {
-            System.arraycopy(raw, 0, fixed, 32 - raw.length, raw.length);
+    private VapidKey generateAndSaveKeys() {
+        try {
+            KeyPairGenerator kpg = KeyPairGenerator.getInstance("EC", "BC");
+            kpg.initialize(new ECGenParameterSpec("prime256v1"));
+            var kp = kpg.generateKeyPair();
+
+            // Store in X509 / PKCS8 format — what PushService(String, String) expects
+            String pubX509 = Base64.getUrlEncoder().withoutPadding()
+                    .encodeToString(kp.getPublic().getEncoded());
+            String privPkcs8 = Base64.getUrlEncoder().withoutPadding()
+                    .encodeToString(kp.getPrivate().getEncoded());
+
+            VapidKey k = new VapidKey();
+            k.setId((short) 1);
+            k.setPublicKey(pubX509);
+            k.setPrivateKey(privPkcs8);
+            log.info("[WebPush] Generated new VAPID key pair");
+            return vapidRepo.save(k);
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to generate VAPID keys", e);
         }
-        return fixed;
     }
 }

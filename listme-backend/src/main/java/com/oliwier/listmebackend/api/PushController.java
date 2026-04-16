@@ -18,7 +18,7 @@ public class PushController {
 
     @GetMapping("/public-key")
     public Map<String, String> getPublicKey() {
-        return Map.of("publicKey", webPushService.getPublicKey());
+        return Map.of("publicKey", webPushService.getBrowserPublicKey());
     }
 
     @PostMapping("/subscribe")
