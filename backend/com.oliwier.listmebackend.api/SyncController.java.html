@@ -3,13 +3,17 @@
 import com.oliwier.listmebackend.api.dto.CrdtOperationResponse;
 import com.oliwier.listmebackend.crdt.IncomingOperation;
 import com.oliwier.listmebackend.crdt.SyncEngine;
-import com.oliwier.listmebackend.domain.model.CrdtOperation;
 import com.oliwier.listmebackend.domain.model.Device;
+import com.oliwier.listmebackend.domain.model.ShoppingList;
+import com.oliwier.listmebackend.domain.model.User;
 import com.oliwier.listmebackend.domain.repository.ListDeviceRepository;
+import com.oliwier.listmebackend.domain.repository.ShoppingListRepository;
 import com.oliwier.listmebackend.identity.CurrentDevice;
+import com.oliwier.listmebackend.identity.CurrentUser;
 import com.oliwier.listmebackend.websocket.ListSyncBroadcaster;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
@@ -33,12 +37,14 @@ public class SyncController {
 
     private final SyncEngine syncEngine;
     private final ListDeviceRepository listDeviceRepository;
+    private final ShoppingListRepository listRepository;
     private final ListSyncBroadcaster broadcaster;
+    private final SimpMessagingTemplate messaging;
 
     @GetMapping(&quot;/clock&quot;)
     public Map&lt;String, Long&gt; getClock(@PathVariable UUID listId, @CurrentDevice Device device) {
-<span class="fc" id="L40">        requireAccess(listId, device);</span>
-<span class="fc" id="L41">        return syncEngine.getCurrentClock(listId);</span>
+<span class="fc" id="L46">        requireAccess(listId, device);</span>
+<span class="fc" id="L47">        return syncEngine.getCurrentClock(listId);</span>
     }
 
     @GetMapping(&quot;/ops&quot;)
@@ -46,12 +52,12 @@ public class SyncController {
             @PathVariable UUID listId,
             @CurrentDevice Device device,
             @RequestParam(required = false) Map&lt;String, Long&gt; since) {
-<span class="fc" id="L49">        requireAccess(listId, device);</span>
-<span class="pc bpc" id="L50" title="1 of 2 branches missed.">        Map&lt;String, Long&gt; clientClock = since != null ? since : Map.of();</span>
-<span class="fc" id="L51">        return syncEngine.getOperationsSince(listId, clientClock)</span>
-<span class="fc" id="L52">                .stream()</span>
-<span class="fc" id="L53">                .map(CrdtOperationResponse::from)</span>
-<span class="fc" id="L54">                .toList();</span>
+<span class="fc" id="L55">        requireAccess(listId, device);</span>
+<span class="pc bpc" id="L56" title="1 of 2 branches missed.">        Map&lt;String, Long&gt; clientClock = since != null ? since : Map.of();</span>
+<span class="fc" id="L57">        return syncEngine.getOperationsSince(listId, clientClock)</span>
+<span class="fc" id="L58">                .stream()</span>
+<span class="fc" id="L59">                .map(CrdtOperationResponse::from)</span>
+<span class="fc" id="L60">                .toList();</span>
     }
 
     @PostMapping(&quot;/ops&quot;)
@@ -60,16 +66,28 @@ public class SyncController {
     public void pushOps(
             @PathVariable UUID listId,
             @CurrentDevice Device device,
+            @CurrentUser User user,
             @RequestBody List&lt;IncomingOperation&gt; ops) {
-<span class="fc" id="L64">        requireAccess(listId, device);</span>
-<span class="fc" id="L65">        List&lt;CrdtOperation&gt; applied = syncEngine.applyIncoming(ops, device);</span>
-<span class="fc" id="L66">        applied.forEach(op -&gt; broadcaster.broadcastOp(listId, op));</span>
-<span class="fc" id="L67">    }</span>
+<span class="fc" id="L71">        requireAccess(listId, device);</span>
+<span class="fc" id="L72">        SyncEngine.SyncResult result = syncEngine.applyIncoming(ops, device);</span>
+<span class="fc" id="L73">        result.applied().forEach(op -&gt; broadcaster.broadcastOp(listId, op));</span>
+
+<span class="fc bfc" id="L75" title="All 2 branches covered.">        if (!result.conflicts().isEmpty()) {</span>
+<span class="fc" id="L76">            ShoppingList list = listRepository.findById(listId).orElse(null);</span>
+<span class="pc bpc" id="L77" title="1 of 2 branches missed.">            String listName = list != null ? list.getName() : &quot;&quot;;</span>
+<span class="fc" id="L78">            Map&lt;String, Object&gt; notification = new java.util.HashMap&lt;&gt;();</span>
+<span class="fc" id="L79">            notification.put(&quot;type&quot;, &quot;CONFLICT_DETECTED&quot;);</span>
+<span class="fc" id="L80">            notification.put(&quot;listId&quot;, listId.toString());</span>
+<span class="fc" id="L81">            notification.put(&quot;listName&quot;, listName);</span>
+<span class="fc" id="L82">            notification.put(&quot;conflictCount&quot;, result.conflicts().size());</span>
+<span class="fc" id="L83">            messaging.convertAndSend(&quot;/topic/user/&quot; + user.getId(), (Object) notification);</span>
+        }
+<span class="fc" id="L85">    }</span>
 
     private void requireAccess(UUID listId, Device device) {
-<span class="pc bpc" id="L70" title="1 of 2 branches missed.">        if (!listDeviceRepository.existsByListIdAndDeviceId(listId, device.getId())) {</span>
-<span class="nc" id="L71">            throw new ResponseStatusException(HttpStatus.FORBIDDEN, &quot;Not a participant of this list&quot;);</span>
+<span class="pc bpc" id="L88" title="1 of 2 branches missed.">        if (!listDeviceRepository.existsByListIdAndDeviceId(listId, device.getId())) {</span>
+<span class="nc" id="L89">            throw new ResponseStatusException(HttpStatus.FORBIDDEN, &quot;Not a participant of this list&quot;);</span>
         }
-<span class="fc" id="L73">    }</span>
+<span class="fc" id="L91">    }</span>
 }
 </pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

@@ -28,6 +28,10 @@ public class ShoppingList {
     @JoinColumn(name = &quot;created_by_device&quot;, nullable = false, updatable = false)
     private Device createdByDevice;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = &quot;user_id&quot;)
+    private User user;
+
     @Column(name = &quot;share_token&quot;, unique = true, length = 16)
     private String shareToken;
 
@@ -46,15 +50,15 @@ public class ShoppingList {
 
     @PrePersist
     void prePersist() {
-<span class="pc bpc" id="L49" title="1 of 2 branches missed.">        if (id == null) id = UUID.randomUUID();</span>
-<span class="fc" id="L50">        Instant now = Instant.now();</span>
-<span class="pc bpc" id="L51" title="1 of 2 branches missed.">        if (createdAt == null) createdAt = now;</span>
-<span class="pc bpc" id="L52" title="1 of 2 branches missed.">        if (updatedAt == null) updatedAt = now;</span>
-<span class="fc" id="L53">    }</span>
+<span class="pc bpc" id="L53" title="1 of 2 branches missed.">        if (id == null) id = UUID.randomUUID();</span>
+<span class="fc" id="L54">        Instant now = Instant.now();</span>
+<span class="pc bpc" id="L55" title="1 of 2 branches missed.">        if (createdAt == null) createdAt = now;</span>
+<span class="pc bpc" id="L56" title="1 of 2 branches missed.">        if (updatedAt == null) updatedAt = now;</span>
+<span class="fc" id="L57">    }</span>
 
     @PreUpdate
     void preUpdate() {
-<span class="fc" id="L57">        updatedAt = Instant.now();</span>
-<span class="fc" id="L58">    }</span>
+<span class="fc" id="L61">        updatedAt = Instant.now();</span>
+<span class="fc" id="L62">    }</span>
 }
 </pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

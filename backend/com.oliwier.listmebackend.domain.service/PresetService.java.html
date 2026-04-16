@@ -22,8 +22,8 @@ public class PresetService {
     private final ItemRepository itemRepository;
     private final ListDeviceRepository listDeviceRepository;
 
-    public List&lt;Preset&gt; getForDevice(Device device) {
-<span class="fc" id="L26">        return presetRepository.findForDevice(device.getId());</span>
+    public List&lt;Preset&gt; getForUser(User user) {
+<span class="fc" id="L26">        return presetRepository.findForUser(user.getId());</span>
     }
 
     public List&lt;PresetItem&gt; getItems(UUID presetId) {
@@ -31,46 +31,50 @@ public class PresetService {
     }
 
     @Transactional
-    public Preset createFromList(Device device, UUID fromListId, String name, String emoji) {
-<span class="fc bfc" id="L35" title="All 2 branches covered.">        if (!listDeviceRepository.existsByListIdAndDeviceId(fromListId, device.getId())) {</span>
-<span class="fc" id="L36">            throw new ResponseStatusException(HttpStatus.FORBIDDEN, &quot;Not a participant of this list&quot;);</span>
-        }
-<span class="fc" id="L38">        ShoppingList list = listRepository.findById(fromListId)</span>
-<span class="pc" id="L39">                .orElseThrow(() -&gt; new ResponseStatusException(HttpStatus.NOT_FOUND, &quot;List not found&quot;));</span>
-
-<span class="fc" id="L41">        Preset preset = new Preset();</span>
-<span class="fc" id="L42">        preset.setName(name);</span>
-<span class="pc bpc" id="L43" title="1 of 4 branches missed.">        preset.setEmoji(emoji != null &amp;&amp; !emoji.isBlank() ? emoji : list.getEmoji());</span>
-<span class="fc" id="L44">        preset.setCreatedByDevice(device);</span>
-
-<span class="fc" id="L46">        List&lt;Item&gt; items = itemRepository.findByListIdAndDeletedAtIsNullOrderByPosition(fromListId);</span>
-<span class="fc bfc" id="L47" title="All 2 branches covered.">        for (int i = 0; i &lt; items.size(); i++) {</span>
-<span class="fc" id="L48">            Item src = items.get(i);</span>
-<span class="fc" id="L49">            PresetItem pi = new PresetItem();</span>
-<span class="fc" id="L50">            pi.setPreset(preset);</span>
-<span class="fc" id="L51">            pi.setName(src.getName());</span>
-<span class="fc" id="L52">            pi.setQuantity(src.getQuantity());</span>
-<span class="fc" id="L53">            pi.setQuantityUnit(src.getQuantityUnit());</span>
-<span class="fc" id="L54">            pi.setPrice(src.getPrice());</span>
-<span class="fc" id="L55">            pi.setImageUrl(src.getImageUrl());</span>
-<span class="fc" id="L56">            pi.setPosition(i);</span>
-<span class="fc" id="L57">            preset.getItems().add(pi);</span>
+    public Preset createFromList(User user, Device device, UUID fromListId, String name, String emoji) {
+        // Access check: user owns the list OR device is a participant
+<span class="fc" id="L36">        ShoppingList list = listRepository.findById(fromListId)</span>
+<span class="pc" id="L37">                .orElseThrow(() -&gt; new ResponseStatusException(HttpStatus.NOT_FOUND, &quot;List not found&quot;));</span>
+<span class="pc bpc" id="L38" title="1 of 4 branches missed.">        boolean ownsIt = list.getUser() != null &amp;&amp; list.getUser().getId().equals(user.getId());</span>
+<span class="fc" id="L39">        boolean isParticipant = listDeviceRepository.existsByListIdAndDeviceId(fromListId, device.getId());</span>
+<span class="fc bfc" id="L40" title="All 4 branches covered.">        if (!ownsIt &amp;&amp; !isParticipant) {</span>
+<span class="fc" id="L41">            throw new ResponseStatusException(HttpStatus.FORBIDDEN, &quot;Not a participant of this list&quot;);</span>
         }
 
-<span class="fc" id="L60">        return presetRepository.save(preset);</span>
+<span class="fc" id="L44">        Preset preset = new Preset();</span>
+<span class="fc" id="L45">        preset.setName(name);</span>
+<span class="pc bpc" id="L46" title="1 of 4 branches missed.">        preset.setEmoji(emoji != null &amp;&amp; !emoji.isBlank() ? emoji : list.getEmoji());</span>
+<span class="fc" id="L47">        preset.setCreatedByDevice(device);</span>
+<span class="fc" id="L48">        preset.setUser(user);</span>
+
+<span class="fc" id="L50">        List&lt;Item&gt; items = itemRepository.findByListIdAndDeletedAtIsNullOrderByPosition(fromListId);</span>
+<span class="fc bfc" id="L51" title="All 2 branches covered.">        for (int i = 0; i &lt; items.size(); i++) {</span>
+<span class="fc" id="L52">            Item src = items.get(i);</span>
+<span class="fc" id="L53">            PresetItem pi = new PresetItem();</span>
+<span class="fc" id="L54">            pi.setPreset(preset);</span>
+<span class="fc" id="L55">            pi.setName(src.getName());</span>
+<span class="fc" id="L56">            pi.setQuantity(src.getQuantity());</span>
+<span class="fc" id="L57">            pi.setQuantityUnit(src.getQuantityUnit());</span>
+<span class="fc" id="L58">            pi.setPrice(src.getPrice());</span>
+<span class="fc" id="L59">            pi.setImageUrl(src.getImageUrl());</span>
+<span class="fc" id="L60">            pi.setPosition(i);</span>
+<span class="fc" id="L61">            preset.getItems().add(pi);</span>
+        }
+
+<span class="fc" id="L64">        return presetRepository.save(preset);</span>
     }
 
     @Transactional
-    public void delete(Device device, UUID presetId) {
-<span class="fc" id="L65">        Preset preset = presetRepository.findById(presetId)</span>
-<span class="fc" id="L66">                .orElseThrow(() -&gt; new ResponseStatusException(HttpStatus.NOT_FOUND, &quot;Preset not found&quot;));</span>
-<span class="pc bpc" id="L67" title="1 of 2 branches missed.">        if (preset.getCreatedByDevice() == null) {</span>
-<span class="nc" id="L68">            throw new ResponseStatusException(HttpStatus.FORBIDDEN, &quot;System presets cannot be deleted&quot;);</span>
+    public void delete(User user, UUID presetId) {
+<span class="fc" id="L69">        Preset preset = presetRepository.findById(presetId)</span>
+<span class="fc" id="L70">                .orElseThrow(() -&gt; new ResponseStatusException(HttpStatus.NOT_FOUND, &quot;Preset not found&quot;));</span>
+<span class="fc bfc" id="L71" title="All 2 branches covered.">        if (preset.getUser() == null) {</span>
+<span class="fc" id="L72">            throw new ResponseStatusException(HttpStatus.FORBIDDEN, &quot;System presets cannot be deleted&quot;);</span>
         }
-<span class="fc bfc" id="L70" title="All 2 branches covered.">        if (!preset.getCreatedByDevice().getId().equals(device.getId())) {</span>
-<span class="fc" id="L71">            throw new ResponseStatusException(HttpStatus.FORBIDDEN, &quot;Not your preset&quot;);</span>
+<span class="fc bfc" id="L74" title="All 2 branches covered.">        if (!preset.getUser().getId().equals(user.getId())) {</span>
+<span class="fc" id="L75">            throw new ResponseStatusException(HttpStatus.FORBIDDEN, &quot;Not your preset&quot;);</span>
         }
-<span class="fc" id="L73">        presetRepository.delete(preset);</span>
-<span class="fc" id="L74">    }</span>
+<span class="fc" id="L77">        presetRepository.delete(preset);</span>
+<span class="fc" id="L78">    }</span>
 }
 </pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

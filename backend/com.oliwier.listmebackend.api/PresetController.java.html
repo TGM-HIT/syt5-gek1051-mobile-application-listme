@@ -4,8 +4,10 @@ import com.oliwier.listmebackend.api.dto.CreatePresetRequest;
 import com.oliwier.listmebackend.api.dto.PresetItemResponse;
 import com.oliwier.listmebackend.api.dto.PresetResponse;
 import com.oliwier.listmebackend.domain.model.Device;
+import com.oliwier.listmebackend.domain.model.User;
 import com.oliwier.listmebackend.domain.service.PresetService;
 import com.oliwier.listmebackend.identity.CurrentDevice;
+import com.oliwier.listmebackend.identity.CurrentUser;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -24,29 +26,30 @@ public class PresetController {
     private final PresetService presetService;
 
     @GetMapping
-    public List&lt;PresetResponse&gt; getAll(@CurrentDevice Device device) {
-<span class="fc" id="L28">        return presetService.getForDevice(device).stream().map(PresetResponse::from).toList();</span>
+    public List&lt;PresetResponse&gt; getAll(@CurrentUser User user) {
+<span class="fc" id="L30">        return presetService.getForUser(user).stream().map(PresetResponse::from).toList();</span>
     }
 
     @GetMapping(&quot;/{presetId}/items&quot;)
     public List&lt;PresetItemResponse&gt; getItems(@PathVariable UUID presetId) {
-<span class="fc" id="L33">        return presetService.getItems(presetId).stream().map(PresetItemResponse::from).toList();</span>
+<span class="fc" id="L35">        return presetService.getItems(presetId).stream().map(PresetItemResponse::from).toList();</span>
     }
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     @Transactional
-    public PresetResponse create(@CurrentDevice Device device,
+    public PresetResponse create(@CurrentUser User user,
+                                 @CurrentDevice Device device,
                                  @Valid @RequestBody CreatePresetRequest req) {
-<span class="fc" id="L41">        return PresetResponse.from(</span>
-<span class="fc" id="L42">                presetService.createFromList(device, req.fromListId(), req.name(), req.emoji()));</span>
+<span class="fc" id="L44">        return PresetResponse.from(</span>
+<span class="fc" id="L45">                presetService.createFromList(user, device, req.fromListId(), req.name(), req.emoji()));</span>
     }
 
     @DeleteMapping(&quot;/{presetId}&quot;)
     @ResponseStatus(HttpStatus.NO_CONTENT)
     @Transactional
-    public void delete(@CurrentDevice Device device, @PathVariable UUID presetId) {
-<span class="fc" id="L49">        presetService.delete(device, presetId);</span>
-<span class="fc" id="L50">    }</span>
+    public void delete(@CurrentUser User user, @PathVariable UUID presetId) {
+<span class="fc" id="L52">        presetService.delete(user, presetId);</span>
+<span class="fc" id="L53">    }</span>
 }
 </pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>
