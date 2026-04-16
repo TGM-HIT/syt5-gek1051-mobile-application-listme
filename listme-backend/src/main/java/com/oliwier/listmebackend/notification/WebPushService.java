@@ -11,6 +11,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import nl.martijndwars.webpush.Notification;
 import nl.martijndwars.webpush.PushService;
+import org.bouncycastle.jce.interfaces.ECPrivateKey;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -23,12 +24,13 @@ import java.util.*;
 /**
  * Manages VAPID key pair lifecycle and sends Web Push notifications.
  *
- * Keys are stored in X509/PKCS8 format (what the web-push library requires).
- * The browser-friendly public key (raw 65-byte EC point) is derived on the fly.
+ * Keys are stored as raw base64url:
+ *   public key  = uncompressed EC point (65 bytes, 0x04 prefix)
+ *   private key = raw scalar (32 bytes)
+ * Both formats are what PushService(String, String) and the browser expect directly.
  *
  * @PostConstruct does NOT carry @Transactional — JpaRepository methods are
- * already transactional internally, and mixing @Transactional + @PostConstruct
- * is unreliable in Spring Boot.
+ * already transactional internally.
  */
 @Service
 @RequiredArgsConstructor
@@ -41,8 +43,7 @@ public class WebPushService {
     private final VapidKeyRepository vapidRepo;
 
     private PushService pushService;
-    // Stored in X509 format for the library; served as raw EC point to the browser
-    private String vapidPublicKeyX509;
+    private String vapidPublicKey; // raw EC point, base64url — served directly to browser
 
     @PostConstruct
     public void init() {
@@ -53,26 +54,18 @@ public class WebPushService {
 
             VapidKey keys = vapidRepo.findById((short) 1).orElseGet(this::generateAndSaveKeys);
 
-            vapidPublicKeyX509 = keys.getPublicKey();
+            vapidPublicKey = keys.getPublicKey();
             pushService = new PushService(keys.getPublicKey(), keys.getPrivateKey());
             pushService.setSubject("mailto:admin@list-me.net");
-            log.info("[WebPush] Initialized with existing VAPID keys");
+            log.info("[WebPush] Initialized VAPID keys");
         } catch (Exception e) {
             log.error("[WebPush] Failed to initialize — push notifications disabled", e);
-            // Don't rethrow: a push failure must never crash the application context
         }
     }
 
-    /**
-     * Returns the VAPID public key in raw uncompressed EC point format (65 bytes, base64url).
-     * This is what the browser passes to PushManager.subscribe() as applicationServerKey.
-     */
+    /** Raw uncompressed EC point (base64url, no padding) — pass directly as applicationServerKey. */
     public String getBrowserPublicKey() {
-        if (vapidPublicKeyX509 == null) return "";
-        // X509 SubjectPublicKeyInfo for P-256 = 26-byte header + 65-byte EC point
-        byte[] x509Bytes = Base64.getUrlDecoder().decode(vapidPublicKeyX509);
-        byte[] rawPoint = Arrays.copyOfRange(x509Bytes, x509Bytes.length - 65, x509Bytes.length);
-        return Base64.getUrlEncoder().withoutPadding().encodeToString(rawPoint);
+        return vapidPublicKey != null ? vapidPublicKey : "";
     }
 
     @Transactional
@@ -122,16 +115,22 @@ public class WebPushService {
             kpg.initialize(new ECGenParameterSpec("prime256v1"));
             var kp = kpg.generateKeyPair();
 
-            // Store in X509 / PKCS8 format — what PushService(String, String) expects
-            String pubX509 = Base64.getUrlEncoder().withoutPadding()
-                    .encodeToString(kp.getPublic().getEncoded());
-            String privPkcs8 = Base64.getUrlEncoder().withoutPadding()
-                    .encodeToString(kp.getPrivate().getEncoded());
+            // Public key: strip the 26-byte X509 header, keep the 65-byte raw EC point
+            byte[] x509Pub = kp.getPublic().getEncoded();
+            byte[] rawPub = Arrays.copyOfRange(x509Pub, x509Pub.length - 65, x509Pub.length);
+
+            // Private key: extract the raw 32-byte scalar via BouncyCastle interface
+            ECPrivateKey bcPriv = (ECPrivateKey) kp.getPrivate();
+            byte[] dBytes = bcPriv.getD().toByteArray();
+            // BigInteger.toByteArray() adds a leading 0x00 sign byte when the high bit is set
+            if (dBytes.length == 33 && dBytes[0] == 0) {
+                dBytes = Arrays.copyOfRange(dBytes, 1, 33);
+            }
 
             VapidKey k = new VapidKey();
             k.setId((short) 1);
-            k.setPublicKey(pubX509);
-            k.setPrivateKey(privPkcs8);
+            k.setPublicKey(Base64.getUrlEncoder().withoutPadding().encodeToString(rawPub));
+            k.setPrivateKey(Base64.getUrlEncoder().withoutPadding().encodeToString(dBytes));
             log.info("[WebPush] Generated new VAPID key pair");
             return vapidRepo.save(k);
         } catch (Exception e) {
