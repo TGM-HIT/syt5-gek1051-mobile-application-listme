@@ -2,12 +2,13 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import type { CrdtOperation } from '../crdt/types'
 
 // ── mocks ──────────────────────────────────────────────────────────────────
-const { mockGetAllPending, mockMarkAllSynced, mockPruneOld, mockPost, mockFetchAll, mockIsOnline } =
+const { mockGetAllPending, mockMarkAllSynced, mockPruneOld, mockPost, mockGet, mockFetchAll, mockIsOnline } =
   vi.hoisted(() => ({
     mockGetAllPending: vi.fn(),
     mockMarkAllSynced: vi.fn(),
     mockPruneOld: vi.fn(),
     mockPost: vi.fn(),
+    mockGet: vi.fn().mockResolvedValue({ data: [] }),
     mockFetchAll: vi.fn(),
     // plain object (not Vue ref) — we test flushQueue directly, not the watch
     mockIsOnline: { value: true },
@@ -21,14 +22,52 @@ vi.mock('../crdt/OperationQueue', () => ({
   },
 }))
 
-vi.mock('../services/api', () => ({ default: { post: mockPost } }))
+vi.mock('../services/api', () => ({ default: { post: mockPost, get: mockGet } }))
 
 vi.mock('./useOffline', () => ({
   useOffline: () => ({ isOnline: mockIsOnline }),
 }))
 
 vi.mock('../stores/items', () => ({
-  useItemsStore: () => ({ fetchAll: mockFetchAll }),
+  useItemsStore: () => ({ fetchAll: mockFetchAll, itemsByList: {}, getItems: () => [] }),
+}))
+
+vi.mock('../services/clock', () => ({
+  LocalClockService: {
+    getClock: vi.fn().mockResolvedValue({}),
+    mergeClock: vi.fn().mockResolvedValue(undefined),
+  },
+}))
+
+vi.mock('../services/device', () => ({
+  getDeviceId: vi.fn().mockResolvedValue('test-device-id'),
+}))
+
+vi.mock('./useListSync', () => ({
+  applyOp: vi.fn(),
+}))
+
+vi.mock('../services/db', () => ({
+  cacheDb: {
+    pendingLists: { toArray: vi.fn().mockResolvedValue([]) },
+    localClocks: { where: vi.fn().mockReturnValue({ equals: vi.fn().mockReturnValue({ toArray: vi.fn().mockResolvedValue([]) }) }) },
+  },
+}))
+
+vi.mock('../stores/lists', () => ({
+  useListsStore: () => ({ lists: [], fetchAll: vi.fn() }),
+}))
+
+vi.mock('../services/list', () => ({
+  listService: { create: vi.fn() },
+}))
+
+vi.mock('../services/cache', () => ({
+  CacheService: { getItems: vi.fn().mockResolvedValue([]), saveList: vi.fn(), saveItems: vi.fn() },
+}))
+
+vi.mock('../services/websocket', () => ({
+  onReconnect: vi.fn(),
 }))
 
 import { useSyncQueue } from './useSyncQueue'

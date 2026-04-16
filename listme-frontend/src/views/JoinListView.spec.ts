@@ -27,6 +27,10 @@ vi.mock('../stores/lists', () => ({
   useListsStore: () => ({ fetchAll: mockFetchAll }),
 }))
 
+vi.mock('../services/userId', () => ({
+  getUserId: vi.fn().mockReturnValue('test-user-id'),
+}))
+
 import JoinListView from './JoinListView.vue'
 
 const list: ShoppingList = { id: 'l1', name: 'Feinkost', emoji: '🧀', shareToken: 'abc123', itemCount: 3, checkedCount: 0, participantCount: 2, createdAt: '', updatedAt: '' }
@@ -99,7 +103,7 @@ describe('JoinListView', () => {
     await flushPromises()
     const btn = w.findAll('button').find(b => b.text().includes('Abbrechen'))!
     await btn.trigger('click')
-    expect(mockPush).toHaveBeenCalledWith({ name: 'home' })
+    expect(mockPush).toHaveBeenCalledWith({ name: 'home', params: { userId: 'test-user-id' } })
   })
 
   it('shows not-found after join failure', async () => {

@@ -35,6 +35,10 @@ vi.mock('../stores/theme', () => ({
   useThemeStore: () => ({ theme: 'dark' }),
 }))
 
+vi.mock('../services/userId', () => ({
+  getUserId: vi.fn().mockReturnValue('test-user-id'),
+}))
+
 import SyncApplyView from './SyncApplyView.vue'
 
 const lists: ShoppingList[] = [
@@ -116,7 +120,7 @@ describe('SyncApplyView', () => {
     const btn = w.findAll('button').find(b => b.text().includes('importieren'))!
     await btn.trigger('click')
     await flushPromises()
-    expect(mockPush).toHaveBeenCalledWith({ name: 'home' })
+    expect(mockPush).toHaveBeenCalledWith({ name: 'home', params: { userId: 'test-user-id' } })
   })
 
   it('shows cancel button', async () => {
@@ -125,6 +129,6 @@ describe('SyncApplyView', () => {
     await flushPromises()
     const btn = w.findAll('button').find(b => b.text().includes('Abbrechen'))!
     await btn.trigger('click')
-    expect(mockPush).toHaveBeenCalledWith({ name: 'home' })
+    expect(mockPush).toHaveBeenCalledWith({ name: 'home', params: { userId: 'test-user-id' } })
   })
 })
