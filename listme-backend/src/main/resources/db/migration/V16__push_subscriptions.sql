@@ -1,10 +1,10 @@
-CREATE TABLE vapid_keys (
+CREATE TABLE IF NOT EXISTS vapid_keys (
     id          SMALLINT PRIMARY KEY CHECK (id = 1),
     public_key  TEXT NOT NULL,
     private_key TEXT NOT NULL
 );
 
-CREATE TABLE push_subscriptions (
+CREATE TABLE IF NOT EXISTS push_subscriptions (
     id         UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id    UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     endpoint   TEXT NOT NULL UNIQUE,
@@ -13,4 +13,4 @@ CREATE TABLE push_subscriptions (
     created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
-CREATE INDEX idx_push_subscriptions_user ON push_subscriptions(user_id);
+CREATE INDEX IF NOT EXISTS idx_push_subscriptions_user ON push_subscriptions(user_id);
