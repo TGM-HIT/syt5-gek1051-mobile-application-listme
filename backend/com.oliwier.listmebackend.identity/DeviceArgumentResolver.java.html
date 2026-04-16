@@ -19,14 +19,15 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class DeviceArgumentResolver implements HandlerMethodArgumentResolver {
 
-    private static final String HEADER = &quot;X-Device-Id&quot;;
+    private static final String DEVICE_HEADER = &quot;X-Device-Id&quot;;
+    private static final String USER_HEADER = &quot;X-User-Id&quot;;
 
     private final DeviceService deviceService;
 
     @Override
     public boolean supportsParameter(MethodParameter parameter) {
-<span class="pc bpc" id="L28" title="1 of 2 branches missed.">        return parameter.hasParameterAnnotation(CurrentDevice.class)</span>
-<span class="pc bpc" id="L29" title="1 of 2 branches missed.">               &amp;&amp; Device.class.isAssignableFrom(parameter.getParameterType());</span>
+<span class="pc bpc" id="L29" title="1 of 2 branches missed.">        return parameter.hasParameterAnnotation(CurrentDevice.class)</span>
+<span class="pc bpc" id="L30" title="1 of 2 branches missed.">               &amp;&amp; Device.class.isAssignableFrom(parameter.getParameterType());</span>
     }
 
     @Override
@@ -35,26 +36,37 @@ public class DeviceArgumentResolver implements HandlerMethodArgumentResolver {
                                   NativeWebRequest webRequest,
                                   WebDataBinderFactory binderFactory) {
 
-<span class="fc" id="L38">        HttpServletRequest request = webRequest.getNativeRequest(HttpServletRequest.class);</span>
-<span class="pc bpc" id="L39" title="1 of 2 branches missed.">        if (request == null) {</span>
-<span class="nc" id="L40">            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR);</span>
+<span class="fc" id="L39">        HttpServletRequest request = webRequest.getNativeRequest(HttpServletRequest.class);</span>
+<span class="pc bpc" id="L40" title="1 of 2 branches missed.">        if (request == null) {</span>
+<span class="nc" id="L41">            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR);</span>
         }
 
-<span class="fc" id="L43">        String raw = request.getHeader(HEADER);</span>
-<span class="pc bpc" id="L44" title="1 of 4 branches missed.">        if (raw == null || raw.isBlank()) {</span>
-<span class="fc" id="L45">            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,</span>
+<span class="fc" id="L44">        String rawDevice = request.getHeader(DEVICE_HEADER);</span>
+<span class="pc bpc" id="L45" title="1 of 4 branches missed.">        if (rawDevice == null || rawDevice.isBlank()) {</span>
+<span class="fc" id="L46">            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,</span>
                     &quot;X-Device-Id header is required&quot;);
         }
 
         UUID deviceId;
         try {
-<span class="fc" id="L51">            deviceId = UUID.fromString(raw.trim());</span>
-<span class="nc" id="L52">        } catch (IllegalArgumentException e) {</span>
-<span class="nc" id="L53">            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,</span>
+<span class="fc" id="L52">            deviceId = UUID.fromString(rawDevice.trim());</span>
+<span class="nc" id="L53">        } catch (IllegalArgumentException e) {</span>
+<span class="nc" id="L54">            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,</span>
                     &quot;X-Device-Id must be a valid UUID&quot;);
-<span class="fc" id="L55">        }</span>
+<span class="fc" id="L56">        }</span>
 
-<span class="fc" id="L57">        return deviceService.getOrCreate(deviceId);</span>
+        // Resolve userId: prefer X-User-Id, fall back to X-Device-Id (same UUID used as userId for older clients)
+<span class="fc" id="L59">        String rawUser = request.getHeader(USER_HEADER);</span>
+<span class="pc bpc" id="L60" title="3 of 4 branches missed.">        if (rawUser == null || rawUser.isBlank()) rawUser = rawDevice;</span>
+
+        UUID userId;
+        try {
+<span class="fc" id="L64">            userId = UUID.fromString(rawUser.trim());</span>
+<span class="nc" id="L65">        } catch (IllegalArgumentException e) {</span>
+<span class="nc" id="L66">            userId = deviceId; // safe fallback</span>
+<span class="fc" id="L67">        }</span>
+
+<span class="fc" id="L69">        return deviceService.getOrCreate(deviceId, userId);</span>
     }
 }
 </pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>
