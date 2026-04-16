@@ -54,87 +54,95 @@ public class WebPushService {
 
 <span class="fc" id="L55">            VapidKey keys = vapidRepo.findById((short) 1).orElseGet(this::generateAndSaveKeys);</span>
 
-<span class="fc" id="L57">            vapidPublicKey = keys.getPublicKey();</span>
-<span class="fc" id="L58">            pushService = new PushService(keys.getPublicKey(), keys.getPrivateKey());</span>
-<span class="fc" id="L59">            pushService.setSubject(&quot;mailto:admin@list-me.net&quot;);</span>
-<span class="fc" id="L60">            log.info(&quot;[WebPush] Initialized VAPID keys&quot;);</span>
-<span class="nc" id="L61">        } catch (Exception e) {</span>
-<span class="nc" id="L62">            log.error(&quot;[WebPush] Failed to initialize — push notifications disabled&quot;, e);</span>
-<span class="fc" id="L63">        }</span>
-<span class="fc" id="L64">    }</span>
+            // Detect stale X509-format key (DER SEQUENCE starts with 0x30) and regenerate
+<span class="fc" id="L58">            byte[] pubBytes = Base64.getUrlDecoder().decode(keys.getPublicKey());</span>
+<span class="pc bpc" id="L59" title="1 of 2 branches missed.">            if (pubBytes[0] == 0x30) {</span>
+<span class="nc" id="L60">                log.info(&quot;[WebPush] Stale X509 key detected — regenerating&quot;);</span>
+<span class="nc" id="L61">                vapidRepo.deleteById((short) 1);</span>
+<span class="nc" id="L62">                keys = generateAndSaveKeys();</span>
+            }
+
+<span class="fc" id="L65">            vapidPublicKey = keys.getPublicKey();</span>
+<span class="fc" id="L66">            pushService = new PushService(keys.getPublicKey(), keys.getPrivateKey());</span>
+<span class="fc" id="L67">            pushService.setSubject(&quot;mailto:admin@list-me.net&quot;);</span>
+<span class="fc" id="L68">            log.info(&quot;[WebPush] Initialized VAPID keys&quot;);</span>
+<span class="nc" id="L69">        } catch (Exception e) {</span>
+<span class="nc" id="L70">            log.error(&quot;[WebPush] Failed to initialize — push notifications disabled&quot;, e);</span>
+<span class="fc" id="L71">        }</span>
+<span class="fc" id="L72">    }</span>
 
     /** Raw uncompressed EC point (base64url, no padding) — pass directly as applicationServerKey. */
     public String getBrowserPublicKey() {
-<span class="nc bnc" id="L68" title="All 2 branches missed.">        return vapidPublicKey != null ? vapidPublicKey : &quot;&quot;;</span>
+<span class="nc bnc" id="L76" title="All 2 branches missed.">        return vapidPublicKey != null ? vapidPublicKey : &quot;&quot;;</span>
     }
 
     @Transactional
     public void subscribe(User user, String endpoint, String p256dh, String auth) {
-<span class="nc" id="L73">        subRepo.findByEndpoint(endpoint).ifPresentOrElse(</span>
-<span class="nc" id="L74">            existing -&gt; {},</span>
+<span class="nc" id="L81">        subRepo.findByEndpoint(endpoint).ifPresentOrElse(</span>
+<span class="nc" id="L82">            existing -&gt; {},</span>
             () -&gt; {
-<span class="nc" id="L76">                PushSubscriptionEntry sub = new PushSubscriptionEntry();</span>
-<span class="nc" id="L77">                sub.setUser(user);</span>
-<span class="nc" id="L78">                sub.setEndpoint(endpoint);</span>
-<span class="nc" id="L79">                sub.setP256dh(p256dh);</span>
-<span class="nc" id="L80">                sub.setAuthKey(auth);</span>
-<span class="nc" id="L81">                subRepo.save(sub);</span>
-<span class="nc" id="L82">            }</span>
+<span class="nc" id="L84">                PushSubscriptionEntry sub = new PushSubscriptionEntry();</span>
+<span class="nc" id="L85">                sub.setUser(user);</span>
+<span class="nc" id="L86">                sub.setEndpoint(endpoint);</span>
+<span class="nc" id="L87">                sub.setP256dh(p256dh);</span>
+<span class="nc" id="L88">                sub.setAuthKey(auth);</span>
+<span class="nc" id="L89">                subRepo.save(sub);</span>
+<span class="nc" id="L90">            }</span>
         );
-<span class="nc" id="L84">    }</span>
+<span class="nc" id="L92">    }</span>
 
     @Transactional
     public void unsubscribe(String endpoint) {
-<span class="nc" id="L88">        subRepo.deleteByEndpoint(endpoint);</span>
-<span class="nc" id="L89">    }</span>
+<span class="nc" id="L96">        subRepo.deleteByEndpoint(endpoint);</span>
+<span class="nc" id="L97">    }</span>
 
     public void sendToUser(UUID userId, String title, String body, String url) {
-<span class="pc bpc" id="L92" title="1 of 2 branches missed.">        if (pushService == null) return;</span>
-<span class="fc" id="L93">        List&lt;PushSubscriptionEntry&gt; subs = subRepo.findByUserId(userId);</span>
-<span class="pc bpc" id="L94" title="1 of 2 branches missed.">        for (PushSubscriptionEntry sub : subs) {</span>
+<span class="pc bpc" id="L100" title="1 of 2 branches missed.">        if (pushService == null) return;</span>
+<span class="fc" id="L101">        List&lt;PushSubscriptionEntry&gt; subs = subRepo.findByUserId(userId);</span>
+<span class="pc bpc" id="L102" title="1 of 2 branches missed.">        for (PushSubscriptionEntry sub : subs) {</span>
             try {
-<span class="nc" id="L96">                Map&lt;String, String&gt; payload = Map.of(&quot;title&quot;, title, &quot;body&quot;, body, &quot;url&quot;, url);</span>
-<span class="nc" id="L97">                byte[] payloadBytes = MAPPER.writeValueAsBytes(payload);</span>
-<span class="nc" id="L98">                Notification notification = new Notification(</span>
-<span class="nc" id="L99">                        sub.getEndpoint(), sub.getP256dh(), sub.getAuthKey(), payloadBytes);</span>
-<span class="nc" id="L100">                pushService.send(notification);</span>
-<span class="nc" id="L101">            } catch (Exception e) {</span>
-<span class="nc" id="L102">                String msg = e.getMessage();</span>
-<span class="nc bnc" id="L103" title="All 6 branches missed.">                if (msg != null &amp;&amp; (msg.contains(&quot;410&quot;) || msg.contains(&quot;404&quot;))) {</span>
-<span class="nc" id="L104">                    subRepo.delete(sub);</span>
+<span class="nc" id="L104">                Map&lt;String, String&gt; payload = Map.of(&quot;title&quot;, title, &quot;body&quot;, body, &quot;url&quot;, url);</span>
+<span class="nc" id="L105">                byte[] payloadBytes = MAPPER.writeValueAsBytes(payload);</span>
+<span class="nc" id="L106">                Notification notification = new Notification(</span>
+<span class="nc" id="L107">                        sub.getEndpoint(), sub.getP256dh(), sub.getAuthKey(), payloadBytes);</span>
+<span class="nc" id="L108">                pushService.send(notification);</span>
+<span class="nc" id="L109">            } catch (Exception e) {</span>
+<span class="nc" id="L110">                String msg = e.getMessage();</span>
+<span class="nc bnc" id="L111" title="All 6 branches missed.">                if (msg != null &amp;&amp; (msg.contains(&quot;410&quot;) || msg.contains(&quot;404&quot;))) {</span>
+<span class="nc" id="L112">                    subRepo.delete(sub);</span>
                 } else {
-<span class="nc" id="L106">                    log.warn(&quot;[WebPush] Failed to send push to {}: {}&quot;, sub.getEndpoint(), msg);</span>
+<span class="nc" id="L114">                    log.warn(&quot;[WebPush] Failed to send push to {}: {}&quot;, sub.getEndpoint(), msg);</span>
                 }
-<span class="nc" id="L108">            }</span>
-<span class="nc" id="L109">        }</span>
-<span class="fc" id="L110">    }</span>
+<span class="nc" id="L116">            }</span>
+<span class="nc" id="L117">        }</span>
+<span class="fc" id="L118">    }</span>
 
     private VapidKey generateAndSaveKeys() {
         try {
-<span class="fc" id="L114">            KeyPairGenerator kpg = KeyPairGenerator.getInstance(&quot;EC&quot;, &quot;BC&quot;);</span>
-<span class="fc" id="L115">            kpg.initialize(new ECGenParameterSpec(&quot;prime256v1&quot;));</span>
-<span class="fc" id="L116">            var kp = kpg.generateKeyPair();</span>
+<span class="fc" id="L122">            KeyPairGenerator kpg = KeyPairGenerator.getInstance(&quot;EC&quot;, &quot;BC&quot;);</span>
+<span class="fc" id="L123">            kpg.initialize(new ECGenParameterSpec(&quot;prime256v1&quot;));</span>
+<span class="fc" id="L124">            var kp = kpg.generateKeyPair();</span>
 
             // Public key: strip the 26-byte X509 header, keep the 65-byte raw EC point
-<span class="fc" id="L119">            byte[] x509Pub = kp.getPublic().getEncoded();</span>
-<span class="fc" id="L120">            byte[] rawPub = Arrays.copyOfRange(x509Pub, x509Pub.length - 65, x509Pub.length);</span>
+<span class="fc" id="L127">            byte[] x509Pub = kp.getPublic().getEncoded();</span>
+<span class="fc" id="L128">            byte[] rawPub = Arrays.copyOfRange(x509Pub, x509Pub.length - 65, x509Pub.length);</span>
 
             // Private key: extract the raw 32-byte scalar via BouncyCastle interface
-<span class="fc" id="L123">            ECPrivateKey bcPriv = (ECPrivateKey) kp.getPrivate();</span>
-<span class="fc" id="L124">            byte[] dBytes = bcPriv.getD().toByteArray();</span>
+<span class="fc" id="L131">            ECPrivateKey bcPriv = (ECPrivateKey) kp.getPrivate();</span>
+<span class="fc" id="L132">            byte[] dBytes = bcPriv.getD().toByteArray();</span>
             // BigInteger.toByteArray() adds a leading 0x00 sign byte when the high bit is set
-<span class="pc bpc" id="L126" title="1 of 4 branches missed.">            if (dBytes.length == 33 &amp;&amp; dBytes[0] == 0) {</span>
-<span class="fc" id="L127">                dBytes = Arrays.copyOfRange(dBytes, 1, 33);</span>
+<span class="pc bpc" id="L134" title="1 of 4 branches missed.">            if (dBytes.length == 33 &amp;&amp; dBytes[0] == 0) {</span>
+<span class="fc" id="L135">                dBytes = Arrays.copyOfRange(dBytes, 1, 33);</span>
             }
 
-<span class="fc" id="L130">            VapidKey k = new VapidKey();</span>
-<span class="fc" id="L131">            k.setId((short) 1);</span>
-<span class="fc" id="L132">            k.setPublicKey(Base64.getUrlEncoder().withoutPadding().encodeToString(rawPub));</span>
-<span class="fc" id="L133">            k.setPrivateKey(Base64.getUrlEncoder().withoutPadding().encodeToString(dBytes));</span>
-<span class="fc" id="L134">            log.info(&quot;[WebPush] Generated new VAPID key pair&quot;);</span>
-<span class="fc" id="L135">            return vapidRepo.save(k);</span>
-<span class="nc" id="L136">        } catch (Exception e) {</span>
-<span class="nc" id="L137">            throw new RuntimeException(&quot;Failed to generate VAPID keys&quot;, e);</span>
+<span class="fc" id="L138">            VapidKey k = new VapidKey();</span>
+<span class="fc" id="L139">            k.setId((short) 1);</span>
+<span class="fc" id="L140">            k.setPublicKey(Base64.getUrlEncoder().withoutPadding().encodeToString(rawPub));</span>
+<span class="fc" id="L141">            k.setPrivateKey(Base64.getUrlEncoder().withoutPadding().encodeToString(dBytes));</span>
+<span class="fc" id="L142">            log.info(&quot;[WebPush] Generated new VAPID key pair&quot;);</span>
+<span class="fc" id="L143">            return vapidRepo.save(k);</span>
+<span class="nc" id="L144">        } catch (Exception e) {</span>
+<span class="nc" id="L145">            throw new RuntimeException(&quot;Failed to generate VAPID keys&quot;, e);</span>
         }
     }
 }
