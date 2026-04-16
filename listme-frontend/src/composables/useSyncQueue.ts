@@ -8,6 +8,9 @@ import { onReconnect } from '../services/websocket'
 import { listService } from '../services/list'
 import { CacheService } from '../services/cache'
 import { cacheDb } from '../services/db'
+import { LocalClockService } from '../services/clock'
+import { getDeviceId } from '../services/device'
+import { applyOp } from './useListSync'
 import type { CrdtOperation } from '../crdt/types'
 
 let flushInProgress = false
@@ -93,6 +96,35 @@ async function flushPendingLists(): Promise<void> {
   }
 }
 
+async function pullRemoteOps(
+  listId: string,
+  myDeviceId: string,
+  itemsStore: ReturnType<typeof useItemsStore>,
+): Promise<void> {
+  try {
+    const clock = await LocalClockService.getClock(listId)
+    const since = JSON.stringify(clock)
+    const { data } = await api.get<CrdtOperation[]>(`/lists/${listId}/crdt/ops`, {
+      params: { since },
+    })
+    const remoteOps = (data ?? []).filter((op) => op.deviceId !== myDeviceId)
+    for (const op of remoteOps) {
+      applyOp(listId, op, itemsStore)
+    }
+    // Merge the clocks from received ops into local clock
+    const merged: Record<string, number> = { ...clock }
+    for (const op of remoteOps) {
+      const vc = op.vectorClock as Record<string, number>
+      for (const [dev, cnt] of Object.entries(vc)) {
+        if ((merged[dev] ?? 0) < cnt) merged[dev] = cnt
+      }
+    }
+    await LocalClockService.mergeClock(listId, merged)
+  } catch (e) {
+    console.warn('[SyncQueue] Failed to pull remote ops for list', listId, e)
+  }
+}
+
 async function flushQueue(): Promise<string[]> {
   if (flushInProgress) return []
   flushInProgress = true
@@ -111,11 +143,17 @@ async function flushQueue(): Promise<string[]> {
     const synced: string[] = []
     const flushedLists: string[] = []
 
+    const myDeviceId = await getDeviceId()
+    const itemsStore = useItemsStore()
+
     for (const [listId, ops] of Object.entries(byList)) {
       try {
         await api.post(`/lists/${listId}/crdt/ops`, ops)
         synced.push(...ops.map(o => o.id))
         flushedLists.push(listId)
+
+        // Pull ops from other devices that arrived while we were offline
+        await pullRemoteOps(listId, myDeviceId, itemsStore)
       } catch (e) {
         // Leave failed ops in queue — will retry next reconnect
         console.warn('[SyncQueue] Failed to flush ops for list', listId, e)

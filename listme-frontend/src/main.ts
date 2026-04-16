@@ -5,12 +5,20 @@ import App from './App.vue'
 import './style.css'
 import { useThemeStore } from './stores/theme'
 import { useProfileStore } from './stores/profile'
+import { initUserId } from './services/userId'
 
-const app = createApp(App)
-const pinia = createPinia()
-app.use(pinia)
-app.use(router)
-app.mount('#app')
+async function bootstrap() {
+  // Ensure userId is in localStorage before the router runs its first guard
+  await initUserId()
 
-useThemeStore().init()
-useProfileStore().init()
+  const app = createApp(App)
+  const pinia = createPinia()
+  app.use(pinia)
+  app.use(router)
+  app.mount('#app')
+
+  useThemeStore().init()
+  useProfileStore().init()
+}
+
+bootstrap()

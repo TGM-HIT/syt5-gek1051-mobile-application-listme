@@ -13,6 +13,13 @@ public interface PresetRepository extends JpaRepository<Preset, UUID> {
 
     @Query("""
         SELECT p FROM Preset p
+        WHERE p.user.id = :userId OR p.user IS NULL
+        ORDER BY CASE WHEN p.user IS NULL THEN 1 ELSE 0 END, p.createdAt DESC
+        """)
+    List<Preset> findForUser(@Param("userId") UUID userId);
+
+    @Query("""
+        SELECT p FROM Preset p
         WHERE p.createdByDevice.id = :deviceId OR p.createdByDevice IS NULL
         ORDER BY CASE WHEN p.createdByDevice IS NULL THEN 1 ELSE 0 END, p.createdAt DESC
         """)

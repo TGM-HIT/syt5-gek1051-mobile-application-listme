@@ -3,6 +3,7 @@ import { computed, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import AppHeader from './components/common/AppHeader.vue'
 import BottomNav from './components/common/BottomNav.vue'
+import ConflictToast from './components/common/ConflictToast.vue'
 import { useOffline } from './composables/useOffline'
 import { useSyncQueue } from './composables/useSyncQueue'
 
@@ -62,6 +63,7 @@ const offlineBannerClass = computed(() =>
     </main>
 
     <BottomNav v-if="!hideChrome" />
+    <ConflictToast />
   </div>
 </template>
 

@@ -31,7 +31,8 @@
       "Bash(./mvnw test:*)",
       "Bash(npx tsc:*)",
       "Bash(xargs wc:*)",
-      "Bash(grep -l \"sync_tokens\\\\|sync_token\" /c/Users/OliGa/Documents/code/syt5-gek1051-mobile-application-listme/listme-backend/src/main/resources/db/migration/*.sql)"
+      "Bash(grep -l \"sync_tokens\\\\|sync_token\" /c/Users/OliGa/Documents/code/syt5-gek1051-mobile-application-listme/listme-backend/src/main/resources/db/migration/*.sql)",
+      "Bash(./mvnw compile *)"
     ],
     "additionalDirectories": [
       "c:\\Users\\OliGa\\Documents\\code\\syt5-gek1051-mobile-application-listme\\listme-backend\\src\\main\\resources\\db\\migration"

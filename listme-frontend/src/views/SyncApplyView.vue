@@ -5,6 +5,7 @@ import { shareService } from '../services/share'
 import { useListsStore } from '../stores/lists'
 import { useProfileStore } from '../stores/profile'
 import { useThemeStore } from '../stores/theme'
+import { getUserId } from '../services/userId'
 import type { SyncPreviewResponse } from '../types'
 
 const route = useRoute()
@@ -40,7 +41,7 @@ async function apply() {
       themeStore.theme = result.theme as 'dark' | 'light'
     }
     await listsStore.fetchAll()
-    router.push({ name: 'home' })
+    router.push({ name: 'home', params: { userId: getUserId()! } })
   } catch (e: any) {
     error.value = e?.response?.status === 410 ? 'expired' : 'not_found'
   } finally {
@@ -69,7 +70,7 @@ async function apply() {
           : 'Dieser Sync-Link wurde nicht gefunden.' }}
       </p>
       <button
-        @click="router.push({ name: 'home' })"
+        @click="router.push({ name: 'home', params: { userId: getUserId()! } })"
         class="mt-2 px-6 py-2.5 bg-ctp-surface0 text-ctp-text rounded-xl font-medium text-sm"
       >
         Zur Startseite
@@ -140,7 +141,7 @@ async function apply() {
           {{ applying ? 'Importiere…' : 'Alle Listen importieren' }}
         </button>
         <button
-          @click="router.push({ name: 'home' })"
+          @click="router.push({ name: 'home', params: { userId: getUserId()! } })"
           class="w-full py-2.5 text-ctp-subtext0 text-sm rounded-xl hover:text-ctp-text transition-colors"
         >
           Abbrechen

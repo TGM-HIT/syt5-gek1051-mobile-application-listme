@@ -144,6 +144,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
+import { getUserId } from '../services/userId'
 import { presetService, type Preset } from '../services/preset'
 import { loadHistory, type HistorySuggestion } from '../services/itemHistory'
 
@@ -183,7 +184,7 @@ onMounted(async () => {
 
 function usePreset(preset: Preset) {
   // Navigate to home with a query param; AddListModal picks it up
-  router.push({ name: 'home', query: { presetId: preset.id, presetEmoji: preset.emoji, presetName: preset.name } })
+  router.push({ name: 'home', params: { userId: getUserId()! }, query: { presetId: preset.id, presetEmoji: preset.emoji, presetName: preset.name } })
 }
 
 function confirmDeletePreset(preset: Preset) {

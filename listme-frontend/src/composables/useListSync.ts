@@ -2,6 +2,7 @@ import { ref, onUnmounted } from 'vue'
 import { connectWebSocket, subscribe, send, isConnected } from '../services/websocket'
 import { useItemsStore } from '../stores/items'
 import { usePresenceStore } from '../stores/presence'
+import { useNotificationsStore } from '../stores/notifications'
 import { getDeviceId } from '../services/device'
 import { detectConflicts } from '../crdt/ConflictDetector'
 import type { Conflict } from '../crdt/ConflictDetector'
@@ -35,6 +36,7 @@ export function useListSync() {
 
     const itemsStore = useItemsStore()
     const presenceStore = usePresenceStore()
+    const notificationsStore = useNotificationsStore()
     const myDeviceId = await getDeviceId()
 
     // Subscribe to CRDT operation stream
@@ -43,7 +45,17 @@ export function useListSync() {
       // Skip ops originating from this device — already applied locally via HTTP response
       if (op.deviceId === myDeviceId) return
       sessionOps.push(op)
-      conflicts.value = detectConflicts(sessionOps)
+      const newConflicts = detectConflicts(sessionOps)
+      const hadConflicts = conflicts.value.length
+      conflicts.value = newConflicts
+      // If new conflicts appeared, also notify the global store (for when list isn't focused)
+      if (newConflicts.length > hadConflicts) {
+        notificationsStore.add({
+          listId,
+          listName: '', // name not available here; toast will show empty or be skipped
+          count: newConflicts.length - hadConflicts,
+        })
+      }
       applyOp(listId, op, itemsStore)
     })
 
@@ -82,8 +94,9 @@ export function useListSync() {
 /**
  * Apply an incoming CRDT operation from another device to the local Pinia state.
  * This is optimistic — we trust the server has already applied it to the DB.
+ * Exported so useSyncQueue can reuse the same logic during pull-on-reconnect.
  */
-function applyOp(listId: string, op: CrdtOperation, itemsStore: ReturnType<typeof useItemsStore>) {
+export function applyOp(listId: string, op: CrdtOperation, itemsStore: ReturnType<typeof useItemsStore>) {
   const payload = op.payload
   const items = itemsStore.getItems(listId)
 

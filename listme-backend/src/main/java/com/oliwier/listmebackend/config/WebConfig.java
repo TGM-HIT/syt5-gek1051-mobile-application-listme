@@ -1,6 +1,7 @@
 package com.oliwier.listmebackend.config;
 
 import com.oliwier.listmebackend.identity.DeviceArgumentResolver;
+import com.oliwier.listmebackend.identity.UserArgumentResolver;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.method.support.HandlerMethodArgumentResolver;
@@ -14,9 +15,11 @@ import java.util.List;
 public class WebConfig implements WebMvcConfigurer {
 
     private final DeviceArgumentResolver deviceArgumentResolver;
+    private final UserArgumentResolver userArgumentResolver;
 
     @Override
     public void addArgumentResolvers(List<HandlerMethodArgumentResolver> resolvers) {
+        resolvers.add(userArgumentResolver);
         resolvers.add(deviceArgumentResolver);
     }
 

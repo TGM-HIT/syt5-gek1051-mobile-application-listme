@@ -7,6 +7,7 @@ import com.oliwier.listmebackend.api.dto.UpdateListRequest;
 import com.oliwier.listmebackend.domain.model.*;
 import com.oliwier.listmebackend.domain.repository.*;
 import com.oliwier.listmebackend.identity.CurrentDevice;
+import com.oliwier.listmebackend.identity.CurrentUser;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -28,34 +29,29 @@ public class ListController {
     private final ListDeviceRepository listDeviceRepository;
     private final ItemRepository itemRepository;
     private final PresetItemRepository presetItemRepository;
-    private final DeviceRepository deviceRepository;
     private final DeviceSiblingRepository deviceSiblingRepository;
     private final SimpMessagingTemplate messaging;
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     @Transactional
-    public ListResponse create(@CurrentDevice Device device, @Valid @RequestBody CreateListRequest req) {
+    public ListResponse create(@CurrentUser User user,
+                               @CurrentDevice Device device,
+                               @Valid @RequestBody CreateListRequest req) {
         ShoppingList list = new ShoppingList();
         list.setId(UUID.randomUUID());
         list.setName(req.name());
         list.setEmoji(req.emoji() != null ? req.emoji() : "\uD83D\uDED2");
         list.setCreatedByDevice(device);
+        list.setUser(user);
 
         ListDevice ld = new ListDevice(list, device, "owner");
         list.getListDevices().add(ld);
 
         final ShoppingList savedList = listRepository.save(list);
 
-        // Add sibling devices to the new list so they see it immediately
-        List<UUID> siblingIds = deviceSiblingRepository.findSiblingIds(device.getId());
-        for (UUID siblingId : siblingIds) {
-            deviceRepository.findById(siblingId).ifPresent(sibling ->
-                listDeviceRepository.save(new ListDevice(savedList, sibling, "owner"))
-            );
-            // Notify the sibling device via WebSocket so its HomeView refreshes live
-            messaging.convertAndSend("/topic/device/" + siblingId, (Object) Map.of("type", "LIST_ADDED"));
-        }
+        // Notify this user's other devices (same userId) via WebSocket
+        messaging.convertAndSend("/topic/user/" + user.getId(), (Object) Map.of("type", "LIST_ADDED"));
 
         // If a preset was specified, copy its items into the new list
         int itemCount = 0;
@@ -83,44 +79,51 @@ public class ListController {
     }
 
     @GetMapping
-    public List<ListResponse> getMyLists(@CurrentDevice Device device) {
-        return listRepository.findAllByDeviceId(device.getId())
-                .stream()
-                .map(ListResponse::from)
-                .toList();
+    public List<ListResponse> getMyLists(@CurrentUser User user, @CurrentDevice Device device) {
+        // Owned lists (primary identity via userId)
+        List<ShoppingList> owned = listRepository.findByUserOrderByUpdatedAtDesc(user);
+        Set<UUID> ownedIds = owned.stream().map(ShoppingList::getId).collect(Collectors.toSet());
+
+        // Shared lists: device was added as editor via a share token (user_id belongs to someone else)
+        List<ShoppingList> shared = listRepository.findSharedWithDevice(device.getId(), user.getId());
+
+        List<ShoppingList> all = new ArrayList<>(owned);
+        all.addAll(shared.stream().filter(l -> !ownedIds.contains(l.getId())).toList());
+        all.sort(Comparator.comparing(ShoppingList::getUpdatedAt).reversed());
+
+        return all.stream().map(ListResponse::from).toList();
     }
 
     @GetMapping("/{listId}")
-    public ListResponse getList(@PathVariable UUID listId, @CurrentDevice Device device) {
-        return ListResponse.from(requireAccess(listId, device));
+    public ListResponse getList(@PathVariable UUID listId,
+                                @CurrentUser User user,
+                                @CurrentDevice Device device) {
+        return ListResponse.from(requireAccess(listId, user, device));
     }
 
     @PutMapping("/{listId}")
     @Transactional
     public ListResponse update(@PathVariable UUID listId,
+                               @CurrentUser User user,
                                @CurrentDevice Device device,
                                @Valid @RequestBody UpdateListRequest req) {
-        ShoppingList list = requireAccess(listId, device);
+        ShoppingList list = requireAccess(listId, user, device);
         list.setName(req.name());
         if (req.emoji() != null) list.setEmoji(req.emoji());
         return ListResponse.from(listRepository.save(list));
     }
 
     @GetMapping("/{listId}/participants")
-    public List<ParticipantResponse> getParticipants(@PathVariable UUID listId, @CurrentDevice Device device) {
-        requireAccess(listId, device);
+    public List<ParticipantResponse> getParticipants(@PathVariable UUID listId,
+                                                     @CurrentUser User user,
+                                                     @CurrentDevice Device device) {
+        requireAccess(listId, user, device);
         List<ListDevice> all = listDeviceRepository.findByListId(listId);
 
-        // Deduplicate: sibling devices share the same identity — show only one per group.
-        // Process in priority order (owner first, then earliest joined_at) so the
-        // most prominent device in each sibling cluster is kept.
         Set<UUID> allIds = all.stream()
                 .map(l -> l.getDevice().getId())
                 .collect(Collectors.toSet());
 
-        // A "secondary" device is only excluded when a sibling with higher priority
-        // (owner or earlier join) is also present. Walk in priority order and mark
-        // each device's siblings as excluded once the primary is encountered.
         Set<UUID> excluded = new HashSet<>();
         all.stream()
                 .sorted(Comparator.comparing((ListDevice l) -> "owner".equals(l.getRole()) ? 0 : 1)
@@ -128,7 +131,6 @@ public class ListController {
                 .forEach(l -> {
                     UUID id = l.getDevice().getId();
                     if (excluded.contains(id)) return;
-                    // Mark all siblings of this device that are in this list as excluded
                     deviceSiblingRepository.findSiblingIds(id).stream()
                             .filter(allIds::contains)
                             .forEach(excluded::add);
@@ -145,14 +147,17 @@ public class ListController {
     @PostMapping("/{listId}/duplicate")
     @ResponseStatus(HttpStatus.CREATED)
     @Transactional
-    public ListResponse duplicate(@PathVariable UUID listId, @CurrentDevice Device device) {
-        ShoppingList orig = requireAccess(listId, device);
+    public ListResponse duplicate(@PathVariable UUID listId,
+                                  @CurrentUser User user,
+                                  @CurrentDevice Device device) {
+        ShoppingList orig = requireAccess(listId, user, device);
 
         ShoppingList copy = new ShoppingList();
         copy.setId(UUID.randomUUID());
         copy.setName(orig.getName() + " (Kopie)");
         copy.setEmoji(orig.getEmoji());
         copy.setCreatedByDevice(device);
+        copy.setUser(user);
         copy.getListDevices().add(new ListDevice(copy, device, "owner"));
 
         orig.getItems().forEach(origItem -> {
@@ -171,25 +176,37 @@ public class ListController {
     @DeleteMapping("/{listId}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     @Transactional
-    public void delete(@PathVariable UUID listId, @CurrentDevice Device device) {
-        ShoppingList list = requireAccess(listId, device);
+    public void delete(@PathVariable UUID listId,
+                       @CurrentUser User user,
+                       @CurrentDevice Device device) {
+        ShoppingList list = requireAccess(listId, user, device);
 
+        // If this user owns the list, delete it entirely
+        if (list.getUser() != null && list.getUser().getId().equals(user.getId())) {
+            listRepository.delete(list);
+            return;
+        }
+
+        // Otherwise just remove this device's access (shared list)
         listDeviceRepository.findByListId(listId).stream()
                 .filter(ld -> ld.getDevice().getId().equals(device.getId()))
                 .findFirst()
                 .ifPresent(listDeviceRepository::delete);
-
-        if (listDeviceRepository.findByListId(listId).isEmpty()) {
-            listRepository.delete(list);
-        }
     }
 
-    private ShoppingList requireAccess(UUID listId, Device device) {
+    private ShoppingList requireAccess(UUID listId, User user, Device device) {
         ShoppingList list = listRepository.findById(listId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "List not found"));
-        if (!listDeviceRepository.existsByListIdAndDeviceId(listId, device.getId())) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Not a participant of this list");
+
+        // Owner: list belongs to this user
+        if (list.getUser() != null && list.getUser().getId().equals(user.getId())) {
+            return list;
         }
-        return list;
+        // Editor: device was added via share token
+        if (listDeviceRepository.existsByListIdAndDeviceId(listId, device.getId())) {
+            return list;
+        }
+
+        throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Not a participant of this list");
     }
 }

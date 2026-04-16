@@ -22,8 +22,8 @@ public class PresetService {
     private final ItemRepository itemRepository;
     private final ListDeviceRepository listDeviceRepository;
 
-    public List<Preset> getForDevice(Device device) {
-        return presetRepository.findForDevice(device.getId());
+    public List<Preset> getForUser(User user) {
+        return presetRepository.findForUser(user.getId());
     }
 
     public List<PresetItem> getItems(UUID presetId) {
@@ -31,17 +31,21 @@ public class PresetService {
     }
 
     @Transactional
-    public Preset createFromList(Device device, UUID fromListId, String name, String emoji) {
-        if (!listDeviceRepository.existsByListIdAndDeviceId(fromListId, device.getId())) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Not a participant of this list");
-        }
+    public Preset createFromList(User user, Device device, UUID fromListId, String name, String emoji) {
+        // Access check: user owns the list OR device is a participant
         ShoppingList list = listRepository.findById(fromListId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "List not found"));
+        boolean ownsIt = list.getUser() != null && list.getUser().getId().equals(user.getId());
+        boolean isParticipant = listDeviceRepository.existsByListIdAndDeviceId(fromListId, device.getId());
+        if (!ownsIt && !isParticipant) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Not a participant of this list");
+        }
 
         Preset preset = new Preset();
         preset.setName(name);
         preset.setEmoji(emoji != null && !emoji.isBlank() ? emoji : list.getEmoji());
         preset.setCreatedByDevice(device);
+        preset.setUser(user);
 
         List<Item> items = itemRepository.findByListIdAndDeletedAtIsNullOrderByPosition(fromListId);
         for (int i = 0; i < items.size(); i++) {
@@ -61,13 +65,13 @@ public class PresetService {
     }
 
     @Transactional
-    public void delete(Device device, UUID presetId) {
+    public void delete(User user, UUID presetId) {
         Preset preset = presetRepository.findById(presetId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Preset not found"));
-        if (preset.getCreatedByDevice() == null) {
+        if (preset.getUser() == null) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "System presets cannot be deleted");
         }
-        if (!preset.getCreatedByDevice().getId().equals(device.getId())) {
+        if (!preset.getUser().getId().equals(user.getId())) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Not your preset");
         }
         presetRepository.delete(preset);

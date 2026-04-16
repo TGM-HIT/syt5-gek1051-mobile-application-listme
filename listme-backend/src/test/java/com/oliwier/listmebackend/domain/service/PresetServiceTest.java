@@ -30,17 +30,24 @@ class PresetServiceTest {
 
     @InjectMocks PresetService presetService;
 
+    UUID userId   = UUID.randomUUID();
     UUID devId    = UUID.randomUUID();
     UUID listId   = UUID.randomUUID();
     UUID presetId = UUID.randomUUID();
 
+    User user;
     Device device;
     ShoppingList list;
 
     @BeforeEach
     void setUp() {
+        user   = new User(userId);
         device = new Device(devId);
-        list   = new ShoppingList(); list.setId(listId); list.setName("Weekly"); list.setEmoji("🛒");
+        list   = new ShoppingList();
+        list.setId(listId);
+        list.setName("Weekly");
+        list.setEmoji("🛒");
+        // No user_id on the list by default — falls back to device-based access check
     }
 
     private Item item(String name) {
@@ -52,22 +59,23 @@ class PresetServiceTest {
 
     @Test
     void createFromList_throwsForbidden_whenNotParticipant() {
+        when(listRepository.findById(listId)).thenReturn(Optional.of(list));
         when(listDeviceRepository.existsByListIdAndDeviceId(listId, devId)).thenReturn(false);
 
-        assertThatThrownBy(() -> presetService.createFromList(device, listId, "My Preset", null))
+        assertThatThrownBy(() -> presetService.createFromList(user, device, listId, "My Preset", null))
                 .isInstanceOf(ResponseStatusException.class)
                 .hasMessageContaining("403");
     }
 
     @Test
     void createFromList_copiesItemsFromList() {
-        when(listDeviceRepository.existsByListIdAndDeviceId(listId, devId)).thenReturn(true);
         when(listRepository.findById(listId)).thenReturn(Optional.of(list));
+        when(listDeviceRepository.existsByListIdAndDeviceId(listId, devId)).thenReturn(true);
         when(itemRepository.findByListIdAndDeletedAtIsNullOrderByPosition(listId))
                 .thenReturn(List.of(item("Milk"), item("Eggs")));
         when(presetRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
 
-        Preset result = presetService.createFromList(device, listId, "Grocery", null);
+        Preset result = presetService.createFromList(user, device, listId, "Grocery", null);
 
         assertThat(result.getName()).isEqualTo("Grocery");
         assertThat(result.getItems()).hasSize(2);
@@ -77,24 +85,24 @@ class PresetServiceTest {
 
     @Test
     void createFromList_usesListEmojiWhenNoneProvided() {
-        when(listDeviceRepository.existsByListIdAndDeviceId(listId, devId)).thenReturn(true);
         when(listRepository.findById(listId)).thenReturn(Optional.of(list));
+        when(listDeviceRepository.existsByListIdAndDeviceId(listId, devId)).thenReturn(true);
         when(itemRepository.findByListIdAndDeletedAtIsNullOrderByPosition(listId)).thenReturn(List.of());
         when(presetRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
 
-        Preset result = presetService.createFromList(device, listId, "Preset", null);
+        Preset result = presetService.createFromList(user, device, listId, "Preset", null);
 
         assertThat(result.getEmoji()).isEqualTo("🛒");
     }
 
     @Test
     void createFromList_usesProvidedEmoji_whenGiven() {
-        when(listDeviceRepository.existsByListIdAndDeviceId(listId, devId)).thenReturn(true);
         when(listRepository.findById(listId)).thenReturn(Optional.of(list));
+        when(listDeviceRepository.existsByListIdAndDeviceId(listId, devId)).thenReturn(true);
         when(itemRepository.findByListIdAndDeletedAtIsNullOrderByPosition(listId)).thenReturn(List.of());
         when(presetRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
 
-        Preset result = presetService.createFromList(device, listId, "Preset", "🏪");
+        Preset result = presetService.createFromList(user, device, listId, "Preset", "🏪");
 
         assertThat(result.getEmoji()).isEqualTo("🏪");
     }
@@ -103,21 +111,31 @@ class PresetServiceTest {
 
     @Test
     void delete_removesOwnPreset() {
-        Preset p = new Preset(); p.setId(presetId); p.setCreatedByDevice(device);
+        Preset p = new Preset(); p.setId(presetId); p.setUser(user);
         when(presetRepository.findById(presetId)).thenReturn(Optional.of(p));
 
-        presetService.delete(device, presetId);
+        presetService.delete(user, presetId);
 
         verify(presetRepository).delete(p);
     }
 
     @Test
     void delete_throwsForbidden_whenNotOwner() {
-        Device other = new Device(UUID.randomUUID());
-        Preset p = new Preset(); p.setId(presetId); p.setCreatedByDevice(other);
+        User other = new User(UUID.randomUUID());
+        Preset p = new Preset(); p.setId(presetId); p.setUser(other);
         when(presetRepository.findById(presetId)).thenReturn(Optional.of(p));
 
-        assertThatThrownBy(() -> presetService.delete(device, presetId))
+        assertThatThrownBy(() -> presetService.delete(user, presetId))
+                .isInstanceOf(ResponseStatusException.class)
+                .hasMessageContaining("403");
+    }
+
+    @Test
+    void delete_throwsForbidden_forSystemPreset() {
+        Preset p = new Preset(); p.setId(presetId); p.setUser(null); // system preset
+        when(presetRepository.findById(presetId)).thenReturn(Optional.of(p));
+
+        assertThatThrownBy(() -> presetService.delete(user, presetId))
                 .isInstanceOf(ResponseStatusException.class)
                 .hasMessageContaining("403");
     }
@@ -126,7 +144,7 @@ class PresetServiceTest {
     void delete_throws404_whenPresetNotFound() {
         when(presetRepository.findById(presetId)).thenReturn(Optional.empty());
 
-        assertThatThrownBy(() -> presetService.delete(device, presetId))
+        assertThatThrownBy(() -> presetService.delete(user, presetId))
                 .isInstanceOf(ResponseStatusException.class)
                 .hasMessageContaining("404");
     }

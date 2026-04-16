@@ -28,6 +28,10 @@ public class ShoppingList {
     @JoinColumn(name = "created_by_device", nullable = false, updatable = false)
     private Device createdByDevice;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "user_id")
+    private User user;
+
     @Column(name = "share_token", unique = true, length = 16)
     private String shareToken;
 
