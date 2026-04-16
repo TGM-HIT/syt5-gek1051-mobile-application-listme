@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<network-security-config>
+    <!-- Production: strict HTTPS, no cleartext -->
+    <base-config cleartextTrafficPermitted="false">
+        <trust-anchors>
+            <certificates src="system" />
+        </trust-anchors>
+    </base-config>
+
+    <!-- Local dev server reachable over LAN without HTTPS -->
+    <domain-config cleartextTrafficPermitted="true">
+        <domain includeSubdomains="false">10.0.0.1</domain>
+        <domain includeSubdomains="false">10.0.2.2</domain>
+        <!-- Add your dev machine IP here if needed, e.g. 192.168.1.42 -->
+    </domain-config>
+</network-security-config>

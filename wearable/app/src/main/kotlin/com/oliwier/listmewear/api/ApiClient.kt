@@ -11,29 +11,32 @@ import com.oliwier.listmewear.storage.LocalStorage
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import okhttp3.MediaType.Companion.toMediaType
-import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
-import java.util.concurrent.TimeUnit
 
 // ── API DTOs ─────────────────────────────────────────────────────────────────
 
-data class ApiList(
-    val id: String,
-    val name: String,
-    val emoji: String?,
-    val items: List<ApiItem>?
+// POST /api/sync/{token}/apply → SyncApplyResponse
+data class ApiSyncApplyResponse(
+    val lists: List<ApiListMeta>
 )
 
+// ListResponse from backend — IDs only, no items
+data class ApiListMeta(
+    val id: String,
+    val name: String,
+    val emoji: String?
+)
+
+// GET /api/lists/{listId}/items → List<ApiItem>
 data class ApiItem(
     val id: String,
     val name: String,
     val checked: Boolean,
     val quantity: Double?,
-    @SerializedName("quantityUnit") val unit: String?
+    @SerializedName("quantityUnit") val unit: String?,
+    val deletedAt: String? = null
 )
-
-data class CheckItemRequest(val checked: Boolean, val deviceId: String)
 
 // ── Client ────────────────────────────────────────────────────────────────────
 
@@ -45,55 +48,61 @@ data class CheckItemRequest(val checked: Boolean, val deviceId: String)
 class ApiClient(private val context: Context) {
 
     private val gson = Gson()
-    private val http = OkHttpClient.Builder()
-        .connectTimeout(10, TimeUnit.SECONDS)
-        .readTimeout(15, TimeUnit.SECONDS)
-        .build()
+    private val http = HttpClientFactory.create()
 
     private val baseUrl: String get() = LocalStorage(context).getServerUrl()
     private val deviceId: String get() = DeviceIdentity.getDeviceId(context)
 
-    /** Fetch all lists linked to a sync token (initial setup or full refresh). */
+    /**
+     * Applies a sync token — registers this watch device to all lists in the token,
+     * then fetches each list's items individually.
+     * Backend: POST /api/sync/{token}/apply  +  GET /api/lists/{id}/items
+     */
     suspend fun fetchListsViaSyncToken(syncToken: String): List<ShoppingList> = withContext(Dispatchers.IO) {
+        // 1. Apply sync token → get list metadata + register watch device
+        val applyReq = Request.Builder()
+            .url("$baseUrl/api/sync/$syncToken/apply")
+            .header("X-Device-Id", deviceId)
+            .post("{}".toRequestBody("application/json".toMediaType()))
+            .build()
+        val applyBody = http.newCall(applyReq).execute().use { it.body?.string() ?: "{}" }
+        val applyResponse = gson.fromJson(applyBody, ApiSyncApplyResponse::class.java)
+            ?: return@withContext emptyList()
+
+        // 2. Fetch items for each list
+        applyResponse.lists.mapNotNull { meta ->
+            runCatching { fetchListItems(meta) }.getOrNull()
+        }
+    }
+
+    private fun fetchListItems(meta: ApiListMeta): ShoppingList {
         val req = Request.Builder()
-            .url("$baseUrl/api/sync-tokens/$syncToken/lists")
+            .url("$baseUrl/api/lists/${meta.id}/items")
             .header("X-Device-Id", deviceId)
             .get().build()
         val body = http.newCall(req).execute().use { it.body?.string() ?: "[]" }
-        val type = object : TypeToken<List<ApiList>>() {}.type
-        val apiLists: List<ApiList> = gson.fromJson(body, type) ?: emptyList()
-        apiLists.map { it.toModel() }
+        val type = object : TypeToken<List<ApiItem>>() {}.type
+        val items: List<ApiItem> = gson.fromJson(body, type) ?: emptyList()
+        return ShoppingList(
+            id = meta.id,
+            name = meta.name,
+            emoji = meta.emoji ?: "🛒",
+            items = items.filter { it.deletedAt == null }.map { it.toModel() }
+        )
     }
 
-    /** Refresh a single list (called after checking an item or on manual refresh). */
-    suspend fun fetchList(listId: String): ShoppingList = withContext(Dispatchers.IO) {
-        val req = Request.Builder()
-            .url("$baseUrl/api/lists/$listId")
-            .header("X-Device-Id", deviceId)
-            .get().build()
-        val body = http.newCall(req).execute().use { it.body?.string() ?: "{}" }
-        gson.fromJson(body, ApiList::class.java).toModel()
-    }
+    /** Toggle checked state. Backend toggles on each call — no body needed. */
+    suspend fun checkItem(listId: String, itemId: String, @Suppress("UNUSED_PARAMETER") checked: Boolean) =
+        withContext(Dispatchers.IO) {
+            val req = Request.Builder()
+                .url("$baseUrl/api/lists/$listId/items/$itemId/check")
+                .header("X-Device-Id", deviceId)
+                .patch("".toRequestBody("application/json".toMediaType()))
+                .build()
+            http.newCall(req).execute().close()
+        }
 
-    /** Toggle the checked state of an item. Sends CRDT operation to server. */
-    suspend fun checkItem(listId: String, itemId: String, checked: Boolean) = withContext(Dispatchers.IO) {
-        val payload = gson.toJson(CheckItemRequest(checked, deviceId))
-        val req = Request.Builder()
-            .url("$baseUrl/api/lists/$listId/items/$itemId/check")
-            .header("X-Device-Id", deviceId)
-            .patch(payload.toRequestBody("application/json".toMediaType()))
-            .build()
-        http.newCall(req).execute().close()
-    }
-
-    // ── Mappers ──────────────────────────────────────────────────────────────
-
-    private fun ApiList.toModel() = ShoppingList(
-        id = id,
-        name = name,
-        emoji = emoji ?: "🛒",
-        items = items?.map { it.toModel() } ?: emptyList()
-    )
+    // ── Mapper ───────────────────────────────────────────────────────────────
 
     private fun ApiItem.toModel() = ShoppingItem(
         id = id,

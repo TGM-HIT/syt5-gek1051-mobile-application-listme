@@ -22,6 +22,7 @@ fun ListsScreen(onListClick: (String) -> Unit) {
     val lists by vm.lists.collectAsState()
     val isLoading by vm.isLoading.collectAsState()
     val isOnline by vm.isOnline.collectAsState()
+    val error by vm.error.collectAsState()
 
     Scaffold(
         timeText = { TimeText() },
@@ -31,22 +32,71 @@ fun ListsScreen(onListClick: (String) -> Unit) {
             isLoading -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                 CircularProgressIndicator(indicatorColor = ListMeColors.Accent)
             }
-            lists.isEmpty() -> EmptyListsState()
+            error != null && lists.isEmpty() -> ErrorState(error!!) { vm.refreshOnline() }
+            lists.isEmpty() -> EmptyListsState { vm.refreshOnline() }
             else -> ListsContent(lists, isOnline, onListClick) { vm.refreshOnline() }
         }
     }
 }
 
 @Composable
-private fun EmptyListsState() {
-    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-        Text(
-            text = "Noch keine Listen.\nHandy öffnen und\nSync-Link teilen.",
-            textAlign = TextAlign.Center,
-            fontSize = 13.sp,
-            color = ListMeColors.TextSecondary,
-            modifier = Modifier.padding(16.dp)
-        )
+private fun EmptyListsState(onRefresh: () -> Unit) {
+    ScalingLazyColumn(
+        modifier = Modifier.fillMaxSize(),
+        contentPadding = PaddingValues(top = 28.dp, bottom = 16.dp, start = 8.dp, end = 8.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        item {
+            Text(
+                text = "Noch keine Listen.\nHandy öffnen →\nEinstellungen →\nUhr verknüpfen.",
+                textAlign = TextAlign.Center,
+                fontSize = 12.sp,
+                color = ListMeColors.TextSecondary,
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp)
+            )
+        }
+        item {
+            CompactChip(
+                onClick = onRefresh,
+                colors = ChipDefaults.chipColors(backgroundColor = ListMeColors.SurfaceVariant),
+                label = { Text("Nochmal versuchen", fontSize = 11.sp, color = ListMeColors.TextSecondary) }
+            )
+        }
+    }
+}
+
+@Composable
+private fun ErrorState(message: String, onRetry: () -> Unit) {
+    ScalingLazyColumn(
+        modifier = Modifier.fillMaxSize(),
+        contentPadding = PaddingValues(top = 24.dp, bottom = 16.dp, start = 8.dp, end = 8.dp),
+        verticalArrangement = Arrangement.spacedBy(6.dp)
+    ) {
+        item {
+            Text(
+                text = "⚠",
+                textAlign = TextAlign.Center,
+                fontSize = 20.sp,
+                color = ListMeColors.Accent,
+                modifier = Modifier.fillMaxWidth()
+            )
+        }
+        item {
+            Text(
+                text = message,
+                textAlign = TextAlign.Center,
+                fontSize = 11.sp,
+                color = ListMeColors.TextSecondary,
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp)
+            )
+        }
+        item {
+            CompactChip(
+                onClick = onRetry,
+                colors = ChipDefaults.chipColors(backgroundColor = ListMeColors.Accent),
+                label = { Text("Nochmal", fontSize = 11.sp, color = ListMeColors.Surface) }
+            )
+        }
     }
 }
 

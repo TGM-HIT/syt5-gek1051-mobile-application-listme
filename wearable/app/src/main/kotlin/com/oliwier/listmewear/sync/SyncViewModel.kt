@@ -7,6 +7,7 @@ import android.content.IntentFilter
 import android.net.ConnectivityManager
 import android.net.NetworkCapabilities
 import android.os.Build
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
@@ -70,18 +71,27 @@ class SyncViewModel(private val context: Context) : ViewModel() {
     fun refreshOnline() {
         val online = isNetworkAvailable()
         _isOnline.value = online
-        if (!online) return
-        val syncToken = storage.getSyncToken() ?: return
+        val syncToken = storage.getSyncToken()
+        if (syncToken == null) {
+            _error.value = "Kein Sync-Token. Bitte Uhr zuerst über die App verknüpfen."
+            return
+        }
+        if (!online) {
+            _error.value = "Kein Netzwerk. Bitte WLAN oder LTE aktivieren."
+            return
+        }
 
         viewModelScope.launch {
             _isLoading.value = true
+            _error.value = null
             try {
                 val fetched = api.fetchListsViaSyncToken(syncToken)
                 storage.saveLists(fetched)
                 _lists.value = fetched
-                _error.value = null
             } catch (e: Exception) {
-                _error.value = "Sync fehlgeschlagen"
+                // Show the actual error message so the user/developer can diagnose
+                _error.value = "Fehler: ${e.message ?: e.javaClass.simpleName}"
+                Log.e("SyncViewModel", "Sync failed", e)
             } finally {
                 _isLoading.value = false
             }
@@ -117,8 +127,11 @@ class SyncViewModel(private val context: Context) : ViewModel() {
 
     private fun isNetworkAvailable(): Boolean {
         val cm = context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
+        // Check active network exists and has transport (WiFi or cellular)
         val caps = cm.getNetworkCapabilities(cm.activeNetwork ?: return false) ?: return false
-        return caps.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
+        return caps.hasTransport(NetworkCapabilities.TRANSPORT_WIFI)
+            || caps.hasTransport(NetworkCapabilities.TRANSPORT_CELLULAR)
+            || caps.hasTransport(NetworkCapabilities.TRANSPORT_ETHERNET)
     }
 
     override fun onCleared() {

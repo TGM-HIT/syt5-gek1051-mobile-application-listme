@@ -35,6 +35,17 @@ export interface WatchPairResult {
  *   3. We write the syncToken to the SYNC_TOKEN characteristic
  *   4. Watch saves it and fetches all lists via WiFi/LTE
  */
+/**
+ * Derives the backend base URL to send to the watch.
+ * In production the PWA and backend share the same origin.
+ * In dev, set VITE_WATCH_API_URL in .env.local to override (e.g. http://192.168.1.x:8080).
+ */
+function getBackendUrl(): string {
+  const override = import.meta.env.VITE_WATCH_API_URL as string | undefined
+  if (override) return override.replace(/\/$/, '')
+  return window.location.origin
+}
+
 export async function pairWatch(syncToken: string): Promise<WatchPairResult> {
   if (!isWebBluetoothSupported()) {
     throw new Error('Web Bluetooth wird von diesem Browser nicht unterstützt. Bitte Chrome verwenden.')
@@ -49,9 +60,10 @@ export async function pairWatch(syncToken: string): Promise<WatchPairResult> {
   const server = await device.gatt!.connect()
   const service = await server.getPrimaryService(SERVICE_UUID)
 
-  // Write sync token → watch fetches all lists from backend
+  // Write JSON payload: token + server URL so the watch knows where to fetch
   const tokenChar = await service.getCharacteristic(SYNC_TOKEN_CHAR_UUID)
-  const encoded = new TextEncoder().encode(syncToken)
+  const payload = JSON.stringify({ token: syncToken, serverUrl: getBackendUrl() })
+  const encoded = new TextEncoder().encode(payload)
   await tokenChar.writeValueWithResponse(encoded)
 
   // Read back watch's deviceId as confirmation

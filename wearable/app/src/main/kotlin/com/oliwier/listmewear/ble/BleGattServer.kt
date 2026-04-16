@@ -10,6 +10,7 @@ import android.os.ParcelUuid
 import android.util.Log
 import com.oliwier.listmewear.identity.DeviceIdentity
 import com.oliwier.listmewear.storage.LocalStorage
+import org.json.JSONObject
 
 /**
  * BLE GATT peripheral server running on the watch.
@@ -58,10 +59,23 @@ class BleGattServer(
             offset: Int, value: ByteArray
         ) {
             if (characteristic.uuid == BleConstants.SYNC_TOKEN_CHAR_UUID) {
-                val token = String(value, Charsets.UTF_8).trim()
-                Log.d(TAG, "Received sync token via BLE: $token")
-                LocalStorage(context).saveSyncToken(token)
-                onSyncTokenReceived(token)
+                val raw = String(value, Charsets.UTF_8).trim()
+                val storage = LocalStorage(context)
+                // Payload is JSON: {"token":"...","serverUrl":"..."}
+                try {
+                    val json = JSONObject(raw)
+                    val token = json.getString("token")
+                    val serverUrl = json.optString("serverUrl").takeIf { it.isNotBlank() }
+                    if (serverUrl != null) storage.saveServerUrl(serverUrl)
+                    storage.saveSyncToken(token)
+                    Log.d(TAG, "Received sync token via BLE, serverUrl=$serverUrl")
+                    onSyncTokenReceived(token)
+                } catch (e: Exception) {
+                    // Fallback: plain token string (backwards compat)
+                    storage.saveSyncToken(raw)
+                    Log.d(TAG, "Received plain sync token via BLE")
+                    onSyncTokenReceived(raw)
+                }
             }
             if (responseNeeded) {
                 gattServer?.sendResponse(device, requestId, BluetoothGatt.GATT_SUCCESS, 0, null)
