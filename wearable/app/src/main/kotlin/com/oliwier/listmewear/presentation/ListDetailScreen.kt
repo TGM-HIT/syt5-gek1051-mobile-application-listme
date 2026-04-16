@@ -19,19 +19,20 @@ import com.oliwier.listmewear.sync.SyncViewModel
 fun ListDetailScreen(listId: String, onBack: () -> Unit) {
     val context = LocalContext.current
     val vm: SyncViewModel = viewModel(factory = SyncViewModel.Factory(context))
-    val list by remember(listId) { derivedStateOf { vm.getList(listId) } }
+    // Collect the full list StateFlow so recomposition fires on every item toggle
+    val lists by vm.lists.collectAsState()
+    val currentList = lists.find { it.id == listId }
 
-    if (list == null) {
+    if (currentList == null) {
         Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
             Text("Liste nicht gefunden", color = ListMeColors.TextSecondary, fontSize = 13.sp)
         }
         return
     }
 
-    val currentList = list!!
     val unchecked = currentList.items.count { !it.checked }
-    // Unchecked items first
-    val sortedItems = remember(currentList.items) { currentList.items.sortedBy { it.checked } }
+    // Sort once per recomposition — unchecked first, checked slide to bottom
+    val sortedItems = currentList.items.sortedBy { it.checked }
 
     Scaffold(
         timeText = { TimeText() },
@@ -70,7 +71,7 @@ fun ListDetailScreen(listId: String, onBack: () -> Unit) {
                     }
                 }
             } else {
-                items(sortedItems.size) { index ->
+                items(sortedItems.size, key = { sortedItems[it].id }) { index ->
                     val item = sortedItems[index]
                     ItemRow(
                         item = item,
