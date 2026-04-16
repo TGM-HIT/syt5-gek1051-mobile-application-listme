@@ -35,9 +35,10 @@ import java.util.*;
 @Slf4j
 public class WebPushService {
 
+    private static final ObjectMapper MAPPER = new ObjectMapper();
+
     private final PushSubscriptionRepository subRepo;
     private final VapidKeyRepository vapidRepo;
-    private final ObjectMapper objectMapper;
 
     private PushService pushService;
     // Stored in X509 format for the library; served as raw EC point to the browser
@@ -100,7 +101,7 @@ public class WebPushService {
         for (PushSubscriptionEntry sub : subs) {
             try {
                 Map<String, String> payload = Map.of("title", title, "body", body, "url", url);
-                byte[] payloadBytes = objectMapper.writeValueAsBytes(payload);
+                byte[] payloadBytes = MAPPER.writeValueAsBytes(payload);
                 Notification notification = new Notification(
                         sub.getEndpoint(), sub.getP256dh(), sub.getAuthKey(), payloadBytes);
                 pushService.send(notification);
