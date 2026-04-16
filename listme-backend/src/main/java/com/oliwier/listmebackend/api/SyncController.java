@@ -10,6 +10,7 @@ import com.oliwier.listmebackend.domain.repository.ListDeviceRepository;
 import com.oliwier.listmebackend.domain.repository.ShoppingListRepository;
 import com.oliwier.listmebackend.identity.CurrentDevice;
 import com.oliwier.listmebackend.identity.CurrentUser;
+import com.oliwier.listmebackend.notification.WebPushService;
 import com.oliwier.listmebackend.websocket.ListSyncBroadcaster;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -40,6 +41,7 @@ public class SyncController {
     private final ShoppingListRepository listRepository;
     private final ListSyncBroadcaster broadcaster;
     private final SimpMessagingTemplate messaging;
+    private final WebPushService webPushService;
 
     @GetMapping("/clock")
     public Map<String, Long> getClock(@PathVariable UUID listId, @CurrentDevice Device device) {
@@ -72,15 +74,39 @@ public class SyncController {
         SyncEngine.SyncResult result = syncEngine.applyIncoming(ops, device);
         result.applied().forEach(op -> broadcaster.broadcastOp(listId, op));
 
+        ShoppingList list = listRepository.findById(listId).orElse(null);
+        String listName = list != null ? list.getName() : "";
+
+        // Push notification: item(s) added — notify other participants
+        boolean hasItemCreate = result.applied().stream()
+                .anyMatch(op -> "ITEM_CREATE".equals(op.getOperationType()));
+        if (hasItemCreate) {
+            String firstItemName = result.applied().stream()
+                    .filter(op -> "ITEM_CREATE".equals(op.getOperationType()))
+                    .map(op -> (String) op.getPayload().getOrDefault("name", ""))
+                    .findFirst().orElse("");
+            listDeviceRepository.findByListId(listId).stream()
+                    .map(ld -> ld.getDevice().getUser())
+                    .filter(u -> u != null && !u.getId().equals(user.getId()))
+                    .map(User::getId).distinct()
+                    .forEach(uid -> webPushService.sendToUser(uid,
+                            "Neuer Artikel in \u201e" + listName + "\u201c",
+                            firstItemName.isEmpty() ? "Artikel hinzugefügt" : firstItemName,
+                            "/" + uid));
+        }
+
+        // WebSocket + push notification: conflict auto-resolved
         if (!result.conflicts().isEmpty()) {
-            ShoppingList list = listRepository.findById(listId).orElse(null);
-            String listName = list != null ? list.getName() : "";
             Map<String, Object> notification = new java.util.HashMap<>();
             notification.put("type", "CONFLICT_DETECTED");
             notification.put("listId", listId.toString());
             notification.put("listName", listName);
             notification.put("conflictCount", result.conflicts().size());
             messaging.convertAndSend("/topic/user/" + user.getId(), (Object) notification);
+            webPushService.sendToUser(user.getId(),
+                    "Konflikt automatisch gel\u00f6st",
+                    "In \u201e" + listName + "\u201c wurden gleichzeitige \u00c4nderungen zusammengef\u00fchrt.",
+                    "/" + user.getId());
         }
     }
 

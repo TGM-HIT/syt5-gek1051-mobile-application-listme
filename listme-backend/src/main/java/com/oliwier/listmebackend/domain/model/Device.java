@@ -22,6 +22,10 @@ public class Device {
     @Column(name = "profile_picture", columnDefinition = "TEXT")
     private String profilePicture;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "user_id")
+    private User user;
+
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
 
