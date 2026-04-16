@@ -21,6 +21,11 @@ vi.mock('./composables/useSyncQueue', () => ({
 
 vi.mock('./components/common/AppHeader.vue', () => ({ default: { template: '<div class="app-header" />' } }))
 vi.mock('./components/common/BottomNav.vue', () => ({ default: { template: '<nav class="bottom-nav" />' } }))
+vi.mock('./components/common/ConflictToast.vue', () => ({ default: { template: '<div />' } }))
+
+vi.mock('./services/push', () => ({
+  pushService: { init: vi.fn().mockResolvedValue(undefined) },
+}))
 
 import App from './App.vue'
 
