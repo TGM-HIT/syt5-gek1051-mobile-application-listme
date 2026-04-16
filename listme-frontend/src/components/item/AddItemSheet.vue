@@ -138,6 +138,17 @@
             <ImagePicker v-model="imageUrl" />
           </div>
 
+          <!-- Category -->
+          <div class="mb-4">
+            <p class="text-[10px] text-ctp-overlay0 mb-1.5 uppercase tracking-wide">Kategorie</p>
+            <CategoryPicker
+              :categories="listCategories"
+              :selected-id="selectedCategoryId"
+              @update:selected-id="selectedCategoryId = $event"
+              @create="(name) => categoriesStore.create(props.listId, { name })"
+            />
+          </div>
+
           <!-- Labels -->
           <div v-if="listLabels.length > 0" class="mb-4">
             <p class="text-[10px] text-ctp-overlay0 mb-1.5 uppercase tracking-wide">Labels</p>
@@ -177,8 +188,10 @@ import { ref, watch, nextTick, computed } from 'vue'
 import type { Item, Favorite } from '../../types'
 import { favoriteService } from '../../services/favorite'
 import { useLabelsStore } from '../../stores/labels'
+import { useCategoriesStore } from '../../stores/categories'
 import { searchHistory, type HistorySuggestion } from '../../services/itemHistory'
 import LabelPicker from './LabelPicker.vue'
+import CategoryPicker from './CategoryPicker.vue'
 import ImagePicker from './ImagePicker.vue'
 import VoiceInput from './VoiceInput.vue'
 import BarcodeScannerModal, { type ScannedProduct } from './BarcodeScannerModal.vue'
@@ -193,11 +206,13 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   'update:modelValue': [value: boolean]
-  submit: [payload: { name: string; quantity: number | null; quantityUnit: string | null; labelIds: string[]; price: number | null; imageUrl: string | null }]
+  submit: [payload: { name: string; quantity: number | null; quantityUnit: string | null; labelIds: string[]; categoryId: string | null; price: number | null; imageUrl: string | null }]
 }>()
 
 const labelsStore = useLabelsStore()
+const categoriesStore = useCategoriesStore()
 const listLabels = computed(() => labelsStore.getForList(props.listId))
+const listCategories = computed(() => categoriesStore.getForList(props.listId))
 
 const name = ref('')
 const quantity = ref<number | ''>('')
@@ -205,6 +220,7 @@ const quantityUnit = ref('')
 const price = ref<number | ''>('')
 const imageUrl = ref<string | null>(null)
 const selectedLabelIds = ref<string[]>([])
+const selectedCategoryId = ref<string | null>(null)
 const favorites = ref<Favorite[]>([])
 const inputRef = ref<HTMLInputElement | null>(null)
 const showScanner = ref(false)
@@ -234,12 +250,14 @@ watch(() => props.modelValue, async (open) => {
     price.value = props.editingItem?.price ?? ''
     imageUrl.value = props.editingItem?.imageUrl ?? null
     selectedLabelIds.value = props.editingItem?.labels?.map(l => l.id) ?? []
+    selectedCategoryId.value = props.editingItem?.categoryId ?? null
     nextTick(() => inputRef.value?.focus())
 
     if (!props.editingItem) {
       favoriteService.getAll().then(f => { favorites.value = f }).catch(() => {})
     }
     labelsStore.fetchForList(props.listId)
+    categoriesStore.fetchForList(props.listId)
   }
 })
 
@@ -343,6 +361,7 @@ function submit() {
     price: price.value === '' ? null : price.value,
     imageUrl: imageUrl.value,
     labelIds: selectedLabelIds.value,
+    categoryId: selectedCategoryId.value,
   })
   close()
 }
@@ -354,6 +373,7 @@ function close() {
   price.value = ''
   imageUrl.value = null
   selectedLabelIds.value = []
+  selectedCategoryId.value = null
   emit('update:modelValue', false)
 }
 </script>

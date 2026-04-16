@@ -138,6 +138,43 @@
         </div>
       </Transition>
 
+      <!-- Category filter chips -->
+      <Transition name="search">
+        <div v-if="listCategories.length > 0" class="max-w-lg mx-auto px-4 pb-2">
+          <div class="flex gap-1.5 overflow-x-auto scrollbar-none">
+            <button
+              type="button"
+              @click="activeCategoryId = null"
+              class="shrink-0 px-3 py-1 rounded-full text-xs font-medium transition-all"
+              :class="activeCategoryId === null
+                ? 'bg-ctp-teal text-ctp-base'
+                : 'bg-ctp-surface0 text-ctp-subtext0 hover:bg-ctp-surface1'"
+            >
+              Alle
+            </button>
+            <button
+              v-for="cat in listCategories"
+              :key="cat.id"
+              type="button"
+              @click="activeCategoryId = activeCategoryId === cat.id ? null : cat.id"
+              class="shrink-0 px-3 py-1 rounded-full text-xs font-medium transition-all"
+              :style="cat.color
+                ? activeCategoryId === cat.id
+                  ? { backgroundColor: cat.color, color: '#fff' }
+                  : { backgroundColor: cat.color + '33', color: cat.color }
+                : {}"
+              :class="!cat.color
+                ? activeCategoryId === cat.id
+                  ? 'bg-ctp-surface2 text-ctp-text'
+                  : 'bg-ctp-surface0 text-ctp-subtext0 hover:bg-ctp-surface1'
+                : ''"
+            >
+              {{ cat.name }}
+            </button>
+          </div>
+        </div>
+      </Transition>
+
       <!-- Participant avatars (only shown when list has >1 participant) -->
       <ParticipantList :list-id="listId" @click-participant="selectedParticipant = $event" />
 
@@ -284,6 +321,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { useListsStore } from '../stores/lists'
 import { useItemsStore } from '../stores/items'
 import { usePresenceStore } from '../stores/presence'
+import { useCategoriesStore } from '../stores/categories'
 import { useListSync } from '../composables/useListSync'
 import { exportService } from '../services/export'
 import { presetService } from '../services/preset'
@@ -304,10 +342,15 @@ const listId = route.params.id as string
 const listsStore = useListsStore()
 const itemsStore = useItemsStore()
 const presenceStore = usePresenceStore()
+const categoriesStore = useCategoriesStore()
 const { connected: syncConnected, conflicts, dismissConflicts, startSync } = useListSync()
 
 const list = computed(() => listsStore.getById(listId))
 const items = computed(() => itemsStore.getItems(listId))
+const listCategories = computed(() => categoriesStore.getForList(listId))
+
+// Category filter — null means "all"
+const activeCategoryId = ref<string | null>(null)
 
 // Bumped after any create/update/toggle/delete so BudgetBar re-fetches
 const itemsVersion = ref(0)
@@ -317,9 +360,11 @@ const searchQuery = ref('')
 const searchInputRef = ref<HTMLInputElement | null>(null)
 
 const filteredItems = computed(() => {
+  let result = items.value
   const q = searchQuery.value.trim().toLowerCase()
-  if (!q) return items.value
-  return items.value.filter(i => i.name.toLowerCase().includes(q))
+  if (q) result = result.filter(i => i.name.toLowerCase().includes(q))
+  if (activeCategoryId.value !== null) result = result.filter(i => i.categoryId === activeCategoryId.value)
+  return result
 })
 const filteredUncheckedItems = computed(() => filteredItems.value.filter(i => !i.checked))
 const filteredCheckedItems = computed(() => filteredItems.value.filter(i => i.checked))
@@ -381,6 +426,7 @@ function toggleSearch() {
 onMounted(async () => {
   if (!list.value) await listsStore.fetchAll()
   await itemsStore.fetchAll(listId)
+  categoriesStore.fetchForList(listId)
   startSync(listId)
 })
 
@@ -399,13 +445,14 @@ async function onToggle(lid: string, itemId: string) {
   itemsVersion.value++
 }
 
-async function handleItemSubmit(payload: { name: string; quantity: number | null; quantityUnit: string | null; labelIds: string[]; price: number | null; imageUrl: string | null }) {
+async function handleItemSubmit(payload: { name: string; quantity: number | null; quantityUnit: string | null; labelIds: string[]; categoryId: string | null; price: number | null; imageUrl: string | null }) {
   if (editingItem.value) {
     await itemsStore.update(listId, editingItem.value.id, {
       name: payload.name,
       quantity: payload.quantity,
       quantityUnit: payload.quantityUnit,
       labelIds: payload.labelIds,
+      categoryId: payload.categoryId ?? undefined,
       price: payload.price,
       imageUrl: payload.imageUrl,
     })
@@ -416,6 +463,7 @@ async function handleItemSubmit(payload: { name: string; quantity: number | null
       quantity: payload.quantity,
       quantityUnit: payload.quantityUnit,
       labelIds: payload.labelIds,
+      categoryId: payload.categoryId ?? undefined,
       price: payload.price,
       imageUrl: payload.imageUrl,
     })
@@ -449,4 +497,6 @@ async function deleteItem(itemId: string) {
 .sheet-enter-active { transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.2s ease; }
 .sheet-leave-active { transition: transform 0.25s cubic-bezier(0.4, 0, 1, 1), opacity 0.2s ease; }
 .sheet-enter-from, .sheet-leave-to { transform: translateY(100%); opacity: 0; }
+.scrollbar-none { scrollbar-width: none; }
+.scrollbar-none::-webkit-scrollbar { display: none; }
 </style>
