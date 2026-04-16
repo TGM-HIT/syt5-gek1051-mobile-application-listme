@@ -54,6 +54,14 @@ public class WebPushService {
 
             VapidKey keys = vapidRepo.findById((short) 1).orElseGet(this::generateAndSaveKeys);
 
+            // Detect stale X509-format key (DER SEQUENCE starts with 0x30) and regenerate
+            byte[] pubBytes = Base64.getUrlDecoder().decode(keys.getPublicKey());
+            if (pubBytes[0] == 0x30) {
+                log.info("[WebPush] Stale X509 key detected — regenerating");
+                vapidRepo.deleteById((short) 1);
+                keys = generateAndSaveKeys();
+            }
+
             vapidPublicKey = keys.getPublicKey();
             pushService = new PushService(keys.getPublicKey(), keys.getPrivateKey());
             pushService.setSubject("mailto:admin@list-me.net");
