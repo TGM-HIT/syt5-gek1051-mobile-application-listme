@@ -25,28 +25,28 @@
             <div class='fl pad1y space-right2'>
                 <span class="strong">100% </span>
                 <span class="quiet">Statements</span>
-                <span class='fraction'>19/19</span>
+                <span class='fraction'>11/11</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
                 <span class="strong">100% </span>
                 <span class="quiet">Branches</span>
-                <span class='fraction'>8/8</span>
+                <span class='fraction'>4/4</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
                 <span class="strong">100% </span>
                 <span class="quiet">Functions</span>
-                <span class='fraction'>7/7</span>
+                <span class='fraction'>4/4</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
                 <span class="strong">100% </span>
                 <span class="quiet">Lines</span>
-                <span class='fraction'>17/17</span>
+                <span class='fraction'>11/11</span>
             </div>
         
             
@@ -109,31 +109,18 @@
 <a name='L44'></a><a href='#L44'>44</a>
 <a name='L45'></a><a href='#L45'>45</a>
 <a name='L46'></a><a href='#L46'>46</a>
-<a name='L47'></a><a href='#L47'>47</a>
-<a name='L48'></a><a href='#L48'>48</a>
-<a name='L49'></a><a href='#L49'>49</a>
-<a name='L50'></a><a href='#L50'>50</a>
-<a name='L51'></a><a href='#L51'>51</a>
-<a name='L52'></a><a href='#L52'>52</a>
-<a name='L53'></a><a href='#L53'>53</a>
-<a name='L54'></a><a href='#L54'>54</a>
-<a name='L55'></a><a href='#L55'>55</a>
-<a name='L56'></a><a href='#L56'>56</a>
-<a name='L57'></a><a href='#L57'>57</a>
-<a name='L58'></a><a href='#L58'>58</a>
-<a name='L59'></a><a href='#L59'>59</a>
-<a name='L60'></a><a href='#L60'>60</a></td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
+<a name='L47'></a><a href='#L47'>47</a></td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-yes">6x</span>
 <span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-yes">6x</span>
-<span class="cline-any cline-yes">18x</span>
+<span class="cline-any cline-yes">17x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-yes">1x</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -157,20 +144,7 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-yes">6x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-yes">6x</span>
-<span class="cline-any cline-yes">18x</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">7x</span>
-<span class="cline-any cline-yes">7x</span>
-<span class="cline-any cline-yes">4x</span>
-<span class="cline-any cline-yes">4x</span>
-<span class="cline-any cline-yes">4x</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">6x</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-yes">6x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -188,20 +162,20 @@
         &lt;div
           v-for="n in store.notifications"
           :key="n.id"
-          class="pointer-events-auto w-full max-w-sm bg-ctp-surface0 border border-ctp-yellow/30 rounded-2xl px-4 py-3 shadow-lg flex items-start gap-3"
+          class="pointer-events-auto w-full max-w-sm bg-ctp-surface0 border border-ctp-teal/30 rounded-2xl px-4 py-3 shadow-lg flex items-start gap-3"
         &gt;
-          &lt;span class="text-ctp-yellow text-lg shrink-0"&gt;⚠&lt;/span&gt;
+          &lt;span class="text-ctp-teal text-lg shrink-0"&gt;🔔&lt;/span&gt;
           &lt;div class="flex-1 min-w-0"&gt;
-            &lt;p class="text-sm font-semibold text-ctp-text"&gt;Konflikt automatisch gelöst&lt;/p&gt;
-            &lt;p class="text-xs text-ctp-subtext0 truncate"&gt;„{{ n.listName }}"&lt;/p&gt;
+            &lt;p class="text-sm font-semibold text-ctp-text truncate"&gt;„{{ n.listName }}"&lt;/p&gt;
+            &lt;p class="text-xs text-ctp-subtext0"&gt;{{ n.message }}&lt;/p&gt;
           &lt;/div&gt;
           &lt;button
             @click="store.dismiss(n.id)"
-            class="shrink-0 text-ctp-overlay0 hover:text-ctp-text transition-colors"
-            aria-label="Schließen"
+            class="shrink-0 text-ctp-teal hover:text-ctp-green transition-colors"
+            aria-label="Bestätigen"
           &gt;
-            &lt;svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"&gt;
-              &lt;path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" /&gt;
+            &lt;svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"&gt;
+              &lt;path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" /&gt;
             &lt;/svg&gt;
           &lt;/button&gt;
         &lt;/div&gt;
@@ -211,25 +185,12 @@
 &lt;/template&gt;
 &nbsp;
 &lt;script setup lang="ts"&gt;
-import { onMounted, watch } from 'vue'
+import { onMounted } from 'vue'
 import { useNotificationsStore } from '../../stores/notifications'
 &nbsp;
 const store = useNotificationsStore()
 &nbsp;
-// Auto-dismiss each notification after 6 s
-watch(
-  () =&gt; store.notifications.length,
-  () =&gt; {
-    const oldest = store.notifications[0]
-    if (!oldest) return
-    const age = Date.now() - oldest.ts
-    const delay = Math.max(0, 6000 - age)
-    setTimeout(() =&gt; store.dismiss(oldest.id), delay)
-  },
-)
-&nbsp;
 onMounted(() =&gt; {
-  // Dismiss any stale notifications on mount
   store.dismissAll()
 })
 &lt;/script&gt;
@@ -247,7 +208,7 @@ onMounted(() =&gt; {
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2026-04-17T09:04:08.119Z
+                at 2026-04-17T09:56:04.710Z
             </div>
         <script src="../../../prettify.js"></script>
         <script>
