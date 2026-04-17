@@ -78,10 +78,11 @@ export function useListSync() {
 
     subscribeTopics()
 
-    // Re-subscribe and re-announce presence after every reconnect
-    const unsubReconnect = onReconnect(() => {
+    // Re-subscribe, re-announce presence, and pull any missed items after every reconnect
+    const unsubReconnect = onReconnect(async () => {
       connected.value = true
       subscribeTopics()
+      await itemsStore.fetchAll(listId)
     })
 
     // Single cleanup entry for stopSync / onUnmounted
