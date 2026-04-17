@@ -1,10 +1,11 @@
 import { ref, onUnmounted } from 'vue'
-import { connectWebSocket, subscribe, send, isConnected, onReconnect } from '../services/websocket'
+import { connectWebSocket, subscribe, send, isConnected, onAnyConnect } from '../services/websocket'
 import { useItemsStore } from '../stores/items'
 import { usePresenceStore } from '../stores/presence'
 import { useNotificationsStore } from '../stores/notifications'
 import { useListsStore } from '../stores/lists'
 import { getDeviceId } from '../services/device'
+import { LocalClockService } from '../services/clock'
 import { detectConflicts } from '../crdt/ConflictDetector'
 import type { Conflict } from '../crdt/ConflictDetector'
 import type { CrdtOperation } from '../crdt/types'
@@ -19,14 +20,6 @@ export function useListSync() {
 
   async function startSync(listId: string) {
     currentListId = listId
-
-    try {
-      await connectWebSocket()
-      connected.value = isConnected()
-    } catch (e) {
-      console.warn('[Sync] WebSocket unavailable, running offline', e)
-      return
-    }
 
     const itemsStore = useItemsStore()
     const listsStore = useListsStore()
@@ -45,17 +38,13 @@ export function useListSync() {
         const op = payload as CrdtOperation
         if (op.deviceId === myDeviceId) return
 
-        sessionOps.push(op)
-        const newConflicts = detectConflicts(sessionOps)
-        conflicts.value = newConflicts
+        LocalClockService.mergeClock(listId, op.vectorClock as Record<string, number>)
 
-        // In-app notification + vibration for every incoming change
+        sessionOps.push(op)
+        conflicts.value = detectConflicts(sessionOps)
+
         const listName = listsStore.getById(listId)?.name ?? ''
-        notificationsStore.add({
-          listId,
-          listName,
-          message: opToMessage(op),
-        })
+        notificationsStore.add({ listId, listName, message: opToMessage(op) })
         if ('vibrate' in navigator) navigator.vibrate([100, 50, 100])
 
         applyOp(listId, op, itemsStore)
@@ -71,16 +60,32 @@ export function useListSync() {
       send(`/app/list/${listId}/join`)
     }
 
-    subscribeTopics()
-
-    // Re-subscribe and re-announce presence after every reconnect.
-    // Data sync (flushing queued ops + pulling remote ops) is handled by useSyncQueue.
-    const unsubReconnect = onReconnect(() => {
+    // Register BEFORE connectWebSocket so this fires even on the very first
+    // successful connection (covers devices that were offline at mount time).
+    const unsubConnect = onAnyConnect(async () => {
       connected.value = true
       subscribeTopics()
+      const snapIds = new Set(itemsStore.getItems(listId).map(i => `${i.id}|${i.checked}|${i.name}`))
+      await itemsStore.fetchAll(listId)
+      const after = itemsStore.getItems(listId)
+      const changed = after.length !== snapIds.size
+        || after.some(i => !snapIds.has(`${i.id}|${i.checked}|${i.name}`))
+      if (changed) {
+        const listName = listsStore.getById(listId)?.name ?? ''
+        notificationsStore.add({ listId, listName, message: 'Liste wurde aktualisiert' })
+        if ('vibrate' in navigator) navigator.vibrate([100, 50, 100])
+      }
     })
 
-    // Re-fetch when app comes back to foreground (covers mobile background drops)
+    // Try to connect — if offline the STOMP client retries automatically;
+    // onAnyConnect fires once the connection eventually succeeds.
+    try {
+      await connectWebSocket()
+      connected.value = isConnected()
+    } catch (e) {
+      console.warn('[Sync] WebSocket unavailable, running offline', e)
+    }
+
     function onVisible() {
       if (document.visibilityState === 'visible') itemsStore.fetchAll(listId)
     }
@@ -89,7 +94,7 @@ export function useListSync() {
     unsubscribers.push(() => {
       unsubOps?.()
       unsubPresence?.()
-      unsubReconnect()
+      unsubConnect()
       document.removeEventListener('visibilitychange', onVisible)
     })
   }

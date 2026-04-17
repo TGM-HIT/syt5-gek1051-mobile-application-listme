@@ -14,6 +14,7 @@ let hasConnectedOnce = false
 export const reconnectAttempt = ref(0)
 
 const reconnectListeners: Array<() => void> = []
+const connectListeners: Array<() => void> = []
 
 /**
  * Register a callback that fires every time the WebSocket reconnects after
@@ -24,6 +25,19 @@ export function onReconnect(cb: () => void): () => void {
   return () => {
     const idx = reconnectListeners.indexOf(cb)
     if (idx !== -1) reconnectListeners.splice(idx, 1)
+  }
+}
+
+/**
+ * Register a callback that fires on EVERY successful connection — including
+ * the very first one. Use this when setup must happen even if the device was
+ * offline at startup. Returns an unregister function.
+ */
+export function onAnyConnect(cb: () => void): () => void {
+  connectListeners.push(cb)
+  return () => {
+    const idx = connectListeners.indexOf(cb)
+    if (idx !== -1) connectListeners.splice(idx, 1)
   }
 }
 
@@ -62,7 +76,8 @@ export async function connectWebSocket(): Promise<void> {
       hasConnectedOnce = true
       attempt = 0
       reconnectAttempt.value = 0
-      if (isReconnect) reconnectListeners.forEach(cb => cb())
+      connectListeners.forEach(cb => cb())           // fires on every connection
+      if (isReconnect) reconnectListeners.forEach(cb => cb()) // fires only on reconnect
       resolve() // no-op if already resolved
     }
 
