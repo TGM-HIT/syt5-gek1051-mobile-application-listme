@@ -18,14 +18,19 @@ self.addEventListener('push', (event: PushEvent) => {
   const url: string = data.url ?? '/'
 
   event.waitUntil(
-    self.registration.showNotification(title, {
-      body,
-      icon: '/pwa-192x192.png',
-      badge: '/pwa-64x64.png',
-      tag: 'listme-' + (data.url ?? 'general'),
-      renotify: true,
-      data: { url },
-    } as NotificationOptions),
+    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clients) => {
+      // App is visible in a tab — the WS in-app toast already handles it
+      const appVisible = (clients as WindowClient[]).some(c => c.visibilityState === 'visible')
+      if (appVisible) return
+      return self.registration.showNotification(title, {
+        body,
+        icon: '/pwa-192x192.png',
+        badge: '/pwa-64x64.png',
+        tag: 'listme-' + (data.url ?? 'general'),
+        renotify: true,
+        data: { url },
+      } as NotificationOptions)
+    }),
   )
 })
 

@@ -4,13 +4,14 @@ import api from '../services/api'
 import { useOffline } from './useOffline'
 import { useItemsStore } from '../stores/items'
 import { useListsStore } from '../stores/lists'
+import { useNotificationsStore } from '../stores/notifications'
 import { onReconnect } from '../services/websocket'
 import { listService } from '../services/list'
 import { CacheService } from '../services/cache'
 import { cacheDb } from '../services/db'
 import { LocalClockService } from '../services/clock'
 import { getDeviceId } from '../services/device'
-import { applyOp } from './useListSync'
+import { applyOp, opToMessage } from './useListSync'
 import type { CrdtOperation } from '../crdt/types'
 
 let flushInProgress = false
@@ -110,6 +111,16 @@ async function pullRemoteOps(
     const remoteOps = (data ?? []).filter((op) => op.deviceId !== myDeviceId)
     for (const op of remoteOps) {
       applyOp(listId, op, itemsStore)
+    }
+    if (remoteOps.length > 0) {
+      const listsStore = useListsStore()
+      const notificationsStore = useNotificationsStore()
+      const listName = listsStore.getById(listId)?.name ?? ''
+      const msg = remoteOps.length === 1
+        ? opToMessage(remoteOps[0]!)
+        : `${remoteOps.length} Änderungen eingetroffen`
+      notificationsStore.add({ listId, listName, message: msg })
+      if ('vibrate' in navigator) navigator.vibrate([100, 50, 100])
     }
     // Merge the clocks from received ops into local clock
     const merged: Record<string, number> = { ...clock }

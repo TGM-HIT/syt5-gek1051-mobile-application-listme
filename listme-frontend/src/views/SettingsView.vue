@@ -118,9 +118,8 @@
         </div>
       </div>
     </section>
+    <WatchSyncModal v-if="showWatchModal" @close="showWatchModal = false" />
   </div>
-
-  <WatchSyncModal v-if="showWatchModal" @close="showWatchModal = false" />
 </template>
 
 <script setup lang="ts">

@@ -112,7 +112,7 @@ export function useListSync() {
   return { connected, conflicts, dismissConflicts, startSync, stopSync }
 }
 
-function opToMessage(op: CrdtOperation): string {
+export function opToMessage(op: CrdtOperation): string {
   const name = op.payload['name'] as string | undefined
   switch (op.operationType) {
     case 'ITEM_CREATE': return name ? `"${name}" hinzugefügt` : 'Artikel hinzugefügt'
