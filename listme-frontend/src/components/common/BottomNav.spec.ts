@@ -10,6 +10,10 @@ vi.mock('vue-router', () => ({
   useRoute: () => ({ name: mockRouteName.value }),
 }))
 
+vi.mock('../../services/userId', () => ({
+  getOrCreateUserId: () => 'test-user-id',
+}))
+
 import BottomNav from './BottomNav.vue'
 
 describe('BottomNav', () => {
@@ -43,7 +47,7 @@ describe('BottomNav', () => {
     const w = mount(BottomNav)
     const btn = w.findAll('button').find(b => b.text().includes('Listen'))!
     await btn.trigger('click')
-    expect(mockPush).toHaveBeenCalledWith('/')
+    expect(mockPush).toHaveBeenCalledWith('/test-user-id')
   })
 
   it('navigates to /library when Bibliothek tab is clicked', async () => {
