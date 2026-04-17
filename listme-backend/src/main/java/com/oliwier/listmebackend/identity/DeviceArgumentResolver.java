@@ -19,7 +19,8 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class DeviceArgumentResolver implements HandlerMethodArgumentResolver {
 
-    private static final String HEADER = "X-Device-Id";
+    private static final String DEVICE_HEADER = "X-Device-Id";
+    private static final String USER_HEADER = "X-User-Id";
 
     private final DeviceService deviceService;
 
@@ -40,20 +41,31 @@ public class DeviceArgumentResolver implements HandlerMethodArgumentResolver {
             throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR);
         }
 
-        String raw = request.getHeader(HEADER);
-        if (raw == null || raw.isBlank()) {
+        String rawDevice = request.getHeader(DEVICE_HEADER);
+        if (rawDevice == null || rawDevice.isBlank()) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
                     "X-Device-Id header is required");
         }
 
         UUID deviceId;
         try {
-            deviceId = UUID.fromString(raw.trim());
+            deviceId = UUID.fromString(rawDevice.trim());
         } catch (IllegalArgumentException e) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
                     "X-Device-Id must be a valid UUID");
         }
 
-        return deviceService.getOrCreate(deviceId);
+        // Resolve userId: prefer X-User-Id, fall back to X-Device-Id (same UUID used as userId for older clients)
+        String rawUser = request.getHeader(USER_HEADER);
+        if (rawUser == null || rawUser.isBlank()) rawUser = rawDevice;
+
+        UUID userId;
+        try {
+            userId = UUID.fromString(rawUser.trim());
+        } catch (IllegalArgumentException e) {
+            userId = deviceId; // safe fallback
+        }
+
+        return deviceService.getOrCreate(deviceId, userId);
     }
 }

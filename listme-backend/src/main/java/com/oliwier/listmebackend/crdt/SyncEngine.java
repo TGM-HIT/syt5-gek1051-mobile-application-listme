@@ -6,9 +6,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
+import java.util.*;
+import java.util.stream.Collectors;
 
 /**
  * Core CRDT sync service.
@@ -22,6 +21,8 @@ import java.util.UUID;
 @Service
 @RequiredArgsConstructor
 public class SyncEngine {
+
+    public record SyncResult(List<CrdtOperation> applied, List<ConflictDetector.Conflict> conflicts) {}
 
     private final CrdtOperationRepository operationRepository;
     private final VectorClockEntryRepository clockRepository;
@@ -96,8 +97,10 @@ public class SyncEngine {
      * Returns the list of operations that were newly applied (not duplicates).
      */
     @Transactional
-    public List<CrdtOperation> applyIncoming(List<IncomingOperation> incoming, Device device) {
-        List<CrdtOperation> applied = new java.util.ArrayList<>();
+    public SyncResult applyIncoming(List<IncomingOperation> incoming, Device device) {
+        List<CrdtOperation> applied = new ArrayList<>();
+        Set<UUID> affectedLists = new HashSet<>();
+
         for (IncomingOperation inOp : incoming) {
             // Idempotency: skip if already stored
             if (operationRepository.existsById(inOp.id())) continue;
@@ -122,8 +125,16 @@ public class SyncEngine {
             mergeIncomingClock(list, device, VectorClock.of(inOp.vectorClock()));
 
             applied.add(op);
+            affectedLists.add(inOp.listId());
         }
-        return applied;
+
+        // Detect conflicts across all affected lists
+        List<ConflictDetector.Conflict> conflicts = affectedLists.stream()
+                .flatMap(listId -> ConflictDetector.detect(
+                        operationRepository.findByListIdOrderByCreatedAtAsc(listId)).stream())
+                .collect(Collectors.toList());
+
+        return new SyncResult(applied, conflicts);
     }
 
     // ── Current vector clock for a list ──────────────────────────────────

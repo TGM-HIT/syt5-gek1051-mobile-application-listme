@@ -46,26 +46,28 @@ describe('shareService', () => {
     expect(result).toEqual(list)
   })
 
-  it('createSyncToken calls POST /sync', async () => {
-    const syncResp = { token: 'sync123', syncUrl: 'http://x/sync/sync123' }
+  it('createSyncToken calls POST /sync with theme', async () => {
+    const syncResp = { token: 'sync123', listCount: 1, expiresAt: '' }
     mockPost.mockResolvedValue({ data: syncResp })
-    const result = await shareService.createSyncToken()
-    expect(mockPost).toHaveBeenCalledWith('/sync')
+    const result = await shareService.createSyncToken('dark')
+    expect(mockPost).toHaveBeenCalledWith('/sync', { theme: 'dark' })
     expect(result).toEqual(syncResp)
   })
 
   it('previewSyncToken calls GET /sync/:token', async () => {
-    mockGet.mockResolvedValue({ data: [list] })
+    const preview = { lists: [list], sourceDisplayName: null, sourceProfilePicture: null, theme: 'dark' }
+    mockGet.mockResolvedValue({ data: preview })
     const result = await shareService.previewSyncToken('sync123')
     expect(mockGet).toHaveBeenCalledWith('/sync/sync123')
-    expect(result).toEqual([list])
+    expect(result).toEqual(preview)
   })
 
   it('applySyncToken calls POST /sync/:token/apply', async () => {
-    mockPost.mockResolvedValue({ data: [list] })
+    const applyResp = { lists: [list], displayName: null, profilePicture: null, theme: 'dark', presetsImported: 0 }
+    mockPost.mockResolvedValue({ data: applyResp })
     const result = await shareService.applySyncToken('sync123')
     expect(mockPost).toHaveBeenCalledWith('/sync/sync123/apply')
-    expect(result).toEqual([list])
+    expect(result).toEqual(applyResp)
   })
 
   it('getParticipants calls GET /lists/:id/participants', async () => {

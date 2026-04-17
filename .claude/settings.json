@@ -30,7 +30,16 @@
       "Bash(find /c/Users/OliGa/Documents/code/syt5-gek1051-mobile-application-listme/listme-backend/src/test -type f -name *.java)",
       "Bash(./mvnw test:*)",
       "Bash(npx tsc:*)",
-      "Bash(xargs wc:*)"
+      "Bash(xargs wc:*)",
+      "Bash(grep -l \"sync_tokens\\\\|sync_token\" /c/Users/OliGa/Documents/code/syt5-gek1051-mobile-application-listme/listme-backend/src/main/resources/db/migration/*.sql)",
+<<<<<<< HEAD
+      "Bash(./mvnw compile *)"
+=======
+      "Bash(grep -E \"\\\\.vue$\")"
+>>>>>>> 51984e9afd8f67139e3af6473d5d1d2df0570118
+    ],
+    "additionalDirectories": [
+      "c:\\Users\\OliGa\\Documents\\code\\syt5-gek1051-mobile-application-listme\\listme-backend\\src\\main\\resources\\db\\migration"
     ]
   }
 }

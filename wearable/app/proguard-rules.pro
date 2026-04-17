@@ -1,0 +1,4 @@
+-keep class com.oliwier.listmewear.model.** { *; }
+-keep class com.oliwier.listmewear.api.** { *; }
+-keepattributes Signature
+-keepattributes *Annotation*

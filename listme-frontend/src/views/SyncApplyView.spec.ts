@@ -27,12 +27,27 @@ vi.mock('../stores/lists', () => ({
   useListsStore: () => ({ fetchAll: mockFetchAll }),
 }))
 
+vi.mock('../stores/profile', () => ({
+  useProfileStore: () => ({ applyFromSync: vi.fn() }),
+}))
+
+vi.mock('../stores/theme', () => ({
+  useThemeStore: () => ({ theme: 'dark' }),
+}))
+
+vi.mock('../services/userId', () => ({
+  getUserId: vi.fn().mockReturnValue('test-user-id'),
+}))
+
 import SyncApplyView from './SyncApplyView.vue'
 
 const lists: ShoppingList[] = [
   { id: 'l1', name: 'Wocheneinkauf', emoji: '🛒', shareToken: null, itemCount: 3, checkedCount: 0, participantCount: 1, createdAt: '', updatedAt: '' },
   { id: 'l2', name: 'Büro', emoji: '💼', shareToken: null, itemCount: 5, checkedCount: 2, participantCount: 1, createdAt: '', updatedAt: '' },
 ]
+
+const previewResponse = { lists, sourceDisplayName: null, sourceProfilePicture: null, theme: 'dark' }
+const applyResponse = { lists, displayName: null, profilePicture: null, theme: 'dark', presetsImported: 0 }
 
 describe('SyncApplyView', () => {
   beforeEach(() => {
@@ -42,20 +57,20 @@ describe('SyncApplyView', () => {
   })
 
   it('shows loading skeletons initially', () => {
-    mockPreviewSync.mockResolvedValue(lists)
+    mockPreviewSync.mockResolvedValue(previewResponse)
     const w = mount(SyncApplyView)
     expect(w.find('.skeleton').exists()).toBe(true)
   })
 
   it('shows list count after load', async () => {
-    mockPreviewSync.mockResolvedValue(lists)
+    mockPreviewSync.mockResolvedValue(previewResponse)
     const w = mount(SyncApplyView)
     await flushPromises()
     expect(w.text()).toContain('2')
   })
 
   it('shows list names in preview', async () => {
-    mockPreviewSync.mockResolvedValue(lists)
+    mockPreviewSync.mockResolvedValue(previewResponse)
     const w = mount(SyncApplyView)
     await flushPromises()
     expect(w.text()).toContain('Wocheneinkauf')
@@ -91,29 +106,29 @@ describe('SyncApplyView', () => {
   })
 
   it('shows import button', async () => {
-    mockPreviewSync.mockResolvedValue(lists)
+    mockPreviewSync.mockResolvedValue(previewResponse)
     const w = mount(SyncApplyView)
     await flushPromises()
     expect(w.findAll('button').some(b => b.text().includes('importieren'))).toBe(true)
   })
 
   it('navigates home after successful apply', async () => {
-    mockPreviewSync.mockResolvedValue(lists)
-    mockApplySync.mockResolvedValue(lists)
+    mockPreviewSync.mockResolvedValue(previewResponse)
+    mockApplySync.mockResolvedValue(applyResponse)
     const w = mount(SyncApplyView)
     await flushPromises()
     const btn = w.findAll('button').find(b => b.text().includes('importieren'))!
     await btn.trigger('click')
     await flushPromises()
-    expect(mockPush).toHaveBeenCalledWith({ name: 'home' })
+    expect(mockPush).toHaveBeenCalledWith({ name: 'home', params: { userId: 'test-user-id' } })
   })
 
   it('shows cancel button', async () => {
-    mockPreviewSync.mockResolvedValue(lists)
+    mockPreviewSync.mockResolvedValue(previewResponse)
     const w = mount(SyncApplyView)
     await flushPromises()
     const btn = w.findAll('button').find(b => b.text().includes('Abbrechen'))!
     await btn.trigger('click')
-    expect(mockPush).toHaveBeenCalledWith({ name: 'home' })
+    expect(mockPush).toHaveBeenCalledWith({ name: 'home', params: { userId: 'test-user-id' } })
   })
 })

@@ -35,7 +35,21 @@ vi.mock('../components/list/ListSection.vue', () => ({ default: { template: '<di
 vi.mock('../components/list/ListCard.vue', () => ({ default: { template: '<div class="list-card">{{ list?.name }}</div>', props: ['list', 'index'] } }))
 vi.mock('../components/common/FloatingActionButton.vue', () => ({ default: { template: '<button class="fab" @click="$emit(\'click\')">+</button>' } }))
 vi.mock('../components/common/AddListModal.vue', () => ({ default: { template: '<div class="add-modal"></div>', props: ['open', 'initialPresetId', 'initialPresetEmoji', 'initialPresetName'] } }))
-vi.mock('../components/list/LinkDevicesModal.vue', () => ({ default: { template: '<div class="link-modal"></div>', props: ['open'] } }))
+
+
+vi.mock('../services/device', () => ({
+  getDeviceId: vi.fn().mockResolvedValue('test-device-id'),
+}))
+
+vi.mock('../services/userId', () => ({
+  getUserId: vi.fn().mockReturnValue('00000000-0000-0000-0000-000000000001'),
+  getOrCreateUserId: vi.fn().mockReturnValue('00000000-0000-0000-0000-000000000001'),
+}))
+
+vi.mock('../services/websocket', () => ({
+  connectWebSocket: vi.fn().mockResolvedValue(undefined),
+  subscribe: vi.fn().mockReturnValue(() => {}),
+}))
 
 import HomeView from './HomeView.vue'
 
@@ -122,6 +136,6 @@ describe('HomeView', () => {
     const w = mount(HomeView, { global: { stubs: { Transition: true, Teleport: true } } })
     await flushPromises()
     expect(w.find('.add-modal').exists()).toBe(true)
-    expect(mockReplace).toHaveBeenCalledWith({ name: 'home' })
+    expect(mockReplace).toHaveBeenCalledWith({ name: 'home', params: { userId: '00000000-0000-0000-0000-000000000001' }, query: {} })
   })
 })

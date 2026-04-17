@@ -1,11 +1,13 @@
 <script setup lang="ts">
 import { ref, watch } from 'vue'
 import { shareService } from '../../services/share'
+import { useThemeStore } from '../../stores/theme'
 
 const props = defineProps<{ modelValue: boolean }>()
 const emit = defineEmits<{ 'update:modelValue': [val: boolean] }>()
 
 const close = () => emit('update:modelValue', false)
+const themeStore = useThemeStore()
 
 const loading = ref(false)
 const copied = ref(false)
@@ -18,7 +20,7 @@ watch(() => props.modelValue, async (open) => {
   syncUrl.value = null
   loading.value = true
   try {
-    const res = await shareService.createSyncToken()
+    const res = await shareService.createSyncToken(themeStore.theme)
     syncUrl.value = `${window.location.origin}/sync/${res.token}`
     expiresAt.value = new Date(res.expiresAt).toLocaleDateString('de-DE', {
       day: '2-digit', month: '2-digit', year: 'numeric',

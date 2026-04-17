@@ -1,6 +1,7 @@
 package com.oliwier.listmebackend.domain.service;
 
 import com.oliwier.listmebackend.domain.model.Device;
+import com.oliwier.listmebackend.domain.model.User;
 import com.oliwier.listmebackend.domain.repository.DeviceRepository;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -19,31 +20,39 @@ import static org.mockito.Mockito.*;
 class DeviceServiceTest {
 
     @Mock DeviceRepository deviceRepository;
+    @Mock UserService userService;
 
     @InjectMocks DeviceService deviceService;
 
     @Test
     void getOrCreate_returnsExistingDevice_whenFound() {
-        UUID id = UUID.randomUUID();
-        Device existing = new Device(id);
-        when(deviceRepository.findById(id)).thenReturn(Optional.of(existing));
+        UUID deviceId = UUID.randomUUID();
+        UUID userId = UUID.randomUUID();
+        User user = new User(userId);
+        Device existing = new Device(deviceId);
+        when(userService.getOrCreate(userId)).thenReturn(user);
+        when(deviceRepository.findById(deviceId)).thenReturn(Optional.of(existing));
 
-        Device result = deviceService.getOrCreate(id);
+        Device result = deviceService.getOrCreate(deviceId, userId);
 
         assertThat(result).isSameAs(existing);
+        assertThat(result.getUser()).isEqualTo(user);
         verify(deviceRepository, never()).save(any());
     }
 
     @Test
     void getOrCreate_createsAndPersistsDevice_whenNotFound() {
-        UUID id = UUID.randomUUID();
-        Device saved = new Device(id);
-        when(deviceRepository.findById(id)).thenReturn(Optional.empty());
+        UUID deviceId = UUID.randomUUID();
+        UUID userId = UUID.randomUUID();
+        User user = new User(userId);
+        Device saved = new Device(deviceId);
+        when(userService.getOrCreate(userId)).thenReturn(user);
+        when(deviceRepository.findById(deviceId)).thenReturn(Optional.empty());
         when(deviceRepository.save(any())).thenReturn(saved);
 
-        Device result = deviceService.getOrCreate(id);
+        Device result = deviceService.getOrCreate(deviceId, userId);
 
-        assertThat(result.getId()).isEqualTo(id);
+        assertThat(result.getId()).isEqualTo(deviceId);
         verify(deviceRepository).save(any(Device.class));
     }
 }

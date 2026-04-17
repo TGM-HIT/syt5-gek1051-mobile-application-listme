@@ -32,28 +32,42 @@ export const useProfileStore = defineStore('profile', () => {
     localStorage.setItem('profile:firstName', first)
     localStorage.setItem('profile:lastName', last)
     const name = [first.trim(), last.trim()].filter(Boolean).join(' ')
-    try { await api.patch('/devices/me', buildPatch(name || null)) } catch { /* offline */ }
+    try { await api.patch('/users/me', buildPatch(name || null)) } catch { /* offline */ }
   }
 
   async function savePhoto(dataUrl: string) {
     photoDataUrl.value = dataUrl
     try { localStorage.setItem('profile:photo', dataUrl) } catch { /* quota exceeded */ }
-    try { await api.patch('/devices/me', buildPatch(undefined, dataUrl)) } catch { /* offline */ }
+    try { await api.patch('/users/me', buildPatch(undefined, dataUrl)) } catch { /* offline */ }
   }
 
   async function removePhoto() {
     photoDataUrl.value = ''
     localStorage.removeItem('profile:photo')
-    try { await api.patch('/devices/me', buildPatch(undefined, null)) } catch { /* offline */ }
+    try { await api.patch('/users/me', buildPatch(undefined, null)) } catch { /* offline */ }
   }
 
   async function init() {
     const name = displayName.value || null
     const photo = photoDataUrl.value || null
     if (name || photo) {
-      try { await api.patch('/devices/me', { displayName: name, profilePicture: photo }) } catch { /* ignore */ }
+      try { await api.patch('/users/me', { displayName: name, profilePicture: photo }) } catch { /* ignore */ }
     }
   }
 
-  return { firstName, lastName, displayName, initials, photoDataUrl, save, savePhoto, removePhoto, init }
+  function applyFromSync(rawDisplayName: string | null, rawPhoto: string | null) {
+    const parts = rawDisplayName?.split(' ') ?? []
+    const first = parts[0] ?? ''
+    const last = parts.slice(1).join(' ')
+    firstName.value = first
+    lastName.value = last
+    localStorage.setItem('profile:firstName', first)
+    localStorage.setItem('profile:lastName', last)
+    if (rawPhoto) {
+      photoDataUrl.value = rawPhoto
+      try { localStorage.setItem('profile:photo', rawPhoto) } catch { /* quota */ }
+    }
+  }
+
+  return { firstName, lastName, displayName, initials, photoDataUrl, save, savePhoto, removePhoto, init, applyFromSync }
 })

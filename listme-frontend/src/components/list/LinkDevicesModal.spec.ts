@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { mount } from '@vue/test-utils'
 import { nextTick } from 'vue'
+import { setActivePinia, createPinia } from 'pinia'
 
 const { mockCreateSyncToken } = vi.hoisted(() => ({
   mockCreateSyncToken: vi.fn(),
@@ -41,6 +42,7 @@ function stubClipboard() {
 
 describe('LinkDevicesModal', () => {
   beforeEach(() => {
+    setActivePinia(createPinia())
     vi.clearAllMocks()
     Object.assign(window, { location: { origin: 'http://localhost:5173' } })
   })

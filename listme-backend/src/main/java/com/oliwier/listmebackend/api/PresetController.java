@@ -4,8 +4,10 @@ import com.oliwier.listmebackend.api.dto.CreatePresetRequest;
 import com.oliwier.listmebackend.api.dto.PresetItemResponse;
 import com.oliwier.listmebackend.api.dto.PresetResponse;
 import com.oliwier.listmebackend.domain.model.Device;
+import com.oliwier.listmebackend.domain.model.User;
 import com.oliwier.listmebackend.domain.service.PresetService;
 import com.oliwier.listmebackend.identity.CurrentDevice;
+import com.oliwier.listmebackend.identity.CurrentUser;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -24,8 +26,8 @@ public class PresetController {
     private final PresetService presetService;
 
     @GetMapping
-    public List<PresetResponse> getAll(@CurrentDevice Device device) {
-        return presetService.getForDevice(device).stream().map(PresetResponse::from).toList();
+    public List<PresetResponse> getAll(@CurrentUser User user) {
+        return presetService.getForUser(user).stream().map(PresetResponse::from).toList();
     }
 
     @GetMapping("/{presetId}/items")
@@ -36,16 +38,17 @@ public class PresetController {
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     @Transactional
-    public PresetResponse create(@CurrentDevice Device device,
+    public PresetResponse create(@CurrentUser User user,
+                                 @CurrentDevice Device device,
                                  @Valid @RequestBody CreatePresetRequest req) {
         return PresetResponse.from(
-                presetService.createFromList(device, req.fromListId(), req.name(), req.emoji()));
+                presetService.createFromList(user, device, req.fromListId(), req.name(), req.emoji()));
     }
 
     @DeleteMapping("/{presetId}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     @Transactional
-    public void delete(@CurrentDevice Device device, @PathVariable UUID presetId) {
-        presetService.delete(device, presetId);
+    public void delete(@CurrentUser User user, @PathVariable UUID presetId) {
+        presetService.delete(user, presetId);
     }
 }

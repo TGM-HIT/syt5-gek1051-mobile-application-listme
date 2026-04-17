@@ -1,5 +1,5 @@
 import api from './api'
-import type { ShoppingList, ShareTokenResponse, SyncTokenResponse, ParticipantResponse } from '../types'
+import type { ShoppingList, ShareTokenResponse, SyncTokenResponse, SyncPreviewResponse, SyncApplyResponse, ParticipantResponse } from '../types'
 
 export const shareService = {
   generateToken(listId: string): Promise<ShareTokenResponse> {
@@ -18,16 +18,16 @@ export const shareService = {
     return api.post<ShoppingList>(`/share/${token}/join`).then(r => r.data)
   },
 
-  createSyncToken(): Promise<SyncTokenResponse> {
-    return api.post<SyncTokenResponse>('/sync').then(r => r.data)
+  createSyncToken(theme: string): Promise<SyncTokenResponse> {
+    return api.post<SyncTokenResponse>('/sync', { theme }).then(r => r.data)
   },
 
-  previewSyncToken(token: string): Promise<ShoppingList[]> {
-    return api.get<ShoppingList[]>(`/sync/${token}`).then(r => r.data)
+  previewSyncToken(token: string): Promise<SyncPreviewResponse> {
+    return api.get<SyncPreviewResponse>(`/sync/${token}`).then(r => r.data)
   },
 
-  applySyncToken(token: string): Promise<ShoppingList[]> {
-    return api.post<ShoppingList[]>(`/sync/${token}/apply`).then(r => r.data)
+  applySyncToken(token: string): Promise<SyncApplyResponse> {
+    return api.post<SyncApplyResponse>(`/sync/${token}/apply`).then(r => r.data)
   },
 
   getParticipants(listId: string): Promise<ParticipantResponse[]> {

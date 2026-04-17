@@ -1,16 +1,24 @@
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import AppHeader from './components/common/AppHeader.vue'
 import BottomNav from './components/common/BottomNav.vue'
+import ConflictToast from './components/common/ConflictToast.vue'
 import { useOffline } from './composables/useOffline'
 import { useSyncQueue } from './composables/useSyncQueue'
+import { pushService } from './services/push'
 
 const route = useRoute()
 const { isOnline } = useOffline()
 
 // Flush queued ops whenever connectivity returns
 useSyncQueue()
+
+// Request push permission + subscribe after first meaningful interaction
+onMounted(() => {
+  // Small delay so the page settles before the permission prompt appears
+  setTimeout(() => pushService.init(), 3000)
+})
 
 const hideChrome = computed(() => !!route.meta.hideChrome)
 
@@ -62,6 +70,7 @@ const offlineBannerClass = computed(() =>
     </main>
 
     <BottomNav v-if="!hideChrome" />
+    <ConflictToast />
   </div>
 </template>
 

@@ -3,6 +3,7 @@ import { ref, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { shareService } from '../services/share'
 import { useListsStore } from '../stores/lists'
+import { getUserId } from '../services/userId'
 import type { ShoppingList } from '../types'
 
 const route = useRoute()
@@ -57,7 +58,7 @@ async function join() {
         Dieser Einladungslink ist abgelaufen oder wurde widerrufen.
       </p>
       <button
-        @click="router.push({ name: 'home' })"
+        @click="router.push({ name: 'home', params: { userId: getUserId()! } })"
         class="mt-2 px-6 py-2.5 bg-ctp-surface0 text-ctp-text rounded-xl font-medium text-sm"
       >
         Zur Startseite
@@ -86,7 +87,7 @@ async function join() {
           {{ joining ? 'Trete bei…' : 'Dieser Liste beitreten' }}
         </button>
         <button
-          @click="router.push({ name: 'home' })"
+          @click="router.push({ name: 'home', params: { userId: getUserId()! } })"
           class="w-full py-2.5 text-ctp-subtext0 text-sm rounded-xl hover:text-ctp-text transition-colors"
         >
           Abbrechen

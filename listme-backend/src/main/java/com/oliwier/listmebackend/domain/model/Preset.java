@@ -29,6 +29,10 @@ public class Preset {
     @JoinColumn(name = "created_by_device")
     private Device createdByDevice;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "user_id")
+    private User user;
+
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt = Instant.now();
 

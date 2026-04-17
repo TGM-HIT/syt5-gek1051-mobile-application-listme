@@ -36,9 +36,8 @@
         </div>
 
         <!-- Empty -->
-        <div v-else-if="filteredPresets.length === 0 && !searchQuery" class="py-6 text-center">
-          <p class="text-ctp-overlay0 text-sm">Noch keine Vorlagen.</p>
-          <p class="text-ctp-overlay0 text-xs mt-1">Öffne eine Liste → speichere sie als Vorlage.</p>
+        <div v-else-if="filteredPresets.length === 0" class="py-6 text-center">
+          <p class="text-ctp-overlay0 text-sm">Keine Vorlagen gefunden.</p>
         </div>
 
         <!-- Cards -->
@@ -50,7 +49,10 @@
           >
             <span class="text-2xl shrink-0">{{ preset.emoji }}</span>
             <div class="flex-1 min-w-0">
-              <p class="font-medium text-sm text-ctp-text truncate">{{ preset.name }}</p>
+              <div class="flex items-center gap-1.5">
+                <p class="font-medium text-sm text-ctp-text truncate">{{ preset.name }}</p>
+                <span v-if="preset.system" class="shrink-0 text-[10px] font-semibold px-1.5 py-0.5 rounded-md bg-ctp-teal/15 text-ctp-teal">Standard</span>
+              </div>
               <p class="text-xs text-ctp-overlay0">{{ preset.itemCount }} Artikel</p>
             </div>
             <!-- Use preset -->
@@ -60,8 +62,9 @@
             >
               Verwenden
             </button>
-            <!-- Delete -->
+            <!-- Delete (only for user-created presets) -->
             <button
+              v-if="!preset.system"
               @click="confirmDeletePreset(preset)"
               class="shrink-0 p-1.5 rounded-xl text-ctp-overlay0 hover:text-ctp-red hover:bg-ctp-red/10 transition-colors"
               aria-label="Vorlage löschen"
@@ -141,6 +144,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
+import { getUserId } from '../services/userId'
 import { presetService, type Preset } from '../services/preset'
 import { loadHistory, type HistorySuggestion } from '../services/itemHistory'
 
@@ -180,7 +184,7 @@ onMounted(async () => {
 
 function usePreset(preset: Preset) {
   // Navigate to home with a query param; AddListModal picks it up
-  router.push({ name: 'home', query: { presetId: preset.id, presetEmoji: preset.emoji, presetName: preset.name } })
+  router.push({ name: 'home', params: { userId: getUserId()! }, query: { presetId: preset.id, presetEmoji: preset.emoji, presetName: preset.name } })
 }
 
 function confirmDeletePreset(preset: Preset) {

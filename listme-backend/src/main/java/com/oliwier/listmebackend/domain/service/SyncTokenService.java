@@ -1,9 +1,9 @@
 package com.oliwier.listmebackend.domain.service;
 
+import com.oliwier.listmebackend.api.dto.SyncApplyResponse;
+import com.oliwier.listmebackend.api.dto.ListResponse;
 import com.oliwier.listmebackend.domain.model.*;
-import com.oliwier.listmebackend.domain.repository.ListDeviceRepository;
-import com.oliwier.listmebackend.domain.repository.ShoppingListRepository;
-import com.oliwier.listmebackend.domain.repository.SyncTokenRepository;
+import com.oliwier.listmebackend.domain.repository.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -15,7 +15,6 @@ import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
 
 @Service
 @RequiredArgsConstructor
@@ -28,9 +27,12 @@ public class SyncTokenService {
     private final SyncTokenRepository syncTokenRepository;
     private final ShoppingListRepository listRepository;
     private final ListDeviceRepository listDeviceRepository;
+    private final PresetRepository presetRepository;
+    private final DeviceRepository deviceRepository;
+    private final DeviceSiblingRepository deviceSiblingRepository;
 
     @Transactional
-    public SyncToken create(Device device) {
+    public SyncToken create(Device device, String theme) {
         List<ShoppingList> deviceLists = listRepository.findAllByDeviceId(device.getId());
 
         SyncToken syncToken = new SyncToken();
@@ -38,6 +40,9 @@ public class SyncTokenService {
         syncToken.setCreatedByDevice(device);
         syncToken.setLists(new HashSet<>(deviceLists));
         syncToken.setExpiresAt(Instant.now().plus(30, ChronoUnit.DAYS));
+        syncToken.setDisplayNameSnapshot(device.getDisplayName());
+        syncToken.setProfilePictureSnapshot(device.getProfilePicture());
+        syncToken.setThemeSnapshot(theme != null && !theme.isBlank() ? theme : "dark");
 
         return syncTokenRepository.save(syncToken);
     }
@@ -54,15 +59,72 @@ public class SyncTokenService {
     }
 
     @Transactional
-    public Set<ShoppingList> apply(String token, Device device) {
+    public SyncApplyResponse apply(String token, Device device) {
         SyncToken syncToken = resolve(token);
+        Device source = syncToken.getCreatedByDevice();
 
+        // Add device to all lists
         for (ShoppingList list : syncToken.getLists()) {
             if (!listDeviceRepository.existsByListIdAndDeviceId(list.getId(), device.getId())) {
                 listDeviceRepository.save(new ListDevice(list, device, "editor"));
             }
         }
-        return syncToken.getLists();
+
+        // Apply source profile to the new device.
+        // The device argument is detached (resolved before this transaction started),
+        // so we must explicitly merge it via save() to persist the changes.
+        if (syncToken.getDisplayNameSnapshot() != null || syncToken.getProfilePictureSnapshot() != null) {
+            device.setDisplayName(syncToken.getDisplayNameSnapshot());
+            device.setProfilePicture(syncToken.getProfilePictureSnapshot());
+            deviceRepository.save(device);
+        }
+
+        // Record bidirectional sibling relationship (skip if same device or already recorded)
+        if (!source.getId().equals(device.getId())) {
+            DeviceSiblingId abId = new DeviceSiblingId(source.getId(), device.getId());
+            if (!deviceSiblingRepository.existsById(abId)) {
+                deviceSiblingRepository.save(new DeviceSibling(source.getId(), device.getId()));
+                deviceSiblingRepository.save(new DeviceSibling(device.getId(), source.getId()));
+            }
+        }
+
+        // Clone user presets from source to destination (skip if same device)
+        int presetsImported = 0;
+        if (!source.getId().equals(device.getId())) {
+            presetsImported = clonePresets(source, device);
+        }
+
+        List<ListResponse> listResponses = syncToken.getLists().stream().map(ListResponse::from).toList();
+        return new SyncApplyResponse(
+                listResponses,
+                syncToken.getDisplayNameSnapshot(),
+                syncToken.getProfilePictureSnapshot(),
+                syncToken.getThemeSnapshot(),
+                presetsImported
+        );
+    }
+
+    private int clonePresets(Device source, Device destination) {
+        List<Preset> sourcePresets = presetRepository.findByCreatedByDeviceIdOrderByCreatedAtDesc(source.getId());
+        for (Preset src : sourcePresets) {
+            Preset copy = new Preset();
+            copy.setName(src.getName());
+            copy.setEmoji(src.getEmoji());
+            copy.setCreatedByDevice(destination);
+            for (PresetItem srcItem : src.getItems()) {
+                PresetItem item = new PresetItem();
+                item.setPreset(copy);
+                item.setName(srcItem.getName());
+                item.setQuantity(srcItem.getQuantity());
+                item.setQuantityUnit(srcItem.getQuantityUnit());
+                item.setPrice(srcItem.getPrice());
+                item.setImageUrl(srcItem.getImageUrl());
+                item.setPosition(srcItem.getPosition());
+                copy.getItems().add(item);
+            }
+            presetRepository.save(copy);
+        }
+        return sourcePresets.size();
     }
 
     private String randomToken(int length) {
