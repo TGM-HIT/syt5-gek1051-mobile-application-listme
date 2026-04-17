@@ -79,7 +79,8 @@ public class WebPushService {
     @Transactional
     public void subscribe(User user, String endpoint, String p256dh, String auth) {
         subRepo.findByEndpoint(endpoint).ifPresentOrElse(
-            existing -> {},
+            existing -> log.info("[WebPush] Subscription already exists for user={} endpoint={}",
+                    user.getId(), endpoint.substring(0, Math.min(60, endpoint.length()))),
             () -> {
                 PushSubscriptionEntry sub = new PushSubscriptionEntry();
                 sub.setUser(user);
@@ -87,6 +88,7 @@ public class WebPushService {
                 sub.setP256dh(p256dh);
                 sub.setAuthKey(auth);
                 subRepo.save(sub);
+                log.info("[WebPush] Saved subscription for user={}", user.getId());
             }
         );
     }
@@ -97,8 +99,12 @@ public class WebPushService {
     }
 
     public void sendToUser(UUID userId, String title, String body, String url) {
-        if (pushService == null) return;
+        if (pushService == null) {
+            log.warn("[WebPush] sendToUser called but pushService is null (init failed) — userId={}", userId);
+            return;
+        }
         List<PushSubscriptionEntry> subs = subRepo.findByUserId(userId);
+        log.info("[WebPush] sendToUser userId={} title='{}' subs={}", userId, title, subs.size());
         for (PushSubscriptionEntry sub : subs) {
             try {
                 Map<String, String> payload = Map.of("title", title, "body", body, "url", url);
@@ -106,12 +112,14 @@ public class WebPushService {
                 Notification notification = new Notification(
                         sub.getEndpoint(), sub.getP256dh(), sub.getAuthKey(), payloadBytes);
                 pushService.send(notification);
+                log.info("[WebPush] Sent push to endpoint={}", sub.getEndpoint().substring(0, Math.min(60, sub.getEndpoint().length())));
             } catch (Exception e) {
                 String msg = e.getMessage();
                 if (msg != null && (msg.contains("410") || msg.contains("404"))) {
+                    log.info("[WebPush] Subscription expired ({}), removing endpoint={}", msg, sub.getEndpoint().substring(0, Math.min(60, sub.getEndpoint().length())));
                     subRepo.delete(sub);
                 } else {
-                    log.warn("[WebPush] Failed to send push to {}: {}", sub.getEndpoint(), msg);
+                    log.warn("[WebPush] Failed to send push to {}: {}", sub.getEndpoint().substring(0, Math.min(60, sub.getEndpoint().length())), msg);
                 }
             }
         }

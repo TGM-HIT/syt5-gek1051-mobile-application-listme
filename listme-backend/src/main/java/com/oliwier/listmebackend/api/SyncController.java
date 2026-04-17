@@ -13,6 +13,7 @@ import com.oliwier.listmebackend.identity.CurrentUser;
 import com.oliwier.listmebackend.notification.WebPushService;
 import com.oliwier.listmebackend.websocket.ListSyncBroadcaster;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.transaction.annotation.Transactional;
@@ -33,6 +34,7 @@ import java.util.UUID;
 @RestController
 @RequestMapping("/api/lists/{listId}/crdt")
 @RequiredArgsConstructor
+@Slf4j
 @Transactional(readOnly = true)
 public class SyncController {
 
@@ -77,6 +79,9 @@ public class SyncController {
         ShoppingList list = listRepository.findById(listId).orElse(null);
         String listName = list != null ? list.getName() : "";
 
+        log.info("[Sync] pushOps listId={} user={} applied={} conflicts={}",
+                listId, user != null ? user.getId() : "null", result.applied().size(), result.conflicts().size());
+
         // Push notification: item(s) added — notify other participants
         boolean hasItemCreate = result.applied().stream()
                 .anyMatch(op -> "ITEM_CREATE".equals(op.getOperationType()));
@@ -85,9 +90,14 @@ public class SyncController {
                     .filter(op -> "ITEM_CREATE".equals(op.getOperationType()))
                     .map(op -> (String) op.getPayload().getOrDefault("name", ""))
                     .findFirst().orElse("");
-            listDeviceRepository.findByListId(listId).stream()
+            var participants = listDeviceRepository.findByListId(listId);
+            log.info("[Sync] ITEM_CREATE detected — {} participant device(s) on list", participants.size());
+            participants.stream()
+                    .peek(ld -> log.info("[Sync] participant device={} user={}",
+                            ld.getDevice().getId(),
+                            ld.getDevice().getUser() != null ? ld.getDevice().getUser().getId() : "null"))
                     .map(ld -> ld.getDevice().getUser())
-                    .filter(u -> u != null && !u.getId().equals(user.getId()))
+                    .filter(u -> u != null && !u.getId().equals(user != null ? user.getId() : null))
                     .map(User::getId).distinct()
                     .forEach(uid -> webPushService.sendToUser(uid,
                             "Neuer Artikel in \u201e" + listName + "\u201c",
