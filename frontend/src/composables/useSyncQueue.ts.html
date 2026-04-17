@@ -23,16 +23,16 @@
         <div class='clearfix'>
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">50.56% </span>
+                <span class="strong">51.68% </span>
                 <span class="quiet">Statements</span>
-                <span class='fraction'>45/89</span>
+                <span class='fraction'>46/89</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">38.46% </span>
+                <span class="strong">35.71% </span>
                 <span class="quiet">Branches</span>
-                <span class='fraction'>10/26</span>
+                <span class='fraction'>10/28</span>
             </div>
         
             
@@ -44,9 +44,9 @@
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">56% </span>
+                <span class="strong">57.33% </span>
                 <span class="quiet">Lines</span>
-                <span class='fraction'>42/75</span>
+                <span class='fraction'>43/75</span>
             </div>
         
             
@@ -235,7 +235,14 @@
 <a name='L170'></a><a href='#L170'>170</a>
 <a name='L171'></a><a href='#L171'>171</a>
 <a name='L172'></a><a href='#L172'>172</a>
-<a name='L173'></a><a href='#L173'>173</a></td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
+<a name='L173'></a><a href='#L173'>173</a>
+<a name='L174'></a><a href='#L174'>174</a>
+<a name='L175'></a><a href='#L175'>175</a>
+<a name='L176'></a><a href='#L176'>176</a>
+<a name='L177'></a><a href='#L177'>177</a>
+<a name='L178'></a><a href='#L178'>178</a>
+<a name='L179'></a><a href='#L179'>179</a>
+<a name='L180'></a><a href='#L180'>180</a></td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -269,6 +276,11 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">8x</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-yes">8x</span>
 <span class="cline-any cline-yes">1x</span>
@@ -281,8 +293,10 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -407,7 +421,7 @@
 <span class="cline-any cline-yes">7x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js">import { watch } from 'vue'
+<span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js">import { watch, onMounted } from 'vue'
 import { OperationQueue } from '../crdt/OperationQueue'
 import api from '../services/api'
 import { useOffline } from './useOffline'
@@ -435,6 +449,11 @@ let reconnectListenerRegistered = false
 export function useSyncQueue() {
   const { isOnline } = useOffline()
 &nbsp;
+  // Flush ops queued in a previous session (app opened while already online)
+  onMounted(<span class="fstat-no" title="function not covered" >async () =&gt; {</span>
+<span class="cstat-no" title="statement not covered" >    if (isOnline.value) <span class="cstat-no" title="statement not covered" >await flushAll()</span></span>
+  })
+&nbsp;
   // Flush when navigator.onLine recovers (full network loss scenario)
   watch(isOnline, <span class="fstat-no" title="function not covered" >async (o</span>nline) =&gt; {
 <span class="cstat-no" title="statement not covered" >    if (online) <span class="cstat-no" title="statement not covered" >await flushAll()</span></span>
@@ -452,9 +471,11 @@ export function useSyncQueue() {
 &nbsp;
 async function <span class="fstat-no" title="function not covered" >flushAll(): Promise&lt;void&gt; {</span>
 <span class="cstat-no" title="statement not covered" >  await flushPendingLists()</span>
-  const flushedListIds = <span class="cstat-no" title="statement not covered" >await flushQueue()</span>
-  const <span class="cstat-no" title="statement not covered" >store = useItemsStore()</span>
-<span class="cstat-no" title="statement not covered" >  await Promise.allSettled(flushedListIds.map(<span class="fstat-no" title="function not covered" >id =&gt; <span class="cstat-no" title="statement not covered" >s</span>tore.fetchAll(id))</span>)</span>
+<span class="cstat-no" title="statement not covered" >  await flushQueue()</span>
+  // No fetchAll here: optimistic state in the store + cache is already correct,
+  // and pullRemoteOps (called inside flushQueue) applies any remote changes via applyOp.
+  // Calling fetchAll here races with the POST and can overwrite correct local state
+  // with stale server data if the response arrives before the server processes our ops.
 }
 &nbsp;
 /**
@@ -586,7 +607,7 @@ async function flushQueue(): Promise&lt;string[]&gt; {
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2026-04-17T10:49:05.989Z
+                at 2026-04-17T11:09:12.904Z
             </div>
         <script src="../../prettify.js"></script>
         <script>
