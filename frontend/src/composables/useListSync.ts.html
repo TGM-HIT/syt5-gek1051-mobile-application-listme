@@ -23,9 +23,9 @@
         <div class='clearfix'>
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">72.72% </span>
+                <span class="strong">73.86% </span>
                 <span class="quiet">Statements</span>
-                <span class='fraction'>56/77</span>
+                <span class='fraction'>65/88</span>
             </div>
         
             
@@ -39,14 +39,14 @@
             <div class='fl pad1y space-right2'>
                 <span class="strong">66.66% </span>
                 <span class="quiet">Functions</span>
-                <span class='fraction'>8/12</span>
+                <span class='fraction'>10/15</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">78.12% </span>
+                <span class="strong">78.66% </span>
                 <span class="quiet">Lines</span>
-                <span class='fraction'>50/64</span>
+                <span class='fraction'>59/75</span>
             </div>
         
             
@@ -215,7 +215,26 @@
 <a name='L150'></a><a href='#L150'>150</a>
 <a name='L151'></a><a href='#L151'>151</a>
 <a name='L152'></a><a href='#L152'>152</a>
-<a name='L153'></a><a href='#L153'>153</a></td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
+<a name='L153'></a><a href='#L153'>153</a>
+<a name='L154'></a><a href='#L154'>154</a>
+<a name='L155'></a><a href='#L155'>155</a>
+<a name='L156'></a><a href='#L156'>156</a>
+<a name='L157'></a><a href='#L157'>157</a>
+<a name='L158'></a><a href='#L158'>158</a>
+<a name='L159'></a><a href='#L159'>159</a>
+<a name='L160'></a><a href='#L160'>160</a>
+<a name='L161'></a><a href='#L161'>161</a>
+<a name='L162'></a><a href='#L162'>162</a>
+<a name='L163'></a><a href='#L163'>163</a>
+<a name='L164'></a><a href='#L164'>164</a>
+<a name='L165'></a><a href='#L165'>165</a>
+<a name='L166'></a><a href='#L166'>166</a>
+<a name='L167'></a><a href='#L167'>167</a>
+<a name='L168'></a><a href='#L168'>168</a>
+<a name='L169'></a><a href='#L169'>169</a>
+<a name='L170'></a><a href='#L170'>170</a>
+<a name='L171'></a><a href='#L171'>171</a>
+<a name='L172'></a><a href='#L172'>172</a></td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -256,6 +275,13 @@
 <span class="cline-any cline-yes">10x</span>
 <span class="cline-any cline-yes">10x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">10x</span>
+<span class="cline-any cline-yes">10x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">10x</span>
+<span class="cline-any cline-yes">10x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-yes">10x</span>
 <span class="cline-any cline-yes">2x</span>
@@ -274,7 +300,6 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-yes">1x</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-yes">10x</span>
@@ -290,9 +315,22 @@
 <span class="cline-any cline-yes">10x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">10x</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">10x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-yes">1x</span>
-<span class="cline-any cline-yes">2x</span>
+<span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-yes">1x</span>
@@ -368,7 +406,7 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js">import { ref, onUnmounted } from 'vue'
-import { connectWebSocket, subscribe, send, isConnected } from '../services/websocket'
+import { connectWebSocket, subscribe, send, isConnected, onReconnect } from '../services/websocket'
 import { useItemsStore } from '../stores/items'
 import { usePresenceStore } from '../stores/presence'
 import { useNotificationsStore } from '../stores/notifications'
@@ -408,38 +446,57 @@ export function useListSync() {
     const notificationsStore = useNotificationsStore()
     const myDeviceId = await getDeviceId()
 &nbsp;
-    // Subscribe to CRDT operation stream
-    const unsubOps = subscribe(`/topic/list/${listId}`, (payload) =&gt; {
-      const op = payload as CrdtOperation
-      // Skip ops originating from this device — already applied locally via HTTP response
-      if (op.deviceId === myDeviceId) return
-      sessionOps.push(op)
-      const newConflicts = detectConflicts(sessionOps)
-      const hadConflicts = conflicts.value.length
-      conflicts.value = newConflicts
-      // If new conflicts appeared, also notify the global store (for when list isn't focused)
-      <span class="missing-if-branch" title="else path not taken" >E</span>if (newConflicts.length &gt; hadConflicts) {
-        notificationsStore.add({
-          listId,
-          listName: '', // name not available here; toast will show empty or be skipped
-          count: newConflicts.length - hadConflicts,
-        })
-      }
-      applyOp(listId, op, itemsStore)
+    let unsubOps: (() =&gt; void) | null = null
+    let unsubPresence: (() =&gt; void) | null = null
+&nbsp;
+    function subscribeTopics() {
+      // Clear stale topic subscriptions from previous connection
+      unsubOps?.()
+      unsubPresence?.()
+&nbsp;
+      unsubOps = subscribe(`/topic/list/${listId}`, (payload) =&gt; {
+        const op = payload as CrdtOperation
+        // Skip ops originating from this device — already applied locally via HTTP response
+        if (op.deviceId === myDeviceId) return
+        sessionOps.push(op)
+        const newConflicts = detectConflicts(sessionOps)
+        const hadConflicts = conflicts.value.length
+        conflicts.value = newConflicts
+        // If new conflicts appeared, also notify the global store (for when list isn't focused)
+        <span class="missing-if-branch" title="else path not taken" >E</span>if (newConflicts.length &gt; hadConflicts) {
+          notificationsStore.add({
+            listId,
+            listName: '', // name not available here; toast will show empty or be skipped
+            count: newConflicts.length - hadConflicts,
+          })
+        }
+        applyOp(listId, op, itemsStore)
+      })
+&nbsp;
+      unsubPresence = subscribe(`/topic/list/${listId}/presence`, (payload) =&gt; {
+        const msg = payload as { event: string; deviceId: string; onlineDevices: string[] }
+        if (msg.event === 'snapshot') presenceStore.setSnapshot(listId, msg.onlineDevices)
+        else if (msg.event === 'joined') presenceStore.addDevice(listId, msg.deviceId<span class="missing-if-branch" title="else path not taken" >E</span>)
+        else if (msg.event === 'left') presenceStore.removeDevice(listId, msg.deviceId)
+      })
+&nbsp;
+      send(`/app/list/${listId}/join`)
+    }
+&nbsp;
+    subscribeTopics()
+&nbsp;
+    // Re-subscribe and re-announce presence after every reconnect
+    const unsubReconnect = onReconnect(<span class="fstat-no" title="function not covered" >() =&gt; {</span>
+<span class="cstat-no" title="statement not covered" >      connected.value = true</span>
+<span class="cstat-no" title="statement not covered" >      subscribeTopics()</span>
     })
 &nbsp;
-    // Subscribe to presence events
-    const unsubPresence = subscribe(`/topic/list/${listId}/presence`, (payload) =&gt; {
-      const msg = payload as { event: string; deviceId: string; onlineDevices: string[] }
-      if (msg.event === 'snapshot') presenceStore.setSnapshot(listId, msg.onlineDevices)
-      else if (msg.event === 'joined') presenceStore.addDevice(listId, msg.deviceId<span class="missing-if-branch" title="else path not taken" >E</span>)
-      else if (msg.event === 'left') presenceStore.removeDevice(listId, msg.deviceId)
+    // Single cleanup entry for stopSync / onUnmounted
+    unsubscribers.push(() =&gt; {
+      unsubOps?.()
+      unsubPresence?.()
+      unsubReconnect()
     })
-&nbsp;
-    unsubscribers.push(unsubOps, unsubPresence)
-&nbsp;
-    // Announce presence
-    send(`/app/list/${listId}/join`)
   }
 &nbsp;
   function stopSync() {
@@ -526,7 +583,7 @@ export function applyOp(listId: string, op: CrdtOperation, itemsStore: ReturnTyp
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2026-04-17T07:05:39.174Z
+                at 2026-04-17T08:54:58.151Z
             </div>
         <script src="../../prettify.js"></script>
         <script>
