@@ -9,10 +9,13 @@ import com.oliwier.listmebackend.identity.CurrentDevice;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.Instant;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 @RestController
@@ -22,18 +25,19 @@ import java.util.UUID;
 public class ItemController {
 
     private final ItemService itemService;
+    private final SimpMessagingTemplate messaging;
 
     @GetMapping
     public List&lt;ItemResponse&gt; getItems(@PathVariable UUID listId,
                                        @CurrentDevice Device device,
                                        @RequestParam(required = false) String q) {
-<span class="fc" id="L30">        return itemService.getByList(listId, device, q).stream().map(ItemResponse::from).toList();</span>
+<span class="fc" id="L34">        return itemService.getByList(listId, device, q).stream().map(ItemResponse::from).toList();</span>
     }
 
     @GetMapping(&quot;/trash&quot;)
     public List&lt;ItemResponse&gt; getTrash(@PathVariable UUID listId,
                                        @CurrentDevice Device device) {
-<span class="nc" id="L36">        return itemService.getTrash(listId, device).stream().map(ItemResponse::from).toList();</span>
+<span class="nc" id="L40">        return itemService.getTrash(listId, device).stream().map(ItemResponse::from).toList();</span>
     }
 
     @PostMapping
@@ -42,7 +46,10 @@ public class ItemController {
     public ItemResponse create(@PathVariable UUID listId,
                                @CurrentDevice Device device,
                                @Valid @RequestBody CreateItemRequest req) {
-<span class="fc" id="L45">        return ItemResponse.from(itemService.create(listId, device, req));</span>
+<span class="fc" id="L49">        ItemResponse item = ItemResponse.from(itemService.create(listId, device, req));</span>
+<span class="fc" id="L50">        broadcast(listId, device, &quot;ITEM_CREATE&quot;,</span>
+<span class="fc" id="L51">                Map.of(&quot;itemId&quot;, item.id(), &quot;name&quot;, item.name(), &quot;position&quot;, item.position()));</span>
+<span class="fc" id="L52">        return item;</span>
     }
 
     @PutMapping(&quot;/{itemId}&quot;)
@@ -51,7 +58,10 @@ public class ItemController {
                                @PathVariable UUID itemId,
                                @CurrentDevice Device device,
                                @Valid @RequestBody UpdateItemRequest req) {
-<span class="fc" id="L54">        return ItemResponse.from(itemService.update(listId, itemId, device, req));</span>
+<span class="fc" id="L61">        ItemResponse item = ItemResponse.from(itemService.update(listId, itemId, device, req));</span>
+<span class="fc" id="L62">        broadcast(listId, device, &quot;ITEM_UPDATE&quot;,</span>
+<span class="fc" id="L63">                Map.of(&quot;itemId&quot;, item.id(), &quot;name&quot;, item.name()));</span>
+<span class="fc" id="L64">        return item;</span>
     }
 
     @PatchMapping(&quot;/{itemId}/check&quot;)
@@ -59,7 +69,10 @@ public class ItemController {
     public ItemResponse toggleCheck(@PathVariable UUID listId,
                                     @PathVariable UUID itemId,
                                     @CurrentDevice Device device) {
-<span class="fc" id="L62">        return ItemResponse.from(itemService.toggleCheck(listId, itemId, device));</span>
+<span class="fc" id="L72">        ItemResponse item = ItemResponse.from(itemService.toggleCheck(listId, itemId, device));</span>
+<span class="fc" id="L73">        broadcast(listId, device, &quot;ITEM_CHECK&quot;,</span>
+<span class="fc" id="L74">                Map.of(&quot;itemId&quot;, item.id(), &quot;checked&quot;, item.checked()));</span>
+<span class="fc" id="L75">        return item;</span>
     }
 
     /** Soft-delete: moves item to trash. */
@@ -69,8 +82,9 @@ public class ItemController {
     public void delete(@PathVariable UUID listId,
                        @PathVariable UUID itemId,
                        @CurrentDevice Device device) {
-<span class="fc" id="L72">        itemService.delete(listId, itemId, device);</span>
-<span class="fc" id="L73">    }</span>
+<span class="fc" id="L85">        itemService.delete(listId, itemId, device);</span>
+<span class="fc" id="L86">        broadcast(listId, device, &quot;ITEM_DELETE&quot;, Map.of(&quot;itemId&quot;, itemId));</span>
+<span class="fc" id="L87">    }</span>
 
     /** Restore an item from trash. */
     @PatchMapping(&quot;/{itemId}/restore&quot;)
@@ -78,7 +92,10 @@ public class ItemController {
     public ItemResponse restore(@PathVariable UUID listId,
                                 @PathVariable UUID itemId,
                                 @CurrentDevice Device device) {
-<span class="nc" id="L81">        return ItemResponse.from(itemService.restore(listId, itemId, device));</span>
+<span class="nc" id="L95">        ItemResponse item = ItemResponse.from(itemService.restore(listId, itemId, device));</span>
+<span class="nc" id="L96">        broadcast(listId, device, &quot;ITEM_CREATE&quot;,</span>
+<span class="nc" id="L97">                Map.of(&quot;itemId&quot;, item.id(), &quot;name&quot;, item.name(), &quot;position&quot;, item.position()));</span>
+<span class="nc" id="L98">        return item;</span>
     }
 
     /** Permanently delete a trashed item — irreversible. */
@@ -88,7 +105,20 @@ public class ItemController {
     public void permanentDelete(@PathVariable UUID listId,
                                 @PathVariable UUID itemId,
                                 @CurrentDevice Device device) {
-<span class="nc" id="L91">        itemService.permanentDelete(listId, itemId, device);</span>
-<span class="nc" id="L92">    }</span>
+<span class="nc" id="L108">        itemService.permanentDelete(listId, itemId, device);</span>
+<span class="nc" id="L109">    }</span>
+
+    private void broadcast(UUID listId, Device device, String opType, Map&lt;String, Object&gt; payload) {
+<span class="fc" id="L112">        Object event = Map.of(</span>
+<span class="fc" id="L113">                &quot;id&quot;, UUID.randomUUID().toString(),</span>
+<span class="fc" id="L114">                &quot;listId&quot;, listId.toString(),</span>
+<span class="fc" id="L115">                &quot;deviceId&quot;, device.getId().toString(),</span>
+                &quot;operationType&quot;, opType,
+                &quot;payload&quot;, payload,
+<span class="fc" id="L118">                &quot;vectorClock&quot;, Map.of(),</span>
+<span class="fc" id="L119">                &quot;createdAt&quot;, Instant.now().toString()</span>
+        );
+<span class="fc" id="L121">        messaging.convertAndSend(&quot;/topic/list/&quot; + listId, event);</span>
+<span class="fc" id="L122">    }</span>
 }
 </pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>
