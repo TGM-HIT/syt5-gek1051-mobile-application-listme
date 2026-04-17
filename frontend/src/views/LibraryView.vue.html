@@ -23,16 +23,16 @@
         <div class='clearfix'>
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">95.65% </span>
+                <span class="strong">95.71% </span>
                 <span class="quiet">Statements</span>
-                <span class='fraction'>66/69</span>
+                <span class='fraction'>67/70</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">88.33% </span>
+                <span class="strong">86.88% </span>
                 <span class="quiet">Branches</span>
-                <span class='fraction'>53/60</span>
+                <span class='fraction'>53/61</span>
             </div>
         
             
@@ -44,9 +44,9 @@
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">96.77% </span>
+                <span class="strong">96.82% </span>
                 <span class="quiet">Lines</span>
-                <span class='fraction'>60/62</span>
+                <span class='fraction'>61/63</span>
             </div>
         
             
@@ -270,7 +270,11 @@
 <a name='L205'></a><a href='#L205'>205</a>
 <a name='L206'></a><a href='#L206'>206</a>
 <a name='L207'></a><a href='#L207'>207</a>
-<a name='L208'></a><a href='#L208'>208</a></td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
+<a name='L208'></a><a href='#L208'>208</a>
+<a name='L209'></a><a href='#L209'>209</a>
+<a name='L210'></a><a href='#L210'>210</a>
+<a name='L211'></a><a href='#L211'>211</a>
+<a name='L212'></a><a href='#L212'>212</a></td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-yes">31x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-yes">1x</span>
@@ -313,7 +317,6 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-yes">9x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -326,8 +329,12 @@
 <span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -405,6 +412,7 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-yes">17x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -515,9 +523,8 @@
         &lt;/div&gt;
 &nbsp;
         &lt;!-- Empty --&gt;
-        &lt;div v-else-if="filteredPresets.length === 0 &amp;&amp; !searchQuery" class="py-6 text-center"&gt;
-          &lt;p class="text-ctp-overlay0 text-sm"&gt;Noch keine Vorlagen.&lt;/p&gt;
-          &lt;p class="text-ctp-overlay0 text-xs mt-1"&gt;Öffne eine Liste → speichere sie als Vorlage.&lt;/p&gt;
+        &lt;div v-else-if="filteredPresets.length === 0" class="py-6 text-center"&gt;
+          &lt;p class="text-ctp-overlay0 text-sm"&gt;Keine Vorlagen gefunden.&lt;/p&gt;
         &lt;/div&gt;
 &nbsp;
         &lt;!-- Cards --&gt;
@@ -529,7 +536,10 @@
           &gt;
             &lt;span class="text-2xl shrink-0"&gt;{{ preset.emoji }}&lt;/span&gt;
             &lt;div class="flex-1 min-w-0"&gt;
-              &lt;p class="font-medium text-sm text-ctp-text truncate"&gt;{{ preset.name }}&lt;/p&gt;
+              &lt;div class="flex items-center gap-1.5"&gt;
+                &lt;p class="font-medium text-sm text-ctp-text truncate"&gt;{{ preset.name }}&lt;/p&gt;
+                &lt;span v-if="preset.<span class="branch-0 cbranch-no" title="branch not covered" >system" class="shrink-0 text-[10px] font-semibold px-1.5 py-0.5 rounded-md bg-ctp-teal/15 text-ctp-teal"&gt;Standard&lt;/span&gt;</span>
+              &lt;/div&gt;
               &lt;p class="text-xs text-ctp-overlay0"&gt;{{ preset.itemCount }} Artikel&lt;/p&gt;
             &lt;/div&gt;
             &lt;!-- Use preset --&gt;
@@ -539,8 +549,9 @@
             &gt;
               Verwenden
             &lt;/button&gt;
-            &lt;!-- Delete --&gt;
+            &lt;!-- Delete (only for user-created presets) --&gt;
             &lt;button
+              v-if="!preset.system"
               @click="confirmDeletePreset(preset)"
               class="shrink-0 p-1.5 rounded-xl text-ctp-overlay0 hover:text-ctp-red hover:bg-ctp-red/10 transition-colors"
               aria-label="Vorlage löschen"
@@ -620,6 +631,7 @@
 &lt;script setup lang="ts"&gt;
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
+import { getUserId } from '../services/userId'
 import { presetService, type Preset } from '../services/preset'
 import { loadHistory, type HistorySuggestion } from '../services/itemHistory'
 &nbsp;
@@ -659,7 +671,7 @@ onMounted(async () =&gt; {
 &nbsp;
 function usePreset(preset: Preset) {
   // Navigate to home with a query param; AddListModal picks it up
-  router.push({ name: 'home', query: { presetId: preset.id, presetEmoji: preset.emoji, presetName: preset.name } })
+  router.push({ name: 'home', params: { userId: getUserId()! }, query: { presetId: preset.id, presetEmoji: preset.emoji, presetName: preset.name } })
 }
 &nbsp;
 function confirmDeletePreset(preset: Preset) {
@@ -691,7 +703,7 @@ async function doDeletePreset() {
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2026-04-09T08:13:20.716Z
+                at 2026-04-17T06:49:27.656Z
             </div>
         <script src="../../prettify.js"></script>
         <script>

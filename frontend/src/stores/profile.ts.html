@@ -23,30 +23,30 @@
         <div class='clearfix'>
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">100% </span>
+                <span class="strong">78.43% </span>
                 <span class="quiet">Statements</span>
-                <span class='fraction'>40/40</span>
+                <span class='fraction'>40/51</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">96.66% </span>
+                <span class="strong">80.55% </span>
                 <span class="quiet">Branches</span>
-                <span class='fraction'>29/30</span>
+                <span class='fraction'>29/36</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">100% </span>
+                <span class="strong">88.88% </span>
                 <span class="quiet">Functions</span>
-                <span class='fraction'>8/8</span>
+                <span class='fraction'>8/9</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">100% </span>
+                <span class="strong">76.74% </span>
                 <span class="quiet">Lines</span>
-                <span class='fraction'>33/33</span>
+                <span class='fraction'>33/43</span>
             </div>
         
             
@@ -61,7 +61,7 @@
             </div>
         </template>
     </div>
-    <div class='status-line high'></div>
+    <div class='status-line medium'></div>
     <pre><table class="coverage">
 <tr><td class="line-count quiet"><a name='L1'></a><a href='#L1'>1</a>
 <a name='L2'></a><a href='#L2'>2</a>
@@ -122,7 +122,21 @@
 <a name='L57'></a><a href='#L57'>57</a>
 <a name='L58'></a><a href='#L58'>58</a>
 <a name='L59'></a><a href='#L59'>59</a>
-<a name='L60'></a><a href='#L60'>60</a></td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
+<a name='L60'></a><a href='#L60'>60</a>
+<a name='L61'></a><a href='#L61'>61</a>
+<a name='L62'></a><a href='#L62'>62</a>
+<a name='L63'></a><a href='#L63'>63</a>
+<a name='L64'></a><a href='#L64'>64</a>
+<a name='L65'></a><a href='#L65'>65</a>
+<a name='L66'></a><a href='#L66'>66</a>
+<a name='L67'></a><a href='#L67'>67</a>
+<a name='L68'></a><a href='#L68'>68</a>
+<a name='L69'></a><a href='#L69'>69</a>
+<a name='L70'></a><a href='#L70'>70</a>
+<a name='L71'></a><a href='#L71'>71</a>
+<a name='L72'></a><a href='#L72'>72</a>
+<a name='L73'></a><a href='#L73'>73</a>
+<a name='L74'></a><a href='#L74'>74</a></td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -176,6 +190,20 @@
 <span class="cline-any cline-yes">2x</span>
 <span class="cline-any cline-yes">2x</span>
 <span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -215,30 +243,44 @@ export const useProfileStore = defineStore('profile', () =&gt; {
     localStorage.setItem('profile:firstName', first)
     localStorage.setItem('profile:lastName', last)
     const name = [first.trim(), last.trim()].filter(Boolean).join(' ')
-    try { await api.patch('/devices/me', buildPatch(name || <span class="branch-1 cbranch-no" title="branch not covered" >null)</span>) } catch { /* offline */ }
+    try { await api.patch('/users/me', buildPatch(name || <span class="branch-1 cbranch-no" title="branch not covered" >null)</span>) } catch { /* offline */ }
   }
 &nbsp;
   async function savePhoto(dataUrl: string) {
     photoDataUrl.value = dataUrl
     try { localStorage.setItem('profile:photo', dataUrl) } catch { /* quota exceeded */ }
-    try { await api.patch('/devices/me', buildPatch(undefined, dataUrl)) } catch { /* offline */ }
+    try { await api.patch('/users/me', buildPatch(undefined, dataUrl)) } catch { /* offline */ }
   }
 &nbsp;
   async function removePhoto() {
     photoDataUrl.value = ''
     localStorage.removeItem('profile:photo')
-    try { await api.patch('/devices/me', buildPatch(undefined, null)) } catch { /* offline */ }
+    try { await api.patch('/users/me', buildPatch(undefined, null)) } catch { /* offline */ }
   }
 &nbsp;
   async function init() {
     const name = displayName.value || null
     const photo = photoDataUrl.value || null
     if (name || photo) {
-      try { await api.patch('/devices/me', { displayName: name, profilePicture: photo }) } catch { /* ignore */ }
+      try { await api.patch('/users/me', { displayName: name, profilePicture: photo }) } catch { /* ignore */ }
     }
   }
 &nbsp;
-  return { firstName, lastName, displayName, initials, photoDataUrl, save, savePhoto, removePhoto, init }
+  function <span class="fstat-no" title="function not covered" >applyFromSync(r</span>awDisplayName: string | null, rawPhoto: string | null) {
+    const parts = <span class="cstat-no" title="statement not covered" >rawDisplayName?.split(' ') ?? []</span>
+    const first = <span class="cstat-no" title="statement not covered" >parts[0] ?? ''</span>
+    const last = <span class="cstat-no" title="statement not covered" >parts.slice(1).join(' ')</span>
+<span class="cstat-no" title="statement not covered" >    firstName.value = first</span>
+<span class="cstat-no" title="statement not covered" >    lastName.value = last</span>
+<span class="cstat-no" title="statement not covered" >    localStorage.setItem('profile:firstName', first)</span>
+<span class="cstat-no" title="statement not covered" >    localStorage.setItem('profile:lastName', last)</span>
+<span class="cstat-no" title="statement not covered" >    if (rawPhoto) {</span>
+<span class="cstat-no" title="statement not covered" >      photoDataUrl.value = rawPhoto</span>
+<span class="cstat-no" title="statement not covered" >      try { <span class="cstat-no" title="statement not covered" >localStorage.setItem('profile:photo', rawPhoto) }</span> catch { /* quota */ }</span>
+    }
+  }
+&nbsp;
+  return { firstName, lastName, displayName, initials, photoDataUrl, save, savePhoto, removePhoto, init, applyFromSync }
 })
 &nbsp;</pre></td></tr></table></pre>
 
@@ -247,7 +289,7 @@ export const useProfileStore = defineStore('profile', () =&gt; {
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2026-04-09T08:13:20.716Z
+                at 2026-04-17T06:49:27.656Z
             </div>
         <script src="../../prettify.js"></script>
         <script>
