@@ -28,7 +28,7 @@
 
 ListMe works instantly — no account, no login, no password. When you open the app for the first time, a unique device identity is created automatically and stored locally. This ID is what links your lists to your device.
 
-![1](images/1.jpeg)
+<img src="images/1.jpeg" width="300"/>
 
 Your data lives on your device first. The server is only involved when you share a list or sync across devices.
 
@@ -44,7 +44,7 @@ The bottom navigation bar has three tabs:
 | 📚   | **Bibliothek**    | Saved templates and your item history |
 | ⚙️   | **Einstellungen** | Profile, appearance, watch pairing    |
 
-![2](images/2.jpeg)
+<img src="images/2.jpeg" width="300"/>
 
 Tapping the back button or swiping right from a list returns to the home screen.
 
@@ -57,7 +57,7 @@ The home screen is divided into two sections:
 - **Meine Listen** — lists you created on this device
 - **Geteilt mit mir** — lists shared with you by another device
 
-![3](images/3.jpeg)
+<img src="images/3.jpeg" width="300"/>
 
 Each list card shows:
 
@@ -74,7 +74,7 @@ At the top of the screen, quick stats show the total number of open items across
 
 Tap the **+** button (bottom right) to open the "Neue Liste" sheet.
 
-![4](images/4.jpeg)
+<img src="images/4.jpeg" width="300"/>
 
 **Steps:**
 
@@ -91,7 +91,7 @@ The new list appears immediately at the top of "Meine Listen" and opens automati
 
 Tap any list card to open it.
 
-![5](images/5.jpeg)
+<img src="images/5.jpeg" width="300"/>
 
 ### Header area
 
@@ -120,7 +120,7 @@ When two or more devices share a list, small circular avatars appear in the head
 
 Tap the **+** FAB inside a list to open the "Artikel hinzufügen" sheet.
 
-![6](images/6.jpeg)
+<img src="images/6.jpeg" width="300"/>
 
 ### Typing
 
@@ -130,7 +130,7 @@ Start typing the item name. Suggestions from your item history appear as chips b
 
 Tap the **barcode icon** to open the camera scanner.
 
-![7](images/7.jpeg)
+<img src="images/7.jpeg" width="300"/>
 
 1. Point the camera at any EAN/UPC barcode
 2. The product name and quantity are looked up automatically (OpenFoodFacts)
@@ -175,7 +175,7 @@ Changes sync to all devices sharing the list in real time (when online).
 
 Tap the **search icon** in the list header to expand the search bar.
 
-![8](images/8.jpeg)
+<img src="images/8.jpeg" width="300"/>
 
 Type to filter items by name. The filter applies instantly.
 
@@ -191,7 +191,7 @@ Tap a category chip to show only items in that category. Tap **Alle** to clear t
 
 Tap the **share icon** (🔗) in the list header.
 
-![10](images/10.jpeg)
+<img src="images/10.jpeg" width="300"/>
 
 A unique share link is generated. Anyone who opens this link gets the list added to their device and joins as a participant.
 
@@ -224,7 +224,7 @@ After syncing, both devices share the same lists and stay in sync via the shared
 
 The Library tab stores two things: **templates** you've saved and **items** from your history.
 
-![11](images/11.jpeg)
+<img src="images/11.jpeg" width="300"/>
 
 ### Vorlagen (Templates)
 
@@ -292,7 +292,7 @@ cd wearable
 
 ### Pairing (one-time setup)
 
-![12](images/12.jpeg)
+<img src="images/12.jpeg" width="300"/>
 
 1. Open the **ListMe app** on the Pixel Watch 3 (it must be in the foreground)
 2. On your phone, go to **Einstellungen → Smartwatch → Verbinden**
@@ -360,7 +360,7 @@ When you come back online, all offline changes are automatically sent to the ser
 
 Deleted items are not immediately removed — they go to the list's trash.
 
-![13](images/13.jpeg)
+<img src="images/13.jpeg" width="300"/>
 
 **Deleting an item:** Swipe left on any item row, then confirm.
 
