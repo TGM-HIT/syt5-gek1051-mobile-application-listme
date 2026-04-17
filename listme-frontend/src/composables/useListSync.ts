@@ -5,6 +5,7 @@ import { usePresenceStore } from '../stores/presence'
 import { useNotificationsStore } from '../stores/notifications'
 import { useListsStore } from '../stores/lists'
 import { getDeviceId } from '../services/device'
+import { LocalClockService } from '../services/clock'
 import { detectConflicts } from '../crdt/ConflictDetector'
 import type { Conflict } from '../crdt/ConflictDetector'
 import type { CrdtOperation } from '../crdt/types'
@@ -45,17 +46,15 @@ export function useListSync() {
         const op = payload as CrdtOperation
         if (op.deviceId === myDeviceId) return
 
+        // Advance local clock so pullRemoteOps won't re-fetch this op
+        LocalClockService.mergeClock(listId, op.vectorClock as Record<string, number>)
+
         sessionOps.push(op)
         const newConflicts = detectConflicts(sessionOps)
         conflicts.value = newConflicts
 
-        // In-app notification + vibration for every incoming change
         const listName = listsStore.getById(listId)?.name ?? ''
-        notificationsStore.add({
-          listId,
-          listName,
-          message: opToMessage(op),
-        })
+        notificationsStore.add({ listId, listName, message: opToMessage(op) })
         if ('vibrate' in navigator) navigator.vibrate([100, 50, 100])
 
         applyOp(listId, op, itemsStore)
@@ -77,7 +76,16 @@ export function useListSync() {
     const unsubReconnect = onReconnect(async () => {
       connected.value = true
       subscribeTopics()
+      // Snapshot items before fetch to detect missed changes from other devices
+      const snapIds = new Set(itemsStore.getItems(listId).map(i => i.id + '|' + i.checked + '|' + i.name))
       await itemsStore.fetchAll(listId)
+      const changed = itemsStore.getItems(listId).some(i => !snapIds.has(i.id + '|' + i.checked + '|' + i.name))
+        || snapIds.size !== itemsStore.getItems(listId).length
+      if (changed) {
+        const listName = listsStore.getById(listId)?.name ?? ''
+        notificationsStore.add({ listId, listName, message: 'Liste wurde aktualisiert' })
+        if ('vibrate' in navigator) navigator.vibrate([100, 50, 100])
+      }
     })
 
     // Re-fetch when app comes back to foreground (covers mobile background drops)
