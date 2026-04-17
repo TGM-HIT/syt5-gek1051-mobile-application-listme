@@ -2,10 +2,12 @@
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useProfileStore } from '../../stores/profile'
+import QrScannerModal from './QrScannerModal.vue'
 
 const router = useRouter()
 const profileStore = useProfileStore()
 const scrolled = ref(false)
+const showScanner = ref(false)
 
 onMounted(() => {
   const el = document.querySelector('.main-scroll')
@@ -31,15 +33,34 @@ onMounted(() => {
         <h1 class="text-lg font-semibold text-ctp-text tracking-tight">ListMe</h1>
       </div>
 
-      <!-- Avatar (clickable → Settings) -->
-      <button
-        @click="router.push('/settings')"
-        class="pressable w-9 h-9 rounded-full overflow-hidden bg-ctp-surface0 border border-ctp-surface1 flex items-center justify-center shrink-0"
-        aria-label="Profil & Einstellungen"
-      >
-        <img v-if="profileStore.photoDataUrl" :src="profileStore.photoDataUrl" class="w-full h-full object-cover" alt="" />
-        <span v-else class="text-xs font-semibold text-ctp-subtext0">{{ profileStore.initials }}</span>
-      </button>
+      <div class="flex items-center gap-2">
+        <!-- QR scan button -->
+        <button
+          @click="showScanner = true"
+          class="pressable w-9 h-9 flex items-center justify-center rounded-full bg-ctp-surface0 border border-ctp-surface1 text-ctp-subtext0 shrink-0"
+          aria-label="QR-Code scannen"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" class="w-4.5 h-4.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="3" y="3" width="7" height="7" rx="1"/>
+            <rect x="14" y="3" width="7" height="7" rx="1"/>
+            <rect x="3" y="14" width="7" height="7" rx="1"/>
+            <rect x="14" y="14" width="3" height="3" rx="0.5"/>
+            <path d="M17 14h4M14 17v4M17 21h4v-4"/>
+          </svg>
+        </button>
+
+        <!-- Avatar (clickable → Settings) -->
+        <button
+          @click="router.push('/settings')"
+          class="pressable w-9 h-9 rounded-full overflow-hidden bg-ctp-surface0 border border-ctp-surface1 flex items-center justify-center shrink-0"
+          aria-label="Profil & Einstellungen"
+        >
+          <img v-if="profileStore.photoDataUrl" :src="profileStore.photoDataUrl" class="w-full h-full object-cover" alt="" />
+          <span v-else class="text-xs font-semibold text-ctp-subtext0">{{ profileStore.initials }}</span>
+        </button>
+      </div>
     </div>
   </header>
+
+  <QrScannerModal v-if="showScanner" @close="showScanner = false" />
 </template>
