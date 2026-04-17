@@ -1,5 +1,5 @@
 import { ref, onUnmounted } from 'vue'
-import { connectWebSocket, subscribe, send, isConnected, onReconnect } from '../services/websocket'
+import { connectWebSocket, subscribe, send, isConnected, onAnyConnect } from '../services/websocket'
 import { useItemsStore } from '../stores/items'
 import { usePresenceStore } from '../stores/presence'
 import { useNotificationsStore } from '../stores/notifications'
@@ -21,14 +21,6 @@ export function useListSync() {
   async function startSync(listId: string) {
     currentListId = listId
 
-    try {
-      await connectWebSocket()
-      connected.value = isConnected()
-    } catch (e) {
-      console.warn('[Sync] WebSocket unavailable, running offline', e)
-      return
-    }
-
     const itemsStore = useItemsStore()
     const listsStore = useListsStore()
     const presenceStore = usePresenceStore()
@@ -46,12 +38,10 @@ export function useListSync() {
         const op = payload as CrdtOperation
         if (op.deviceId === myDeviceId) return
 
-        // Advance local clock so pullRemoteOps won't re-fetch this op
         LocalClockService.mergeClock(listId, op.vectorClock as Record<string, number>)
 
         sessionOps.push(op)
-        const newConflicts = detectConflicts(sessionOps)
-        conflicts.value = newConflicts
+        conflicts.value = detectConflicts(sessionOps)
 
         const listName = listsStore.getById(listId)?.name ?? ''
         notificationsStore.add({ listId, listName, message: opToMessage(op) })
@@ -70,17 +60,16 @@ export function useListSync() {
       send(`/app/list/${listId}/join`)
     }
 
-    subscribeTopics()
-
-    // Re-subscribe, re-announce presence, and pull any missed items after every reconnect
-    const unsubReconnect = onReconnect(async () => {
+    // Register BEFORE connectWebSocket so this fires even on the very first
+    // successful connection (covers devices that were offline at mount time).
+    const unsubConnect = onAnyConnect(async () => {
       connected.value = true
       subscribeTopics()
-      // Snapshot items before fetch to detect missed changes from other devices
-      const snapIds = new Set(itemsStore.getItems(listId).map(i => i.id + '|' + i.checked + '|' + i.name))
+      const snapIds = new Set(itemsStore.getItems(listId).map(i => `${i.id}|${i.checked}|${i.name}`))
       await itemsStore.fetchAll(listId)
-      const changed = itemsStore.getItems(listId).some(i => !snapIds.has(i.id + '|' + i.checked + '|' + i.name))
-        || snapIds.size !== itemsStore.getItems(listId).length
+      const after = itemsStore.getItems(listId)
+      const changed = after.length !== snapIds.size
+        || after.some(i => !snapIds.has(`${i.id}|${i.checked}|${i.name}`))
       if (changed) {
         const listName = listsStore.getById(listId)?.name ?? ''
         notificationsStore.add({ listId, listName, message: 'Liste wurde aktualisiert' })
@@ -88,7 +77,15 @@ export function useListSync() {
       }
     })
 
-    // Re-fetch when app comes back to foreground (covers mobile background drops)
+    // Try to connect — if offline the STOMP client retries automatically;
+    // onAnyConnect fires once the connection eventually succeeds.
+    try {
+      await connectWebSocket()
+      connected.value = isConnected()
+    } catch (e) {
+      console.warn('[Sync] WebSocket unavailable, running offline', e)
+    }
+
     function onVisible() {
       if (document.visibilityState === 'visible') itemsStore.fetchAll(listId)
     }
@@ -97,7 +94,7 @@ export function useListSync() {
     unsubscribers.push(() => {
       unsubOps?.()
       unsubPresence?.()
-      unsubReconnect()
+      unsubConnect()
       document.removeEventListener('visibilitychange', onVisible)
     })
   }
