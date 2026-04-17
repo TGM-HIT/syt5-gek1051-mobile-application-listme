@@ -1,18 +1,18 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
 
-export interface ConflictNotification {
+export interface InAppNotification {
   id: string
   listId: string
   listName: string
-  count: number
+  message: string
   ts: number
 }
 
 export const useNotificationsStore = defineStore('notifications', () => {
-  const notifications = ref<ConflictNotification[]>([])
+  const notifications = ref<InAppNotification[]>([])
 
-  function add(n: Omit<ConflictNotification, 'id' | 'ts'>) {
+  function add(n: Omit<InAppNotification, 'id' | 'ts'>) {
     notifications.value.push({
       ...n,
       id: crypto.randomUUID(),

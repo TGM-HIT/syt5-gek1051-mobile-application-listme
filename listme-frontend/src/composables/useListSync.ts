@@ -3,19 +3,13 @@ import { connectWebSocket, subscribe, send, isConnected, onReconnect } from '../
 import { useItemsStore } from '../stores/items'
 import { usePresenceStore } from '../stores/presence'
 import { useNotificationsStore } from '../stores/notifications'
+import { useListsStore } from '../stores/lists'
 import { getDeviceId } from '../services/device'
 import { detectConflicts } from '../crdt/ConflictDetector'
 import type { Conflict } from '../crdt/ConflictDetector'
 import type { CrdtOperation } from '../crdt/types'
 import type { Item } from '../types'
 
-/**
- * Composable that manages real-time sync for a single list view.
- *
- * Call `startSync(listId)` when the list detail view mounts.
- * All incoming CRDT ops from other devices are applied to the Pinia store.
- * Presence join/leave events are tracked in the presence store.
- */
 export function useListSync() {
   const connected = ref(false)
   const conflicts = ref<Conflict[]>([])
@@ -35,6 +29,7 @@ export function useListSync() {
     }
 
     const itemsStore = useItemsStore()
+    const listsStore = useListsStore()
     const presenceStore = usePresenceStore()
     const notificationsStore = useNotificationsStore()
     const myDeviceId = await getDeviceId()
@@ -43,26 +38,26 @@ export function useListSync() {
     let unsubPresence: (() => void) | null = null
 
     function subscribeTopics() {
-      // Clear stale topic subscriptions from previous connection
       unsubOps?.()
       unsubPresence?.()
 
       unsubOps = subscribe(`/topic/list/${listId}`, (payload) => {
         const op = payload as CrdtOperation
-        // Skip ops originating from this device — already applied locally via HTTP response
         if (op.deviceId === myDeviceId) return
+
         sessionOps.push(op)
         const newConflicts = detectConflicts(sessionOps)
-        const hadConflicts = conflicts.value.length
         conflicts.value = newConflicts
-        // If new conflicts appeared, also notify the global store (for when list isn't focused)
-        if (newConflicts.length > hadConflicts) {
-          notificationsStore.add({
-            listId,
-            listName: '', // name not available here; toast will show empty or be skipped
-            count: newConflicts.length - hadConflicts,
-          })
-        }
+
+        // In-app notification + vibration for every incoming change
+        const listName = listsStore.getById(listId)?.name ?? ''
+        notificationsStore.add({
+          listId,
+          listName,
+          message: opToMessage(op),
+        })
+        if ('vibrate' in navigator) navigator.vibrate([100, 50, 100])
+
         applyOp(listId, op, itemsStore)
       })
 
@@ -85,11 +80,17 @@ export function useListSync() {
       await itemsStore.fetchAll(listId)
     })
 
-    // Single cleanup entry for stopSync / onUnmounted
+    // Re-fetch when app comes back to foreground (covers mobile background drops)
+    function onVisible() {
+      if (document.visibilityState === 'visible') itemsStore.fetchAll(listId)
+    }
+    document.addEventListener('visibilitychange', onVisible)
+
     unsubscribers.push(() => {
       unsubOps?.()
       unsubPresence?.()
       unsubReconnect()
+      document.removeEventListener('visibilitychange', onVisible)
     })
   }
 
@@ -111,9 +112,19 @@ export function useListSync() {
   return { connected, conflicts, dismissConflicts, startSync, stopSync }
 }
 
+function opToMessage(op: CrdtOperation): string {
+  const name = op.payload['name'] as string | undefined
+  switch (op.operationType) {
+    case 'ITEM_CREATE': return name ? `"${name}" hinzugefügt` : 'Artikel hinzugefügt'
+    case 'ITEM_CHECK': return op.payload['checked'] ? 'Artikel abgehakt' : 'Artikel reaktiviert'
+    case 'ITEM_UPDATE': return name ? `"${name}" bearbeitet` : 'Artikel bearbeitet'
+    case 'ITEM_DELETE': return 'Artikel gelöscht'
+    default: return 'Änderung eingetroffen'
+  }
+}
+
 /**
  * Apply an incoming CRDT operation from another device to the local Pinia state.
- * This is optimistic — we trust the server has already applied it to the DB.
  * Exported so useSyncQueue can reuse the same logic during pull-on-reconnect.
  */
 export function applyOp(listId: string, op: CrdtOperation, itemsStore: ReturnType<typeof useItemsStore>) {

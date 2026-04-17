@@ -79,8 +79,14 @@ public class WebPushService {
     @Transactional
     public void subscribe(User user, String endpoint, String p256dh, String auth) {
         subRepo.findByEndpoint(endpoint).ifPresentOrElse(
-            existing -> log.info("[WebPush] Subscription already exists for user={} endpoint={}",
-                    user.getId(), endpoint.substring(0, Math.min(60, endpoint.length()))),
+            existing -> {
+                // Always update user association — fixes stale subscriptions created before
+                // the device-to-user link was established (e.g. mobile devices registered early)
+                existing.setUser(user);
+                subRepo.save(existing);
+                log.info("[WebPush] Updated subscription user={} endpoint={}",
+                        user.getId(), endpoint.substring(0, Math.min(60, endpoint.length())));
+            },
             () -> {
                 PushSubscriptionEntry sub = new PushSubscriptionEntry();
                 sub.setUser(user);

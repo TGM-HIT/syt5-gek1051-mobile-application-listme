@@ -1,14 +1,15 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
+import { getOrCreateUserId } from '../../services/userId'
 
 const router = useRouter()
 const route = useRoute()
 
 const tabs = [
-  { id: 'home', label: 'Listen', icon: 'lists', to: '/' },
-  { id: 'library', label: 'Bibliothek', icon: 'library', to: '/library' },
-  { id: 'settings', label: 'Einstellungen', icon: 'settings', to: '/settings' },
+  { id: 'home', label: 'Listen', icon: 'lists' },
+  { id: 'library', label: 'Bibliothek', icon: 'library' },
+  { id: 'settings', label: 'Einstellungen', icon: 'settings' },
 ] as const
 
 const active = computed(() => {
@@ -19,7 +20,9 @@ const active = computed(() => {
 })
 
 function onTab(tab: typeof tabs[number]) {
-  if (tab.to) router.push(tab.to)
+  if (tab.id === 'home') router.push(`/${getOrCreateUserId()}`)
+  else if (tab.id === 'library') router.push('/library')
+  else if (tab.id === 'settings') router.push('/settings')
 }
 </script>
 
@@ -35,10 +38,7 @@ function onTab(tab: typeof tabs[number]) {
         class="pressable flex flex-col items-center gap-1 px-4 py-2 rounded-2xl transition-colors duration-200 min-w-[64px] relative"
         :class="active === tab.id
           ? 'text-ctp-teal'
-          : tab.to
-            ? 'text-ctp-overlay0 hover:text-ctp-subtext0'
-            : 'text-ctp-surface2 cursor-not-allowed'"
-        :title="!tab.to ? 'Demnächst verfügbar' : undefined"
+          : 'text-ctp-overlay0 hover:text-ctp-subtext0'"
         @click="onTab(tab)"
       >
         <!-- Lists icon -->
