@@ -17,7 +17,7 @@ export function usePullToRefresh(
     const el = getScrollEl()
     if (!el || isRefreshing.value) return
     if (el.scrollTop > 0) return   // Only start PTR when already at the top
-    startY   = e.touches[0].clientY
+    startY   = e.touches[0]!.clientY
     tracking = true
   }
 
@@ -33,7 +33,7 @@ export function usePullToRefresh(
       return
     }
 
-    const delta = e.touches[0].clientY - startY
+    const delta = e.touches[0]!.clientY - startY
     if (delta <= 0) {
       pullY.value = 0
       return
