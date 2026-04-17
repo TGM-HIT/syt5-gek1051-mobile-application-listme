@@ -77,7 +77,8 @@ describe('useListSync', () => {
     mockIsConnected.mockReturnValue(true)
     mockGetDeviceId.mockResolvedValue('my-device')
     mockSubscribe.mockReturnValue(() => {})
-    mockOnAnyConnect.mockReturnValue(() => {})
+    mockFetchAll.mockResolvedValue(undefined)
+    mockOnAnyConnect.mockImplementation((cb: () => void) => { cb(); return () => {} })
     mockDetect.mockReturnValue([])
   })
 
