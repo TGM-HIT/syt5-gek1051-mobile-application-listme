@@ -73,11 +73,11 @@ export function useListSync() {
 
     subscribeTopics()
 
-    // Re-subscribe, re-announce presence, and pull any missed items after every reconnect
-    const unsubReconnect = onReconnect(async () => {
+    // Re-subscribe and re-announce presence after every reconnect.
+    // Data sync (flushing queued ops + pulling remote ops) is handled by useSyncQueue.
+    const unsubReconnect = onReconnect(() => {
       connected.value = true
       subscribeTopics()
-      await itemsStore.fetchAll(listId)
     })
 
     // Re-fetch when app comes back to foreground (covers mobile background drops)
