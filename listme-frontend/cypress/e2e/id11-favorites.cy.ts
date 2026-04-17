@@ -24,7 +24,7 @@ describe('ID 11: Favorites', () => {
   });
 
   it('should display favorite chips in add-item sheet when name is empty', () => {
-    cy.get('.fixed.bottom-24').click();
+    cy.get('[data-cy="fab-add-item"]').click();
     cy.wait('@getFavorites');
     // Favorites show as chips when the name field is empty
     cy.contains('Milch').should('be.visible');
@@ -32,14 +32,14 @@ describe('ID 11: Favorites', () => {
   });
 
   it('should fill item name when a favorite chip is clicked', () => {
-    cy.get('.fixed.bottom-24').click();
+    cy.get('[data-cy="fab-add-item"]').click();
     cy.wait('@getFavorites');
     cy.contains('Milch').click();
     cy.get('input[placeholder="z.B. Milch, Brot, Äpfel..."]').should('have.value', 'Milch');
   });
 
   it('should hide favorites when typing in name field', () => {
-    cy.get('.fixed.bottom-24').click();
+    cy.get('[data-cy="fab-add-item"]').click();
     cy.wait('@getFavorites');
     cy.contains('Milch').should('be.visible');
     cy.get('input[placeholder="z.B. Milch, Brot, Äpfel..."]').type('Kar');
@@ -65,7 +65,7 @@ describe('ID 11: Favorites', () => {
       body: { id: '101', name: 'Käse', checked: false, quantity: null, quantityUnit: null, price: null, imageUrl: null, labels: [] }
     }).as('createItem');
 
-    cy.get('.fixed.bottom-24').click();
+    cy.get('[data-cy="fab-add-item"]').click();
     cy.get('input[placeholder="z.B. Milch, Brot, Äpfel..."]').type('Käse');
     cy.contains('button', 'Hinzufügen').click();
     cy.wait('@createItem');

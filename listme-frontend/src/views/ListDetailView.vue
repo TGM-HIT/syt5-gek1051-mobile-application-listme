@@ -250,6 +250,7 @@
     <!-- FAB -->
     <button
       @click="showAddSheet = true"
+      data-cy="fab-add-item"
       class="fixed bottom-24 right-4 safe-bottom w-14 h-14 rounded-full bg-gradient-to-br from-ctp-teal to-ctp-sapphire shadow-lg flex items-center justify-center text-ctp-base active:scale-95 transition-transform z-20"
     >
       <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">

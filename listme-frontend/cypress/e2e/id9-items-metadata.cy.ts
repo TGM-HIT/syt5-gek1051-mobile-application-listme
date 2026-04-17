@@ -34,7 +34,7 @@ describe('ID 9: Item Quantities, Units, and Labels', () => {
   });
 
   it('should open add-item sheet and show unit selector buttons', () => {
-    cy.get('.fixed.bottom-24').click();
+    cy.get('[data-cy="fab-add-item"]').click();
     // Unit toggle buttons should be visible
     cy.contains('button', 'Stk.').should('be.visible');
     cy.contains('button', 'kg').should('be.visible');
@@ -49,7 +49,7 @@ describe('ID 9: Item Quantities, Units, and Labels', () => {
       body: { id: '103', name: 'Zucker', checked: false, quantity: 1, quantityUnit: 'kg', price: null, labels: [] }
     }).as('createItem');
 
-    cy.get('.fixed.bottom-24').click();
+    cy.get('[data-cy="fab-add-item"]').click();
     cy.get('input[placeholder="z.B. Milch, Brot, Äpfel..."]').type('Zucker');
     cy.get('input[placeholder="Menge"]').type('1');
     cy.contains('button', 'kg').click();
@@ -65,7 +65,7 @@ describe('ID 9: Item Quantities, Units, and Labels', () => {
       body: { id: '104', name: 'Butter', checked: false, quantity: null, quantityUnit: null, price: 2.50, labels: [] }
     }).as('createItem');
 
-    cy.get('.fixed.bottom-24').click();
+    cy.get('[data-cy="fab-add-item"]').click();
     cy.get('input[placeholder="z.B. Milch, Brot, Äpfel..."]').type('Butter');
     cy.get('input[placeholder="0.00"]').type('2.50');
     cy.contains('button', 'Hinzufügen').click();

@@ -31,12 +31,12 @@ describe('ID 10: Item Images', () => {
   });
 
   it('should show image upload button in add-item sheet', () => {
-    cy.get('.fixed.bottom-24').click();
+    cy.get('[data-cy="fab-add-item"]').click();
     cy.contains('Bild hinzufügen').should('be.visible');
   });
 
   it('should show image section label in add-item sheet', () => {
-    cy.get('.fixed.bottom-24').click();
+    cy.get('[data-cy="fab-add-item"]').click();
     cy.contains('Bild').should('be.visible');
   });
 

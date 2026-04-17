@@ -24,12 +24,7 @@ describe('ID 7: Real-time Sync', () => {
 
   it('should show connection status banner when WebSocket is connecting', () => {
     // ConnectionBanner shows when not connected — initially 'Verbindung wird hergestellt…'
-    cy.get('body').then(($body) => {
-      // Either connecting or connected banner should appear
-      const hasConnecting = $body.text().includes('Verbindung wird hergestellt') ||
-                            $body.text().includes('Verbunden');
-      expect(hasConnecting).to.be.true;
-    });
+    cy.contains(/Verbindung wird hergestellt|Verbunden/).should('exist');
   });
 
   it('should display multiple participants when list is shared', () => {

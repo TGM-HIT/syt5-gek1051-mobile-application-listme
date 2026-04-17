@@ -71,7 +71,7 @@ describe('ID 8: Edit and Delete Items', () => {
       body: { id: '102', name: 'Brot', checked: false, quantity: null, quantityUnit: null, price: null, imageUrl: null, labels: [] }
     }).as('createItem');
 
-    cy.get('.fixed.bottom-24').click();
+    cy.get('[data-cy="fab-add-item"]').click();
     cy.get('input[placeholder="z.B. Milch, Brot, Äpfel..."]').type('Brot');
     cy.contains('button', 'Hinzufügen').click();
     cy.wait('@createItem');
