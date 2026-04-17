@@ -1,5 +1,6 @@
 import { ref, onUnmounted } from 'vue'
 import { connectWebSocket, subscribe, send, isConnected, onAnyConnect } from '../services/websocket'
+import { OperationQueue } from '../crdt/OperationQueue'
 import { useItemsStore } from '../stores/items'
 import { usePresenceStore } from '../stores/presence'
 import { useNotificationsStore } from '../stores/notifications'
@@ -65,6 +66,13 @@ export function useListSync() {
     const unsubConnect = onAnyConnect(async () => {
       connected.value = true
       subscribeTopics()
+
+      // Skip fetchAll if there are pending ops for this list — useSyncQueue flushes
+      // them first and pulls remote ops via applyOp. Fetching before the flush races
+      // and overwrites correct optimistic state with stale pre-flush server data.
+      const pending = await OperationQueue.getAllPending()
+      if (pending.some(op => op.listId === listId)) return
+
       const snapIds = new Set(itemsStore.getItems(listId).map(i => `${i.id}|${i.checked}|${i.name}`))
       await itemsStore.fetchAll(listId)
       const after = itemsStore.getItems(listId)
