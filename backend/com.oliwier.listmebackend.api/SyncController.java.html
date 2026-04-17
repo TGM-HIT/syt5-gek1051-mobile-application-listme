@@ -13,6 +13,7 @@ import com.oliwier.listmebackend.identity.CurrentUser;
 import com.oliwier.listmebackend.notification.WebPushService;
 import com.oliwier.listmebackend.websocket.ListSyncBroadcaster;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.transaction.annotation.Transactional;
@@ -33,6 +34,7 @@ import java.util.UUID;
 @RestController
 @RequestMapping(&quot;/api/lists/{listId}/crdt&quot;)
 @RequiredArgsConstructor
+<span class="fc" id="L37">@Slf4j</span>
 @Transactional(readOnly = true)
 public class SyncController {
 
@@ -45,8 +47,8 @@ public class SyncController {
 
     @GetMapping(&quot;/clock&quot;)
     public Map&lt;String, Long&gt; getClock(@PathVariable UUID listId, @CurrentDevice Device device) {
-<span class="fc" id="L48">        requireAccess(listId, device);</span>
-<span class="fc" id="L49">        return syncEngine.getCurrentClock(listId);</span>
+<span class="fc" id="L50">        requireAccess(listId, device);</span>
+<span class="fc" id="L51">        return syncEngine.getCurrentClock(listId);</span>
     }
 
     @GetMapping(&quot;/ops&quot;)
@@ -54,12 +56,12 @@ public class SyncController {
             @PathVariable UUID listId,
             @CurrentDevice Device device,
             @RequestParam(required = false) Map&lt;String, Long&gt; since) {
-<span class="fc" id="L57">        requireAccess(listId, device);</span>
-<span class="pc bpc" id="L58" title="1 of 2 branches missed.">        Map&lt;String, Long&gt; clientClock = since != null ? since : Map.of();</span>
-<span class="fc" id="L59">        return syncEngine.getOperationsSince(listId, clientClock)</span>
-<span class="fc" id="L60">                .stream()</span>
-<span class="fc" id="L61">                .map(CrdtOperationResponse::from)</span>
-<span class="fc" id="L62">                .toList();</span>
+<span class="fc" id="L59">        requireAccess(listId, device);</span>
+<span class="pc bpc" id="L60" title="1 of 2 branches missed.">        Map&lt;String, Long&gt; clientClock = since != null ? since : Map.of();</span>
+<span class="fc" id="L61">        return syncEngine.getOperationsSince(listId, clientClock)</span>
+<span class="fc" id="L62">                .stream()</span>
+<span class="fc" id="L63">                .map(CrdtOperationResponse::from)</span>
+<span class="fc" id="L64">                .toList();</span>
     }
 
     @PostMapping(&quot;/ops&quot;)
@@ -70,50 +72,58 @@ public class SyncController {
             @CurrentDevice Device device,
             @CurrentUser User user,
             @RequestBody List&lt;IncomingOperation&gt; ops) {
-<span class="fc" id="L73">        requireAccess(listId, device);</span>
-<span class="fc" id="L74">        SyncEngine.SyncResult result = syncEngine.applyIncoming(ops, device);</span>
-<span class="fc" id="L75">        result.applied().forEach(op -&gt; broadcaster.broadcastOp(listId, op));</span>
+<span class="fc" id="L75">        requireAccess(listId, device);</span>
+<span class="fc" id="L76">        SyncEngine.SyncResult result = syncEngine.applyIncoming(ops, device);</span>
+<span class="fc" id="L77">        result.applied().forEach(op -&gt; broadcaster.broadcastOp(listId, op));</span>
 
-<span class="fc" id="L77">        ShoppingList list = listRepository.findById(listId).orElse(null);</span>
-<span class="pc bpc" id="L78" title="1 of 2 branches missed.">        String listName = list != null ? list.getName() : &quot;&quot;;</span>
+<span class="fc" id="L79">        ShoppingList list = listRepository.findById(listId).orElse(null);</span>
+<span class="pc bpc" id="L80" title="1 of 2 branches missed.">        String listName = list != null ? list.getName() : &quot;&quot;;</span>
+
+<span class="fc" id="L82">        log.info(&quot;[Sync] pushOps listId={} user={} applied={} conflicts={}&quot;,</span>
+<span class="pc bpc" id="L83" title="1 of 2 branches missed.">                listId, user != null ? user.getId() : &quot;null&quot;, result.applied().size(), result.conflicts().size());</span>
 
         // Push notification: item(s) added — notify other participants
-<span class="fc" id="L81">        boolean hasItemCreate = result.applied().stream()</span>
-<span class="fc" id="L82">                .anyMatch(op -&gt; &quot;ITEM_CREATE&quot;.equals(op.getOperationType()));</span>
-<span class="pc bpc" id="L83" title="1 of 2 branches missed.">        if (hasItemCreate) {</span>
-<span class="nc" id="L84">            String firstItemName = result.applied().stream()</span>
-<span class="nc" id="L85">                    .filter(op -&gt; &quot;ITEM_CREATE&quot;.equals(op.getOperationType()))</span>
-<span class="nc" id="L86">                    .map(op -&gt; (String) op.getPayload().getOrDefault(&quot;name&quot;, &quot;&quot;))</span>
-<span class="nc" id="L87">                    .findFirst().orElse(&quot;&quot;);</span>
-<span class="nc" id="L88">            listDeviceRepository.findByListId(listId).stream()</span>
-<span class="nc" id="L89">                    .map(ld -&gt; ld.getDevice().getUser())</span>
-<span class="nc bnc" id="L90" title="All 4 branches missed.">                    .filter(u -&gt; u != null &amp;&amp; !u.getId().equals(user.getId()))</span>
-<span class="nc" id="L91">                    .map(User::getId).distinct()</span>
-<span class="nc" id="L92">                    .forEach(uid -&gt; webPushService.sendToUser(uid,</span>
+<span class="fc" id="L86">        boolean hasItemCreate = result.applied().stream()</span>
+<span class="fc" id="L87">                .anyMatch(op -&gt; &quot;ITEM_CREATE&quot;.equals(op.getOperationType()));</span>
+<span class="pc bpc" id="L88" title="1 of 2 branches missed.">        if (hasItemCreate) {</span>
+<span class="nc" id="L89">            String firstItemName = result.applied().stream()</span>
+<span class="nc" id="L90">                    .filter(op -&gt; &quot;ITEM_CREATE&quot;.equals(op.getOperationType()))</span>
+<span class="nc" id="L91">                    .map(op -&gt; (String) op.getPayload().getOrDefault(&quot;name&quot;, &quot;&quot;))</span>
+<span class="nc" id="L92">                    .findFirst().orElse(&quot;&quot;);</span>
+<span class="nc" id="L93">            var participants = listDeviceRepository.findByListId(listId);</span>
+<span class="nc" id="L94">            log.info(&quot;[Sync] ITEM_CREATE detected — {} participant device(s) on list&quot;, participants.size());</span>
+<span class="nc" id="L95">            participants.stream()</span>
+<span class="nc" id="L96">                    .peek(ld -&gt; log.info(&quot;[Sync] participant device={} user={}&quot;,</span>
+<span class="nc" id="L97">                            ld.getDevice().getId(),</span>
+<span class="nc bnc" id="L98" title="All 2 branches missed.">                            ld.getDevice().getUser() != null ? ld.getDevice().getUser().getId() : &quot;null&quot;))</span>
+<span class="nc" id="L99">                    .map(ld -&gt; ld.getDevice().getUser())</span>
+<span class="nc bnc" id="L100" title="All 6 branches missed.">                    .filter(u -&gt; u != null &amp;&amp; !u.getId().equals(user != null ? user.getId() : null))</span>
+<span class="nc" id="L101">                    .map(User::getId).distinct()</span>
+<span class="nc" id="L102">                    .forEach(uid -&gt; webPushService.sendToUser(uid,</span>
                             &quot;Neuer Artikel in \u201e&quot; + listName + &quot;\u201c&quot;,
-<span class="nc bnc" id="L94" title="All 2 branches missed.">                            firstItemName.isEmpty() ? &quot;Artikel hinzugefügt&quot; : firstItemName,</span>
+<span class="nc bnc" id="L104" title="All 2 branches missed.">                            firstItemName.isEmpty() ? &quot;Artikel hinzugefügt&quot; : firstItemName,</span>
                             &quot;/&quot; + uid));
         }
 
         // WebSocket + push notification: conflict auto-resolved
-<span class="fc bfc" id="L99" title="All 2 branches covered.">        if (!result.conflicts().isEmpty()) {</span>
-<span class="fc" id="L100">            Map&lt;String, Object&gt; notification = new java.util.HashMap&lt;&gt;();</span>
-<span class="fc" id="L101">            notification.put(&quot;type&quot;, &quot;CONFLICT_DETECTED&quot;);</span>
-<span class="fc" id="L102">            notification.put(&quot;listId&quot;, listId.toString());</span>
-<span class="fc" id="L103">            notification.put(&quot;listName&quot;, listName);</span>
-<span class="fc" id="L104">            notification.put(&quot;conflictCount&quot;, result.conflicts().size());</span>
-<span class="fc" id="L105">            messaging.convertAndSend(&quot;/topic/user/&quot; + user.getId(), (Object) notification);</span>
-<span class="fc" id="L106">            webPushService.sendToUser(user.getId(),</span>
+<span class="fc bfc" id="L109" title="All 2 branches covered.">        if (!result.conflicts().isEmpty()) {</span>
+<span class="fc" id="L110">            Map&lt;String, Object&gt; notification = new java.util.HashMap&lt;&gt;();</span>
+<span class="fc" id="L111">            notification.put(&quot;type&quot;, &quot;CONFLICT_DETECTED&quot;);</span>
+<span class="fc" id="L112">            notification.put(&quot;listId&quot;, listId.toString());</span>
+<span class="fc" id="L113">            notification.put(&quot;listName&quot;, listName);</span>
+<span class="fc" id="L114">            notification.put(&quot;conflictCount&quot;, result.conflicts().size());</span>
+<span class="fc" id="L115">            messaging.convertAndSend(&quot;/topic/user/&quot; + user.getId(), (Object) notification);</span>
+<span class="fc" id="L116">            webPushService.sendToUser(user.getId(),</span>
                     &quot;Konflikt automatisch gel\u00f6st&quot;,
                     &quot;In \u201e&quot; + listName + &quot;\u201c wurden gleichzeitige \u00c4nderungen zusammengef\u00fchrt.&quot;,
-<span class="fc" id="L109">                    &quot;/&quot; + user.getId());</span>
+<span class="fc" id="L119">                    &quot;/&quot; + user.getId());</span>
         }
-<span class="fc" id="L111">    }</span>
+<span class="fc" id="L121">    }</span>
 
     private void requireAccess(UUID listId, Device device) {
-<span class="pc bpc" id="L114" title="1 of 2 branches missed.">        if (!listDeviceRepository.existsByListIdAndDeviceId(listId, device.getId())) {</span>
-<span class="nc" id="L115">            throw new ResponseStatusException(HttpStatus.FORBIDDEN, &quot;Not a participant of this list&quot;);</span>
+<span class="pc bpc" id="L124" title="1 of 2 branches missed.">        if (!listDeviceRepository.existsByListIdAndDeviceId(listId, device.getId())) {</span>
+<span class="nc" id="L125">            throw new ResponseStatusException(HttpStatus.FORBIDDEN, &quot;Not a participant of this list&quot;);</span>
         }
-<span class="fc" id="L117">    }</span>
+<span class="fc" id="L127">    }</span>
 }
 </pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>
