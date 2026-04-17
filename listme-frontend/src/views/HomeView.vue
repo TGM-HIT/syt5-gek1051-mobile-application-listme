@@ -35,7 +35,7 @@ onMounted(async () => {
         notificationsStore.add({
           listId: body.listId,
           listName: body.listName,
-          count: body.conflictCount ?? 1,
+          message: 'Konflikt automatisch gelöst',
         })
       }
     })
