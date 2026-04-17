@@ -1,5 +1,5 @@
 import { ref, onUnmounted } from 'vue'
-import { connectWebSocket, subscribe, send, isConnected } from '../services/websocket'
+import { connectWebSocket, subscribe, send, isConnected, onReconnect } from '../services/websocket'
 import { useItemsStore } from '../stores/items'
 import { usePresenceStore } from '../stores/presence'
 import { useNotificationsStore } from '../stores/notifications'
@@ -39,38 +39,49 @@ export function useListSync() {
     const notificationsStore = useNotificationsStore()
     const myDeviceId = await getDeviceId()
 
-    // Subscribe to CRDT operation stream
-    const unsubOps = subscribe(`/topic/list/${listId}`, (payload) => {
-      const op = payload as CrdtOperation
-      // Skip ops originating from this device — already applied locally via HTTP response
-      if (op.deviceId === myDeviceId) return
-      sessionOps.push(op)
-      const newConflicts = detectConflicts(sessionOps)
-      const hadConflicts = conflicts.value.length
-      conflicts.value = newConflicts
-      // If new conflicts appeared, also notify the global store (for when list isn't focused)
-      if (newConflicts.length > hadConflicts) {
-        notificationsStore.add({
-          listId,
-          listName: '', // name not available here; toast will show empty or be skipped
-          count: newConflicts.length - hadConflicts,
-        })
-      }
-      applyOp(listId, op, itemsStore)
+    function subscribeTopics() {
+      // Clear any stale subscriptions from previous connection
+      unsubscribers.forEach(fn => fn())
+      unsubscribers.length = 0
+
+      const unsubOps = subscribe(`/topic/list/${listId}`, (payload) => {
+        const op = payload as CrdtOperation
+        // Skip ops originating from this device — already applied locally via HTTP response
+        if (op.deviceId === myDeviceId) return
+        sessionOps.push(op)
+        const newConflicts = detectConflicts(sessionOps)
+        const hadConflicts = conflicts.value.length
+        conflicts.value = newConflicts
+        // If new conflicts appeared, also notify the global store (for when list isn't focused)
+        if (newConflicts.length > hadConflicts) {
+          notificationsStore.add({
+            listId,
+            listName: '', // name not available here; toast will show empty or be skipped
+            count: newConflicts.length - hadConflicts,
+          })
+        }
+        applyOp(listId, op, itemsStore)
+      })
+
+      const unsubPresence = subscribe(`/topic/list/${listId}/presence`, (payload) => {
+        const msg = payload as { event: string; deviceId: string; onlineDevices: string[] }
+        if (msg.event === 'snapshot') presenceStore.setSnapshot(listId, msg.onlineDevices)
+        else if (msg.event === 'joined') presenceStore.addDevice(listId, msg.deviceId)
+        else if (msg.event === 'left') presenceStore.removeDevice(listId, msg.deviceId)
+      })
+
+      unsubscribers.push(unsubOps, unsubPresence)
+      send(`/app/list/${listId}/join`)
+    }
+
+    subscribeTopics()
+
+    // Re-subscribe and re-announce presence after every reconnect
+    const unsubReconnect = onReconnect(() => {
+      connected.value = true
+      subscribeTopics()
     })
-
-    // Subscribe to presence events
-    const unsubPresence = subscribe(`/topic/list/${listId}/presence`, (payload) => {
-      const msg = payload as { event: string; deviceId: string; onlineDevices: string[] }
-      if (msg.event === 'snapshot') presenceStore.setSnapshot(listId, msg.onlineDevices)
-      else if (msg.event === 'joined') presenceStore.addDevice(listId, msg.deviceId)
-      else if (msg.event === 'left') presenceStore.removeDevice(listId, msg.deviceId)
-    })
-
-    unsubscribers.push(unsubOps, unsubPresence)
-
-    // Announce presence
-    send(`/app/list/${listId}/join`)
+    unsubscribers.push(unsubReconnect)
   }
 
   function stopSync() {
