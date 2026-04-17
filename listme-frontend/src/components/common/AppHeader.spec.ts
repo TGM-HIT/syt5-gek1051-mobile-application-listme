@@ -47,7 +47,7 @@ describe('AppHeader', () => {
 
   it('navigates to settings on avatar click', async () => {
     const w = mount(AppHeader, mountOpts)
-    await w.find('button[aria-label]').trigger('click')
+    await w.find('button[aria-label="Profil & Einstellungen"]').trigger('click')
     expect(mockPush).toHaveBeenCalledWith('/settings')
   })
 })
