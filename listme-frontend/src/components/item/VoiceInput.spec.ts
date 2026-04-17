@@ -17,21 +17,25 @@ function makeSRMock() {
     start: vi.fn(),
     stop: vi.fn(),
   }
-  const ctor = vi.fn(() => instance)
+  // Must be a regular function (not arrow) so it can be used as a constructor with `new`
+  const ctor = vi.fn(function () { return instance })
   return { ctor, instance }
 }
 
 function mountSupported(size?: 'sm' | 'md') {
   const { ctor, instance } = makeSRMock()
+  // Delete first so re-definition always succeeds across tests
+  delete (window as any).SpeechRecognition
+  delete (window as any).webkitSpeechRecognition
   Object.defineProperty(window, 'SpeechRecognition', { value: ctor, writable: true, configurable: true })
-  Object.defineProperty(window, 'webkitSpeechRecognition', { value: undefined, writable: true, configurable: true })
   const w = mount(VoiceInput, { props: size ? { size } : {} })
   return { w, ctor, instance }
 }
 
 function mountUnsupported() {
-  Object.defineProperty(window, 'SpeechRecognition', { value: undefined, writable: true, configurable: true })
-  Object.defineProperty(window, 'webkitSpeechRecognition', { value: undefined, writable: true, configurable: true })
+  // Delete rather than set to undefined — `in` operator returns true even for undefined values
+  delete (window as any).SpeechRecognition
+  delete (window as any).webkitSpeechRecognition
   return mount(VoiceInput)
 }
 

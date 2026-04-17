@@ -39,12 +39,15 @@ export function useListSync() {
     const notificationsStore = useNotificationsStore()
     const myDeviceId = await getDeviceId()
 
-    function subscribeTopics() {
-      // Clear any stale subscriptions from previous connection
-      unsubscribers.forEach(fn => fn())
-      unsubscribers.length = 0
+    let unsubOps: (() => void) | null = null
+    let unsubPresence: (() => void) | null = null
 
-      const unsubOps = subscribe(`/topic/list/${listId}`, (payload) => {
+    function subscribeTopics() {
+      // Clear stale topic subscriptions from previous connection
+      unsubOps?.()
+      unsubPresence?.()
+
+      unsubOps = subscribe(`/topic/list/${listId}`, (payload) => {
         const op = payload as CrdtOperation
         // Skip ops originating from this device — already applied locally via HTTP response
         if (op.deviceId === myDeviceId) return
@@ -63,14 +66,13 @@ export function useListSync() {
         applyOp(listId, op, itemsStore)
       })
 
-      const unsubPresence = subscribe(`/topic/list/${listId}/presence`, (payload) => {
+      unsubPresence = subscribe(`/topic/list/${listId}/presence`, (payload) => {
         const msg = payload as { event: string; deviceId: string; onlineDevices: string[] }
         if (msg.event === 'snapshot') presenceStore.setSnapshot(listId, msg.onlineDevices)
         else if (msg.event === 'joined') presenceStore.addDevice(listId, msg.deviceId)
         else if (msg.event === 'left') presenceStore.removeDevice(listId, msg.deviceId)
       })
 
-      unsubscribers.push(unsubOps, unsubPresence)
       send(`/app/list/${listId}/join`)
     }
 
@@ -81,7 +83,13 @@ export function useListSync() {
       connected.value = true
       subscribeTopics()
     })
-    unsubscribers.push(unsubReconnect)
+
+    // Single cleanup entry for stopSync / onUnmounted
+    unsubscribers.push(() => {
+      unsubOps?.()
+      unsubPresence?.()
+      unsubReconnect()
+    })
   }
 
   function stopSync() {
