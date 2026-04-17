@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 
 // ── mocks ──────────────────────────────────────────────────────────────────
 const { mockGet, mockPost, mockDelete } = vi.hoisted(() => ({
@@ -11,6 +11,8 @@ vi.mock('./api', () => ({ default: { get: mockGet, post: mockPost, delete: mockD
 
 import { pushService } from './push'
 
+// ── helpers ─────────────────────────────────────────────────────────────────
+
 function makeSub(endpoint = 'https://fcm.example.com/sub') {
   return {
     endpoint,
@@ -19,30 +21,42 @@ function makeSub(endpoint = 'https://fcm.example.com/sub') {
   } as unknown as PushSubscription
 }
 
-function makePushManager(existing: PushSubscription | null = null) {
-  return {
-    getSubscription: vi.fn().mockResolvedValue(existing),
-    subscribe: vi.fn().mockResolvedValue(makeSub()),
-  }
+function stubServiceWorker(readyValue: ServiceWorkerRegistration | Promise<never>) {
+  Object.defineProperty(navigator, 'serviceWorker', {
+    configurable: true,
+    get: () => ({ ready: Promise.resolve(readyValue) }),
+  })
 }
 
-function makeRegistration(pushManager = makePushManager()) {
-  return { pushManager } as unknown as ServiceWorkerRegistration
+function makeRegistration(existing: PushSubscription | null = null) {
+  const subscribe = vi.fn().mockResolvedValue(makeSub())
+  const getSubscription = vi.fn().mockResolvedValue(existing)
+  return {
+    pushManager: { getSubscription, subscribe },
+    _subscribe: subscribe,
+  } as unknown as ServiceWorkerRegistration & { _subscribe: ReturnType<typeof vi.fn> }
 }
+
+// ── tests ────────────────────────────────────────────────────────────────────
 
 describe('pushService.init', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     mockGet.mockResolvedValue({ data: { publicKey: 'AAAA' } })
     mockPost.mockResolvedValue({})
+    vi.stubGlobal('PushManager', class {})
+  })
+
+  afterEach(() => {
+    vi.unstubAllGlobals()
   })
 
   it('returns early when Notification is not in window', async () => {
-    const origNotification = (global as Record<string, unknown>)['Notification']
+    const orig = (global as Record<string, unknown>)['Notification']
     delete (global as Record<string, unknown>)['Notification']
     await pushService.init()
     expect(mockPost).not.toHaveBeenCalled()
-    ;(global as Record<string, unknown>)['Notification'] = origNotification
+    ;(global as Record<string, unknown>)['Notification'] = orig
   })
 
   it('returns early when permission is denied', async () => {
@@ -55,7 +69,7 @@ describe('pushService.init', () => {
     const requestPermission = vi.fn().mockResolvedValue('granted')
     vi.stubGlobal('Notification', { permission: 'default', requestPermission })
     const reg = makeRegistration()
-    vi.spyOn(navigator.serviceWorker, 'ready', 'get').mockResolvedValue(reg)
+    stubServiceWorker(reg)
     await pushService.init()
     expect(requestPermission).toHaveBeenCalled()
   })
@@ -72,29 +86,31 @@ describe('pushService.init', () => {
   it('re-sends existing subscription to backend when one exists', async () => {
     vi.stubGlobal('Notification', { permission: 'granted', requestPermission: vi.fn() })
     const existing = makeSub('https://fcm.example.com/existing')
-    const reg = makeRegistration(makePushManager(existing))
-    vi.spyOn(navigator.serviceWorker, 'ready', 'get').mockResolvedValue(reg)
+    const reg = makeRegistration(existing)
+    stubServiceWorker(reg)
     await pushService.init()
     expect(mockPost).toHaveBeenCalledWith('/push/subscribe', expect.objectContaining({
       endpoint: 'https://fcm.example.com/existing',
     }))
   })
 
-  it('fetches vapid key and subscribes when no existing subscription', async () => {
+  it('fetches vapid key and creates new subscription when none exists', async () => {
     vi.stubGlobal('Notification', { permission: 'granted', requestPermission: vi.fn() })
-    const pm = makePushManager(null)
-    const reg = makeRegistration(pm)
-    vi.spyOn(navigator.serviceWorker, 'ready', 'get').mockResolvedValue(reg)
     mockGet.mockResolvedValue({ data: { publicKey: 'BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB' } })
+    const reg = makeRegistration(null)
+    stubServiceWorker(reg)
     await pushService.init()
     expect(mockGet).toHaveBeenCalledWith('/push/public-key')
-    expect(pm.subscribe).toHaveBeenCalled()
+    expect((reg as unknown as { _subscribe: ReturnType<typeof vi.fn> })._subscribe).toHaveBeenCalled()
     expect(mockPost).toHaveBeenCalledWith('/push/subscribe', expect.any(Object))
   })
 
   it('does not throw when subscribeToPush fails', async () => {
     vi.stubGlobal('Notification', { permission: 'granted', requestPermission: vi.fn() })
-    vi.spyOn(navigator.serviceWorker, 'ready', 'get').mockRejectedValue(new Error('SW unavailable'))
+    Object.defineProperty(navigator, 'serviceWorker', {
+      configurable: true,
+      get: () => ({ ready: Promise.reject(new Error('SW unavailable')) }),
+    })
     await expect(pushService.init()).resolves.toBeUndefined()
   })
 })
@@ -103,19 +119,24 @@ describe('pushService.unsubscribe', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     mockDelete.mockResolvedValue({})
+    vi.stubGlobal('PushManager', class {})
+  })
+
+  afterEach(() => {
+    vi.unstubAllGlobals()
   })
 
   it('does nothing when there is no active subscription', async () => {
-    const reg = makeRegistration(makePushManager(null))
-    vi.spyOn(navigator.serviceWorker, 'ready', 'get').mockResolvedValue(reg)
+    const reg = makeRegistration(null)
+    stubServiceWorker(reg)
     await pushService.unsubscribe()
     expect(mockDelete).not.toHaveBeenCalled()
   })
 
-  it('calls DELETE /push/subscribe with endpoint and calls sub.unsubscribe()', async () => {
+  it('calls DELETE /push/subscribe and sub.unsubscribe()', async () => {
     const sub = makeSub('https://fcm.example.com/xyz')
-    const reg = makeRegistration(makePushManager(sub))
-    vi.spyOn(navigator.serviceWorker, 'ready', 'get').mockResolvedValue(reg)
+    const reg = makeRegistration(sub)
+    stubServiceWorker(reg)
     await pushService.unsubscribe()
     expect(mockDelete).toHaveBeenCalledWith('/push/subscribe', {
       data: { endpoint: 'https://fcm.example.com/xyz' },
