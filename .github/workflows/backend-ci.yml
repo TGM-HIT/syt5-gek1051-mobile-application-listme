@@ -2,7 +2,7 @@ name: Backend CI
 
 on:
   push:
-    branches: [main]
+    branches: [main, E2E-Cypress]
   pull_request:
     branches: [main]
   workflow_dispatch:
@@ -41,7 +41,7 @@ jobs:
           badge-label: Backend Coverage
 
       - name: Publish coverage report to GitHub Pages
-        if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+        if: github.event_name == 'push'
         uses: JamesIves/github-pages-deploy-action@v4
         with:
           branch: gh-pages

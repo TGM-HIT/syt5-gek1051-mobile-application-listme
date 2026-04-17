@@ -9,6 +9,9 @@
     "preview": "vite preview",
     "test": "vitest",
     "test:run": "vitest run",
+    "cypress:open": "cypress open",
+    "cypress:run": "start-server-and-test preview http://localhost:4173 cypress:headless",
+    "cypress:headless": "cypress run",
     "generate-icons": "npx @vite-pwa/assets-generator"
   },
   "dependencies": {
@@ -30,7 +33,9 @@
     "@vitest/coverage-v8": "^4.0.18",
     "@vue/test-utils": "^2.4.6",
     "@vue/tsconfig": "^0.8.1",
+    "cypress": "^15.13.0",
     "happy-dom": "^20.6.1",
+    "start-server-and-test": "^2.1.5",
     "tailwindcss": "^4.1.18",
     "typescript": "~5.9.3",
     "vite": "^7.3.1",
