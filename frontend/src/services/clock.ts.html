@@ -23,30 +23,30 @@
         <div class='clearfix'>
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">33.33% </span>
+                <span class="strong">100% </span>
                 <span class="quiet">Statements</span>
-                <span class='fraction'>5/15</span>
+                <span class='fraction'>15/15</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">33.33% </span>
+                <span class="strong">100% </span>
                 <span class="quiet">Branches</span>
-                <span class='fraction'>2/6</span>
+                <span class='fraction'>6/6</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">33.33% </span>
+                <span class="strong">100% </span>
                 <span class="quiet">Functions</span>
-                <span class='fraction'>1/3</span>
+                <span class='fraction'>3/3</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">35.71% </span>
+                <span class="strong">100% </span>
                 <span class="quiet">Lines</span>
-                <span class='fraction'>5/14</span>
+                <span class='fraction'>14/14</span>
             </div>
         
             
@@ -61,7 +61,7 @@
             </div>
         </template>
     </div>
-    <div class='status-line low'></div>
+    <div class='status-line high'></div>
     <pre><table class="coverage">
 <tr><td class="line-count quiet"><a name='L1'></a><a href='#L1'>1</a>
 <a name='L2'></a><a href='#L2'>2</a>
@@ -124,23 +124,23 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">3x</span>
+<span class="cline-any cline-yes">3x</span>
+<span class="cline-any cline-yes">3x</span>
+<span class="cline-any cline-yes">3x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">5x</span>
+<span class="cline-any cline-yes">5x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">5x</span>
+<span class="cline-any cline-yes">4x</span>
+<span class="cline-any cline-yes">4x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -164,24 +164,24 @@ export const LocalClockService = {
   },
 &nbsp;
   /** Returns the full vector clock for a list (all devices seen so far). */
-  async <span class="fstat-no" title="function not covered" >getClock(l</span>istId: string): Promise&lt;Record&lt;string, number&gt;&gt; {
-    const rows = <span class="cstat-no" title="statement not covered" >await cacheDb.localClocks.where('listId').equals(listId).toArray()</span>
-    const clock: Record&lt;string, number&gt; = <span class="cstat-no" title="statement not covered" >{}</span>
-<span class="cstat-no" title="statement not covered" >    for (const row of rows) <span class="cstat-no" title="statement not covered" >clock[row.deviceId] = row.counter</span></span>
-<span class="cstat-no" title="statement not covered" >    return clock</span>
+  async getClock(listId: string): Promise&lt;Record&lt;string, number&gt;&gt; {
+    const rows = await cacheDb.localClocks.where('listId').equals(listId).toArray()
+    const clock: Record&lt;string, number&gt; = {}
+    for (const row of rows) clock[row.deviceId] = row.counter
+    return clock
   },
 &nbsp;
   /** Max-merges an incoming clock map into the stored clocks for a list. */
-  async <span class="fstat-no" title="function not covered" >mergeClock(l</span>istId: string, incoming: Record&lt;string, number&gt;): Promise&lt;void&gt; {
-<span class="cstat-no" title="statement not covered" >    for (const [deviceId, counter] of Object.entries(incoming)) {</span>
-      const row = (<span class="cstat-no" title="statement not covered" >await cacheDb.localClocks.get([listId, deviceId])) ?? {</span>
+  async mergeClock(listId: string, incoming: Record&lt;string, number&gt;): Promise&lt;void&gt; {
+    for (const [deviceId, counter] of Object.entries(incoming)) {
+      const row = (await cacheDb.localClocks.get([listId, deviceId])) ?? {
         listId,
         deviceId,
         counter: 0,
       }
-<span class="cstat-no" title="statement not covered" >      if (counter &gt; row.counter) {</span>
-<span class="cstat-no" title="statement not covered" >        row.counter = counter</span>
-<span class="cstat-no" title="statement not covered" >        await cacheDb.localClocks.put(row)</span>
+      if (counter &gt; row.counter) {
+        row.counter = counter
+        await cacheDb.localClocks.put(row)
       }
     }
   },
@@ -193,7 +193,7 @@ export const LocalClockService = {
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2026-04-17T06:49:27.656Z
+                at 2026-04-17T07:01:50.705Z
             </div>
         <script src="../../prettify.js"></script>
         <script>
