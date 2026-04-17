@@ -105,6 +105,7 @@ describe('useListSync', () => {
 
   it('connected stays false if connectWebSocket throws', async () => {
     mockConnect.mockRejectedValue(new Error('WS unavailable'))
+    mockOnAnyConnect.mockReturnValue(() => {}) // WS never connects, callback never fires
     const { connected, startSync } = useListSync()
     await startSync('l1')
     expect(connected.value).toBe(false)
