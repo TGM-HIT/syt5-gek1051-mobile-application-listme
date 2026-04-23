@@ -152,12 +152,10 @@
             >
               Alle
             </button>
-            <button
+            <div
               v-for="cat in listCategories"
               :key="cat.id"
-              type="button"
-              @click="activeCategoryId = activeCategoryId === cat.id ? null : cat.id"
-              class="shrink-0 px-3 py-1 rounded-full text-xs font-medium transition-all"
+              class="shrink-0 inline-flex items-center rounded-full text-xs font-medium transition-all"
               :style="cat.color
                 ? activeCategoryId === cat.id
                   ? { backgroundColor: cat.color, color: '#fff' }
@@ -166,11 +164,21 @@
               :class="!cat.color
                 ? activeCategoryId === cat.id
                   ? 'bg-ctp-surface2 text-ctp-text'
-                  : 'bg-ctp-surface0 text-ctp-subtext0 hover:bg-ctp-surface1'
+                  : 'bg-ctp-surface0 text-ctp-subtext0'
                 : ''"
             >
-              {{ cat.name }}
-            </button>
+              <button
+                type="button"
+                class="pl-3 pr-1.5 py-1"
+                @click="activeCategoryId = activeCategoryId === cat.id ? null : cat.id"
+              >{{ cat.name }}</button>
+              <button
+                type="button"
+                class="pr-2 pl-0.5 py-1 opacity-50 hover:opacity-100 transition-opacity"
+                :aria-label="`Kategorie ${cat.name} löschen`"
+                @click="deleteCategory(cat.id)"
+              >×</button>
+            </div>
           </div>
         </div>
       </Transition>
@@ -413,6 +421,11 @@ async function doExport(format: 'csv' | 'pdf') {
   showExportMenu.value = false
   if (!list.value) return
   await exportService.download(listId, format, list.value.name)
+}
+
+function deleteCategory(id: string) {
+  if (activeCategoryId.value === id) activeCategoryId.value = null
+  categoriesStore.remove(listId, id)
 }
 
 function toggleSearch() {

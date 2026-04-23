@@ -23,7 +23,7 @@ const { mockRouterBack, mockRouterPush, mockRouteId, mockListsStore, mockItemsSt
     error: null as string | null,
   },
   mockPresenceStore: { getCount: vi.fn(() => 1) },
-  mockCategoriesStore: { getForList: vi.fn(() => []), fetchForList: vi.fn() },
+  mockCategoriesStore: { getForList: vi.fn(() => []), fetchForList: vi.fn(), remove: vi.fn() },
   mockListSync: {
     connected: { value: true },
     conflicts: { value: [] },

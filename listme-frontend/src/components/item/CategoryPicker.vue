@@ -10,6 +10,7 @@ const props = defineProps<{
 const emit = defineEmits<{
   'update:selectedId': [id: string | null]
   'create': [name: string]
+  'delete': [id: string]
 }>()
 
 const showInput = ref(false)
@@ -43,12 +44,10 @@ function confirmCreate() {
     </button>
 
     <!-- Existing categories -->
-    <button
+    <div
       v-for="cat in categories"
       :key="cat.id"
-      type="button"
-      @click="select(cat.id)"
-      class="px-2.5 py-1 rounded-full text-[11px] font-medium transition-all"
+      class="inline-flex items-center rounded-full text-[11px] font-medium transition-all"
       :style="cat.color
         ? selectedId === cat.id
           ? { backgroundColor: cat.color, color: '#fff' }
@@ -60,8 +59,18 @@ function confirmCreate() {
           : 'bg-ctp-surface0 text-ctp-subtext0 hover:bg-ctp-surface1'
         : ''"
     >
-      {{ cat.name }}
-    </button>
+      <button
+        type="button"
+        @click="select(cat.id)"
+        class="pl-2.5 pr-1 py-1 rounded-l-full"
+      >{{ cat.name }}</button>
+      <button
+        type="button"
+        @click="emit('delete', cat.id)"
+        class="pr-2 pl-0.5 py-1 rounded-r-full opacity-50 hover:opacity-100 transition-opacity leading-none"
+        aria-label="Kategorie löschen"
+      >×</button>
+    </div>
 
     <!-- Inline create -->
     <template v-if="!showInput">
