@@ -27,7 +27,7 @@ const {
 
 vi.mock('../services/item', () => ({ itemService: mockItemService }))
 vi.mock('../services/cache', () => ({ CacheService: mockCacheService }))
-vi.mock('../crdt/OperationQueue', () => ({ OperationQueue: { enqueue: mockEnqueue } }))
+vi.mock('../crdt/OperationQueue', () => ({ OperationQueue: { enqueue: mockEnqueue, getPending: vi.fn().mockResolvedValue([]) } }))
 vi.mock('../services/clock', () => ({ LocalClockService: { getNextClock: mockGetNextClock } }))
 vi.mock('../services/device', () => ({ getDeviceId: mockGetDeviceId }))
 vi.mock('./lists', () => ({ useListsStore: () => ({ patchCounts: mockPatchCounts }) }))
