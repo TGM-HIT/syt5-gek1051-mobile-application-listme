@@ -29,6 +29,7 @@ public class ListController {
     private final ListDeviceRepository listDeviceRepository;
     private final ItemRepository itemRepository;
     private final PresetItemRepository presetItemRepository;
+    private final CategoryRepository categoryRepository;
     private final DeviceSiblingRepository deviceSiblingRepository;
     private final SimpMessagingTemplate messaging;
 
@@ -38,67 +39,89 @@ public class ListController {
     public ListResponse create(@CurrentUser User user,
                                @CurrentDevice Device device,
                                @Valid @RequestBody CreateListRequest req) {
-<span class="fc" id="L41">        ShoppingList list = new ShoppingList();</span>
-<span class="fc" id="L42">        list.setId(UUID.randomUUID());</span>
-<span class="fc" id="L43">        list.setName(req.name());</span>
-<span class="fc bfc" id="L44" title="All 2 branches covered.">        list.setEmoji(req.emoji() != null ? req.emoji() : &quot;\uD83D\uDED2&quot;);</span>
-<span class="fc" id="L45">        list.setCreatedByDevice(device);</span>
-<span class="fc" id="L46">        list.setUser(user);</span>
+<span class="fc" id="L42">        ShoppingList list = new ShoppingList();</span>
+<span class="fc" id="L43">        list.setId(UUID.randomUUID());</span>
+<span class="fc" id="L44">        list.setName(req.name());</span>
+<span class="fc bfc" id="L45" title="All 2 branches covered.">        list.setEmoji(req.emoji() != null ? req.emoji() : &quot;\uD83D\uDED2&quot;);</span>
+<span class="fc" id="L46">        list.setCreatedByDevice(device);</span>
+<span class="fc" id="L47">        list.setUser(user);</span>
 
-<span class="fc" id="L48">        ListDevice ld = new ListDevice(list, device, &quot;owner&quot;);</span>
-<span class="fc" id="L49">        list.getListDevices().add(ld);</span>
+<span class="fc" id="L49">        ListDevice ld = new ListDevice(list, device, &quot;owner&quot;);</span>
+<span class="fc" id="L50">        list.getListDevices().add(ld);</span>
 
-<span class="fc" id="L51">        final ShoppingList savedList = listRepository.save(list);</span>
+<span class="fc" id="L52">        final ShoppingList savedList = listRepository.save(list);</span>
 
         // Notify this user's other devices (same userId) via WebSocket
-<span class="fc" id="L54">        messaging.convertAndSend(&quot;/topic/user/&quot; + user.getId(), (Object) Map.of(&quot;type&quot;, &quot;LIST_ADDED&quot;));</span>
+<span class="fc" id="L55">        messaging.convertAndSend(&quot;/topic/user/&quot; + user.getId(), (Object) Map.of(&quot;type&quot;, &quot;LIST_ADDED&quot;));</span>
 
-        // If a preset was specified, copy its items into the new list
-<span class="fc" id="L57">        int itemCount = 0;</span>
-<span class="fc bfc" id="L58" title="All 2 branches covered.">        if (req.presetId() != null) {</span>
-<span class="fc" id="L59">            List&lt;PresetItem&gt; presetItems = presetItemRepository.findByPresetIdOrderByPosition(req.presetId());</span>
-<span class="fc" id="L60">            List&lt;Item&gt; items = new ArrayList&lt;&gt;();</span>
-<span class="fc bfc" id="L61" title="All 2 branches covered.">            for (PresetItem pi : presetItems) {</span>
-<span class="fc" id="L62">                Item item = new Item();</span>
-<span class="fc" id="L63">                item.setList(savedList);</span>
-<span class="fc" id="L64">                item.setName(pi.getName());</span>
-<span class="fc" id="L65">                item.setChecked(false);</span>
-<span class="fc" id="L66">                item.setPosition(pi.getPosition());</span>
-<span class="fc" id="L67">                item.setQuantity(pi.getQuantity());</span>
-<span class="fc" id="L68">                item.setQuantityUnit(pi.getQuantityUnit());</span>
-<span class="fc" id="L69">                item.setPrice(pi.getPrice());</span>
-<span class="fc" id="L70">                item.setImageUrl(pi.getImageUrl());</span>
-<span class="fc" id="L71">                item.setCreatedByDevice(device);</span>
-<span class="fc" id="L72">                items.add(item);</span>
-<span class="fc" id="L73">            }</span>
-<span class="fc" id="L74">            itemRepository.saveAll(items);</span>
-<span class="fc" id="L75">            itemCount = items.size();</span>
+        // If a preset was specified, copy its items (and categories) into the new list
+<span class="fc" id="L58">        int itemCount = 0;</span>
+<span class="fc bfc" id="L59" title="All 2 branches covered.">        if (req.presetId() != null) {</span>
+<span class="fc" id="L60">            List&lt;PresetItem&gt; presetItems = presetItemRepository.findByPresetIdOrderByPosition(req.presetId());</span>
+
+            // Recreate unique categories for this new list (categories are list-scoped)
+<span class="fc" id="L63">            Map&lt;String, Category&gt; categoryByName = new LinkedHashMap&lt;&gt;();</span>
+<span class="fc" id="L64">            int catPos = 0;</span>
+<span class="fc bfc" id="L65" title="All 2 branches covered.">            for (PresetItem pi : presetItems) {</span>
+<span class="pc bpc" id="L66" title="3 of 4 branches missed.">                if (pi.getCategoryName() != null &amp;&amp; !pi.getCategoryName().isBlank()</span>
+<span class="nc bnc" id="L67" title="All 2 branches missed.">                        &amp;&amp; !categoryByName.containsKey(pi.getCategoryName())) {</span>
+<span class="nc" id="L68">                    Category cat = new Category();</span>
+<span class="nc" id="L69">                    cat.setName(pi.getCategoryName());</span>
+<span class="nc" id="L70">                    cat.setColor(pi.getCategoryColor());</span>
+<span class="nc" id="L71">                    cat.setList(savedList);</span>
+<span class="nc" id="L72">                    cat.setPosition(catPos++);</span>
+<span class="nc" id="L73">                    categoryByName.put(pi.getCategoryName(), cat);</span>
+                }
+<span class="fc" id="L75">            }</span>
+<span class="pc bpc" id="L76" title="1 of 2 branches missed.">            if (!categoryByName.isEmpty()) {</span>
+<span class="nc" id="L77">                categoryRepository.saveAll(categoryByName.values());</span>
+            }
+
+<span class="fc" id="L80">            List&lt;Item&gt; items = new ArrayList&lt;&gt;();</span>
+<span class="fc bfc" id="L81" title="All 2 branches covered.">            for (PresetItem pi : presetItems) {</span>
+<span class="fc" id="L82">                Item item = new Item();</span>
+<span class="fc" id="L83">                item.setList(savedList);</span>
+<span class="fc" id="L84">                item.setName(pi.getName());</span>
+<span class="fc" id="L85">                item.setChecked(false);</span>
+<span class="fc" id="L86">                item.setPosition(pi.getPosition());</span>
+<span class="fc" id="L87">                item.setQuantity(pi.getQuantity());</span>
+<span class="fc" id="L88">                item.setQuantityUnit(pi.getQuantityUnit());</span>
+<span class="fc" id="L89">                item.setPrice(pi.getPrice());</span>
+<span class="fc" id="L90">                item.setImageUrl(pi.getImageUrl());</span>
+<span class="fc" id="L91">                item.setCreatedByDevice(device);</span>
+<span class="pc bpc" id="L92" title="1 of 2 branches missed.">                if (pi.getCategoryName() != null) {</span>
+<span class="nc" id="L93">                    item.setCategory(categoryByName.get(pi.getCategoryName()));</span>
+                }
+<span class="fc" id="L95">                items.add(item);</span>
+<span class="fc" id="L96">            }</span>
+<span class="fc" id="L97">            itemRepository.saveAll(items);</span>
+<span class="fc" id="L98">            itemCount = items.size();</span>
         }
 
-<span class="fc" id="L78">        return ListResponse.fromWithCount(savedList, itemCount);</span>
+<span class="fc" id="L101">        return ListResponse.fromWithCount(savedList, itemCount);</span>
     }
 
     @GetMapping
     public List&lt;ListResponse&gt; getMyLists(@CurrentUser User user, @CurrentDevice Device device) {
         // Owned lists (primary identity via userId)
-<span class="fc" id="L84">        List&lt;ShoppingList&gt; owned = listRepository.findByUserOrderByUpdatedAtDesc(user);</span>
-<span class="fc" id="L85">        Set&lt;UUID&gt; ownedIds = owned.stream().map(ShoppingList::getId).collect(Collectors.toSet());</span>
+<span class="fc" id="L107">        List&lt;ShoppingList&gt; owned = listRepository.findByUserOrderByUpdatedAtDesc(user);</span>
+<span class="fc" id="L108">        Set&lt;UUID&gt; ownedIds = owned.stream().map(ShoppingList::getId).collect(Collectors.toSet());</span>
 
         // Shared lists: device was added as editor via a share token (user_id belongs to someone else)
-<span class="fc" id="L88">        List&lt;ShoppingList&gt; shared = listRepository.findSharedWithDevice(device.getId(), user.getId());</span>
+<span class="fc" id="L111">        List&lt;ShoppingList&gt; shared = listRepository.findSharedWithDevice(device.getId(), user.getId());</span>
 
-<span class="fc" id="L90">        List&lt;ShoppingList&gt; all = new ArrayList&lt;&gt;(owned);</span>
-<span class="pc bpc" id="L91" title="1 of 2 branches missed.">        all.addAll(shared.stream().filter(l -&gt; !ownedIds.contains(l.getId())).toList());</span>
-<span class="fc" id="L92">        all.sort(Comparator.comparing(ShoppingList::getUpdatedAt).reversed());</span>
+<span class="fc" id="L113">        List&lt;ShoppingList&gt; all = new ArrayList&lt;&gt;(owned);</span>
+<span class="pc bpc" id="L114" title="1 of 2 branches missed.">        all.addAll(shared.stream().filter(l -&gt; !ownedIds.contains(l.getId())).toList());</span>
+<span class="fc" id="L115">        all.sort(Comparator.comparing(ShoppingList::getUpdatedAt).reversed());</span>
 
-<span class="fc" id="L94">        return all.stream().map(ListResponse::from).toList();</span>
+<span class="fc" id="L117">        return all.stream().map(ListResponse::from).toList();</span>
     }
 
     @GetMapping(&quot;/{listId}&quot;)
     public ListResponse getList(@PathVariable UUID listId,
                                 @CurrentUser User user,
                                 @CurrentDevice Device device) {
-<span class="fc" id="L101">        return ListResponse.from(requireAccess(listId, user, device));</span>
+<span class="fc" id="L124">        return ListResponse.from(requireAccess(listId, user, device));</span>
     }
 
     @PutMapping(&quot;/{listId}&quot;)
@@ -107,41 +130,41 @@ public class ListController {
                                @CurrentUser User user,
                                @CurrentDevice Device device,
                                @Valid @RequestBody UpdateListRequest req) {
-<span class="fc" id="L110">        ShoppingList list = requireAccess(listId, user, device);</span>
-<span class="fc" id="L111">        list.setName(req.name());</span>
-<span class="pc bpc" id="L112" title="1 of 2 branches missed.">        if (req.emoji() != null) list.setEmoji(req.emoji());</span>
-<span class="fc" id="L113">        return ListResponse.from(listRepository.save(list));</span>
+<span class="fc" id="L133">        ShoppingList list = requireAccess(listId, user, device);</span>
+<span class="fc" id="L134">        list.setName(req.name());</span>
+<span class="pc bpc" id="L135" title="1 of 2 branches missed.">        if (req.emoji() != null) list.setEmoji(req.emoji());</span>
+<span class="fc" id="L136">        return ListResponse.from(listRepository.save(list));</span>
     }
 
     @GetMapping(&quot;/{listId}/participants&quot;)
     public List&lt;ParticipantResponse&gt; getParticipants(@PathVariable UUID listId,
                                                      @CurrentUser User user,
                                                      @CurrentDevice Device device) {
-<span class="fc" id="L120">        requireAccess(listId, user, device);</span>
-<span class="fc" id="L121">        List&lt;ListDevice&gt; all = listDeviceRepository.findByListId(listId);</span>
+<span class="fc" id="L143">        requireAccess(listId, user, device);</span>
+<span class="fc" id="L144">        List&lt;ListDevice&gt; all = listDeviceRepository.findByListId(listId);</span>
 
-<span class="fc" id="L123">        Set&lt;UUID&gt; allIds = all.stream()</span>
-<span class="fc" id="L124">                .map(l -&gt; l.getDevice().getId())</span>
-<span class="fc" id="L125">                .collect(Collectors.toSet());</span>
+<span class="fc" id="L146">        Set&lt;UUID&gt; allIds = all.stream()</span>
+<span class="fc" id="L147">                .map(l -&gt; l.getDevice().getId())</span>
+<span class="fc" id="L148">                .collect(Collectors.toSet());</span>
 
-<span class="fc" id="L127">        Set&lt;UUID&gt; excluded = new HashSet&lt;&gt;();</span>
-<span class="fc" id="L128">        all.stream()</span>
-<span class="fc bfc" id="L129" title="All 2 branches covered.">                .sorted(Comparator.comparing((ListDevice l) -&gt; &quot;owner&quot;.equals(l.getRole()) ? 0 : 1)</span>
-<span class="fc" id="L130">                        .thenComparing(ListDevice::getJoinedAt))</span>
-<span class="fc" id="L131">                .forEach(l -&gt; {</span>
-<span class="fc" id="L132">                    UUID id = l.getDevice().getId();</span>
-<span class="pc bpc" id="L133" title="1 of 2 branches missed.">                    if (excluded.contains(id)) return;</span>
-<span class="fc" id="L134">                    deviceSiblingRepository.findSiblingIds(id).stream()</span>
-<span class="fc" id="L135">                            .filter(allIds::contains)</span>
-<span class="fc" id="L136">                            .forEach(excluded::add);</span>
-<span class="fc" id="L137">                });</span>
+<span class="fc" id="L150">        Set&lt;UUID&gt; excluded = new HashSet&lt;&gt;();</span>
+<span class="fc" id="L151">        all.stream()</span>
+<span class="fc bfc" id="L152" title="All 2 branches covered.">                .sorted(Comparator.comparing((ListDevice l) -&gt; &quot;owner&quot;.equals(l.getRole()) ? 0 : 1)</span>
+<span class="fc" id="L153">                        .thenComparing(ListDevice::getJoinedAt))</span>
+<span class="fc" id="L154">                .forEach(l -&gt; {</span>
+<span class="fc" id="L155">                    UUID id = l.getDevice().getId();</span>
+<span class="pc bpc" id="L156" title="1 of 2 branches missed.">                    if (excluded.contains(id)) return;</span>
+<span class="fc" id="L157">                    deviceSiblingRepository.findSiblingIds(id).stream()</span>
+<span class="fc" id="L158">                            .filter(allIds::contains)</span>
+<span class="fc" id="L159">                            .forEach(excluded::add);</span>
+<span class="fc" id="L160">                });</span>
 
-<span class="fc" id="L139">        return all.stream()</span>
-<span class="pc bpc" id="L140" title="1 of 2 branches missed.">                .filter(l -&gt; !excluded.contains(l.getDevice().getId()))</span>
-<span class="fc" id="L141">                .map(l -&gt; new ParticipantResponse(</span>
-<span class="fc" id="L142">                        l.getDevice().getId(), l.getRole(), l.getJoinedAt(),</span>
-<span class="fc" id="L143">                        l.getDevice().getDisplayName(), l.getDevice().getProfilePicture()))</span>
-<span class="fc" id="L144">                .toList();</span>
+<span class="fc" id="L162">        return all.stream()</span>
+<span class="pc bpc" id="L163" title="1 of 2 branches missed.">                .filter(l -&gt; !excluded.contains(l.getDevice().getId()))</span>
+<span class="fc" id="L164">                .map(l -&gt; new ParticipantResponse(</span>
+<span class="fc" id="L165">                        l.getDevice().getId(), l.getRole(), l.getJoinedAt(),</span>
+<span class="fc" id="L166">                        l.getDevice().getDisplayName(), l.getDevice().getProfilePicture()))</span>
+<span class="fc" id="L167">                .toList();</span>
     }
 
     @PostMapping(&quot;/{listId}/duplicate&quot;)
@@ -150,27 +173,27 @@ public class ListController {
     public ListResponse duplicate(@PathVariable UUID listId,
                                   @CurrentUser User user,
                                   @CurrentDevice Device device) {
-<span class="fc" id="L153">        ShoppingList orig = requireAccess(listId, user, device);</span>
+<span class="fc" id="L176">        ShoppingList orig = requireAccess(listId, user, device);</span>
 
-<span class="fc" id="L155">        ShoppingList copy = new ShoppingList();</span>
-<span class="fc" id="L156">        copy.setId(UUID.randomUUID());</span>
-<span class="fc" id="L157">        copy.setName(orig.getName() + &quot; (Kopie)&quot;);</span>
-<span class="fc" id="L158">        copy.setEmoji(orig.getEmoji());</span>
-<span class="fc" id="L159">        copy.setCreatedByDevice(device);</span>
-<span class="fc" id="L160">        copy.setUser(user);</span>
-<span class="fc" id="L161">        copy.getListDevices().add(new ListDevice(copy, device, &quot;owner&quot;));</span>
+<span class="fc" id="L178">        ShoppingList copy = new ShoppingList();</span>
+<span class="fc" id="L179">        copy.setId(UUID.randomUUID());</span>
+<span class="fc" id="L180">        copy.setName(orig.getName() + &quot; (Kopie)&quot;);</span>
+<span class="fc" id="L181">        copy.setEmoji(orig.getEmoji());</span>
+<span class="fc" id="L182">        copy.setCreatedByDevice(device);</span>
+<span class="fc" id="L183">        copy.setUser(user);</span>
+<span class="fc" id="L184">        copy.getListDevices().add(new ListDevice(copy, device, &quot;owner&quot;));</span>
 
-<span class="fc" id="L163">        orig.getItems().forEach(origItem -&gt; {</span>
-<span class="fc" id="L164">            Item item = new Item();</span>
-<span class="fc" id="L165">            item.setList(copy);</span>
-<span class="fc" id="L166">            item.setName(origItem.getName());</span>
-<span class="fc" id="L167">            item.setPosition(origItem.getPosition());</span>
-<span class="fc" id="L168">            item.setChecked(false);</span>
-<span class="fc" id="L169">            item.setCreatedByDevice(device);</span>
-<span class="fc" id="L170">            copy.getItems().add(item);</span>
-<span class="fc" id="L171">        });</span>
+<span class="fc" id="L186">        orig.getItems().forEach(origItem -&gt; {</span>
+<span class="fc" id="L187">            Item item = new Item();</span>
+<span class="fc" id="L188">            item.setList(copy);</span>
+<span class="fc" id="L189">            item.setName(origItem.getName());</span>
+<span class="fc" id="L190">            item.setPosition(origItem.getPosition());</span>
+<span class="fc" id="L191">            item.setChecked(false);</span>
+<span class="fc" id="L192">            item.setCreatedByDevice(device);</span>
+<span class="fc" id="L193">            copy.getItems().add(item);</span>
+<span class="fc" id="L194">        });</span>
 
-<span class="fc" id="L173">        return ListResponse.from(listRepository.save(copy));</span>
+<span class="fc" id="L196">        return ListResponse.from(listRepository.save(copy));</span>
     }
 
     @DeleteMapping(&quot;/{listId}&quot;)
@@ -179,35 +202,35 @@ public class ListController {
     public void delete(@PathVariable UUID listId,
                        @CurrentUser User user,
                        @CurrentDevice Device device) {
-<span class="fc" id="L182">        ShoppingList list = requireAccess(listId, user, device);</span>
+<span class="fc" id="L205">        ShoppingList list = requireAccess(listId, user, device);</span>
 
         // If this user owns the list, delete it entirely
-<span class="pc bpc" id="L185" title="2 of 4 branches missed.">        if (list.getUser() != null &amp;&amp; list.getUser().getId().equals(user.getId())) {</span>
-<span class="fc" id="L186">            listRepository.delete(list);</span>
-<span class="fc" id="L187">            return;</span>
+<span class="pc bpc" id="L208" title="2 of 4 branches missed.">        if (list.getUser() != null &amp;&amp; list.getUser().getId().equals(user.getId())) {</span>
+<span class="fc" id="L209">            listRepository.delete(list);</span>
+<span class="fc" id="L210">            return;</span>
         }
 
         // Otherwise just remove this device's access (shared list)
-<span class="nc" id="L191">        listDeviceRepository.findByListId(listId).stream()</span>
-<span class="nc" id="L192">                .filter(ld -&gt; ld.getDevice().getId().equals(device.getId()))</span>
-<span class="nc" id="L193">                .findFirst()</span>
-<span class="nc" id="L194">                .ifPresent(listDeviceRepository::delete);</span>
-<span class="nc" id="L195">    }</span>
+<span class="nc" id="L214">        listDeviceRepository.findByListId(listId).stream()</span>
+<span class="nc" id="L215">                .filter(ld -&gt; ld.getDevice().getId().equals(device.getId()))</span>
+<span class="nc" id="L216">                .findFirst()</span>
+<span class="nc" id="L217">                .ifPresent(listDeviceRepository::delete);</span>
+<span class="nc" id="L218">    }</span>
 
     private ShoppingList requireAccess(UUID listId, User user, Device device) {
-<span class="fc" id="L198">        ShoppingList list = listRepository.findById(listId)</span>
-<span class="pc" id="L199">                .orElseThrow(() -&gt; new ResponseStatusException(HttpStatus.NOT_FOUND, &quot;List not found&quot;));</span>
+<span class="fc" id="L221">        ShoppingList list = listRepository.findById(listId)</span>
+<span class="pc" id="L222">                .orElseThrow(() -&gt; new ResponseStatusException(HttpStatus.NOT_FOUND, &quot;List not found&quot;));</span>
 
         // Owner: list belongs to this user
-<span class="pc bpc" id="L202" title="1 of 4 branches missed.">        if (list.getUser() != null &amp;&amp; list.getUser().getId().equals(user.getId())) {</span>
-<span class="fc" id="L203">            return list;</span>
+<span class="pc bpc" id="L225" title="1 of 4 branches missed.">        if (list.getUser() != null &amp;&amp; list.getUser().getId().equals(user.getId())) {</span>
+<span class="fc" id="L226">            return list;</span>
         }
         // Editor: device was added via share token
-<span class="fc bfc" id="L206" title="All 2 branches covered.">        if (listDeviceRepository.existsByListIdAndDeviceId(listId, device.getId())) {</span>
-<span class="fc" id="L207">            return list;</span>
+<span class="fc bfc" id="L229" title="All 2 branches covered.">        if (listDeviceRepository.existsByListIdAndDeviceId(listId, device.getId())) {</span>
+<span class="fc" id="L230">            return list;</span>
         }
 
-<span class="fc" id="L210">        throw new ResponseStatusException(HttpStatus.FORBIDDEN, &quot;Not a participant of this list&quot;);</span>
+<span class="fc" id="L233">        throw new ResponseStatusException(HttpStatus.FORBIDDEN, &quot;Not a participant of this list&quot;);</span>
     }
 }
 </pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

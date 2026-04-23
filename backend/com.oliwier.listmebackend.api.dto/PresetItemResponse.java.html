@@ -11,13 +11,16 @@ import java.util.UUID;
         BigDecimal quantity,
         String quantityUnit,
         BigDecimal price,
-        String imageUrl
+        String imageUrl,
+        String categoryName,
+        String categoryColor
 ) {
     public static PresetItemResponse from(PresetItem i) {
-<span class="fc" id="L17">        return new PresetItemResponse(</span>
-<span class="fc" id="L18">                i.getId(), i.getName(),</span>
-<span class="fc" id="L19">                i.getQuantity(), i.getQuantityUnit(),</span>
-<span class="fc" id="L20">                i.getPrice(), i.getImageUrl());</span>
+<span class="fc" id="L19">        return new PresetItemResponse(</span>
+<span class="fc" id="L20">                i.getId(), i.getName(),</span>
+<span class="fc" id="L21">                i.getQuantity(), i.getQuantityUnit(),</span>
+<span class="fc" id="L22">                i.getPrice(), i.getImageUrl(),</span>
+<span class="fc" id="L23">                i.getCategoryName(), i.getCategoryColor());</span>
     }
 }
 </pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>
