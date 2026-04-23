@@ -1,4 +1,4 @@
-import { watch } from 'vue'
+import { watch, onMounted } from 'vue'
 import { OperationQueue } from '../crdt/OperationQueue'
 import api from '../services/api'
 import { useOffline } from './useOffline'
@@ -26,6 +26,11 @@ let reconnectListenerRegistered = false
 export function useSyncQueue() {
   const { isOnline } = useOffline()
 
+  // Flush ops queued in a previous session (app opened while already online)
+  onMounted(async () => {
+    if (isOnline.value) await flushAll()
+  })
+
   // Flush when navigator.onLine recovers (full network loss scenario)
   watch(isOnline, async (online) => {
     if (online) await flushAll()
@@ -43,9 +48,11 @@ export function useSyncQueue() {
 
 async function flushAll(): Promise<void> {
   await flushPendingLists()
-  const flushedListIds = await flushQueue()
-  const store = useItemsStore()
-  await Promise.allSettled(flushedListIds.map(id => store.fetchAll(id)))
+  await flushQueue()
+  // No fetchAll here: optimistic state in the store + cache is already correct,
+  // and pullRemoteOps (called inside flushQueue) applies any remote changes via applyOp.
+  // Calling fetchAll here races with the POST and can overwrite correct local state
+  // with stale server data if the response arrives before the server processes our ops.
 }
 
 /**

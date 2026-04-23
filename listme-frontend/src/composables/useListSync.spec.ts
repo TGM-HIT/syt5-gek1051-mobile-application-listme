@@ -33,6 +33,7 @@ vi.mock('../services/websocket', () => ({
 vi.mock('../services/device', () => ({ getDeviceId: mockGetDeviceId }))
 vi.mock('../crdt/ConflictDetector', () => ({ detectConflicts: mockDetect }))
 vi.mock('../services/clock', () => ({ LocalClockService: { mergeClock: vi.fn() } }))
+vi.mock('../crdt/OperationQueue', () => ({ OperationQueue: { getAllPending: vi.fn().mockResolvedValue([]) } }))
 vi.mock('../stores/notifications', () => ({ useNotificationsStore: () => ({ add: vi.fn() }) }))
 vi.mock('../stores/lists', () => ({ useListsStore: () => ({ getById: vi.fn().mockReturnValue({ name: 'Test' }) }) }))
 

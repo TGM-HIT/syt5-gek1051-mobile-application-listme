@@ -1,5 +1,6 @@
 import { ref, onUnmounted } from 'vue'
 import { connectWebSocket, subscribe, send, isConnected, onAnyConnect } from '../services/websocket'
+import { OperationQueue } from '../crdt/OperationQueue'
 import { useItemsStore } from '../stores/items'
 import { usePresenceStore } from '../stores/presence'
 import { useNotificationsStore } from '../stores/notifications'
@@ -64,6 +65,7 @@ export function useListSync() {
     // successful connection (covers devices that were offline at mount time).
     const unsubConnect = onAnyConnect(async () => {
       connected.value = true
+      subscribeTopics()
       const snapIds = new Set(itemsStore.getItems(listId).map(i => `${i.id}|${i.checked}|${i.name}`))
       await itemsStore.fetchAll(listId)
       subscribeTopics()
