@@ -38,7 +38,7 @@ describe('ID 3: Shopping Lists CRUD', () => {
 
   it('should delete a shopping list via context menu', () => {
     cy.get('button[title="Optionen"]').click({ force: true });
-    cy.contains('button', 'Löschen').click();
+    cy.contains('button', 'Löschen').first().click();
     cy.wait('@deleteList');
   });
 
