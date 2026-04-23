@@ -55,6 +55,16 @@ class PresetServiceTest {
         return i;
     }
 
+    private Item itemWithCategory(String name, String categoryName, String color) {
+        Item i = item(name);
+        Category cat = new Category();
+        cat.setId(UUID.randomUUID());
+        cat.setName(categoryName);
+        cat.setColor(color);
+        i.setCategory(cat);
+        return i;
+    }
+
     // ── createFromList ────────────────────────────────────────────────────
 
     @Test
@@ -81,6 +91,29 @@ class PresetServiceTest {
         assertThat(result.getItems()).hasSize(2);
         assertThat(result.getItems().get(0).getName()).isEqualTo("Milk");
         assertThat(result.getItems().get(1).getPosition()).isEqualTo(1);
+    }
+
+    @Test
+    void createFromList_preservesCategoryNameAndColor() {
+        when(listRepository.findById(listId)).thenReturn(Optional.of(list));
+        when(listDeviceRepository.existsByListIdAndDeviceId(listId, devId)).thenReturn(true);
+        when(itemRepository.findByListIdAndDeletedAtIsNullOrderByPosition(listId))
+                .thenReturn(List.of(
+                        itemWithCategory("Milk", "Dairy", "#a6e3a1"),
+                        item("Salt")  // no category
+                ));
+        when(presetRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+
+        Preset result = presetService.createFromList(user, device, listId, "Grocery", null);
+
+        assertThat(result.getItems()).hasSize(2);
+        PresetItem milkItem = result.getItems().get(0);
+        assertThat(milkItem.getCategoryName()).isEqualTo("Dairy");
+        assertThat(milkItem.getCategoryColor()).isEqualTo("#a6e3a1");
+
+        PresetItem saltItem = result.getItems().get(1);
+        assertThat(saltItem.getCategoryName()).isNull();
+        assertThat(saltItem.getCategoryColor()).isNull();
     }
 
     @Test

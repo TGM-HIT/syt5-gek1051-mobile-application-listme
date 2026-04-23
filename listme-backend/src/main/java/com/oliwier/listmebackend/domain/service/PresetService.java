@@ -58,6 +58,10 @@ public class PresetService {
             pi.setPrice(src.getPrice());
             pi.setImageUrl(src.getImageUrl());
             pi.setPosition(i);
+            if (src.getCategory() != null) {
+                pi.setCategoryName(src.getCategory().getName());
+                pi.setCategoryColor(src.getCategory().getColor());
+            }
             preset.getItems().add(pi);
         }
 

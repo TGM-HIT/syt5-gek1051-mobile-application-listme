@@ -16,6 +16,8 @@ export interface PresetItem {
   quantityUnit: string | null
   price: number | null
   imageUrl: string | null
+  categoryName?: string | null
+  categoryColor?: string | null
 }
 
 export const presetService = {

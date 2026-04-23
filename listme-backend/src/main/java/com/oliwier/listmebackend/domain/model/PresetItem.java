@@ -38,4 +38,10 @@ public class PresetItem {
 
     @Column(nullable = false)
     private int position = 0;
+
+    @Column(name = "category_name", length = 100)
+    private String categoryName;
+
+    @Column(name = "category_color", length = 7)
+    private String categoryColor;
 }
