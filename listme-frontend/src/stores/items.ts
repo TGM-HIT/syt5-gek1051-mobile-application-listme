@@ -213,5 +213,5 @@ export const useItemsStore = defineStore('items', () => {
     useListsStore().patchCounts(listId, items.length, items.filter(i => i.checked).length)
   }
 
-  return { itemsByList, loading, error, getItems, fetchAll, create, update, toggleCheck, remove }
+  return { itemsByList, loading, error, getItems, fetchAll, create, update, toggleCheck, remove, syncCounts }
 })

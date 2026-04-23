@@ -40,6 +40,7 @@ export function useGlobalNotifications() {
         const op = payload as CrdtOperation
         if (op.deviceId === myDeviceId) return
         applyOp(listId, op, itemsStore)
+        itemsStore.syncCounts(listId)
         const listName = listsStore.getById(listId)?.name ?? ''
         notificationsStore.add({ listId, listName, message: opToMessage(op) })
         if ('vibrate' in navigator) navigator.vibrate([100, 50, 100])

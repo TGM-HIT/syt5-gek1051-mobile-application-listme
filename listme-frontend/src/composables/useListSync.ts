@@ -54,6 +54,7 @@ export function useListSync() {
         if ('vibrate' in navigator) navigator.vibrate([100, 50, 100])
 
         applyOp(listId, op, itemsStore)
+        itemsStore.syncCounts(listId)
       })
 
       unsubPresence = subscribe(`/topic/list/${listId}/presence`, (payload) => {
