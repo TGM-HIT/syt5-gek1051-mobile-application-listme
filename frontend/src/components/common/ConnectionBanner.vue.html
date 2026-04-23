@@ -23,16 +23,16 @@
         <div class='clearfix'>
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">87.5% </span>
+                <span class="strong">88.57% </span>
                 <span class="quiet">Statements</span>
-                <span class='fraction'>28/32</span>
+                <span class='fraction'>31/35</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">76.19% </span>
+                <span class="strong">75% </span>
                 <span class="quiet">Branches</span>
-                <span class='fraction'>16/21</span>
+                <span class='fraction'>21/28</span>
             </div>
         
             
@@ -44,9 +44,9 @@
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">91.66% </span>
+                <span class="strong">92.59% </span>
                 <span class="quiet">Lines</span>
-                <span class='fraction'>22/24</span>
+                <span class='fraction'>25/27</span>
             </div>
         
             
@@ -141,7 +141,12 @@
 <a name='L76'></a><a href='#L76'>76</a>
 <a name='L77'></a><a href='#L77'>77</a>
 <a name='L78'></a><a href='#L78'>78</a>
-<a name='L79'></a><a href='#L79'>79</a></td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
+<a name='L79'></a><a href='#L79'>79</a>
+<a name='L80'></a><a href='#L80'>80</a>
+<a name='L81'></a><a href='#L81'>81</a>
+<a name='L82'></a><a href='#L82'>82</a>
+<a name='L83'></a><a href='#L83'>83</a>
+<a name='L84'></a><a href='#L84'>84</a></td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-yes">3x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -168,9 +173,13 @@
 <span class="cline-any cline-yes">3x</span>
 <span class="cline-any cline-yes">3x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">2x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-yes">3x</span>
 <span class="cline-any cline-yes">4x</span>
 <span class="cline-any cline-yes">3x</span>
+<span class="cline-any cline-yes">2x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -187,6 +196,7 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-yes">3x</span>
 <span class="cline-any cline-yes">3x</span>
+<span class="cline-any cline-yes">2x</span>
 <span class="cline-any cline-yes">2x</span>
 <span class="cline-any cline-yes">2x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -246,25 +256,30 @@ const { isOnline } = useOffline()
 const show = ref(false)
 let hideTimeout: ReturnType&lt;typeof setTimeout&gt; | null = null
 &nbsp;
-const status = computed&lt;'offline' | 'syncing' | 'connected'&gt;(() =&gt; {
+const UNREACHABLE_THRESHOLD = 5
+&nbsp;
+const status = computed&lt;'offline' | 'syncing' | 'unreachable' | 'connected'&gt;(() =&gt; {
   if (!isOnline.value) return 'offline'
-  if (!props.connected) return 'syncing'
+  if (!props.connected) {
+    return reconnectAttempt.value &gt;= UNREACHABLE_THRESHOLD ? <span class="branch-0 cbranch-no" title="branch not covered" >'unreachable' : '</span>syncing'
+  }
   return 'connected'
 })
 &nbsp;
 const bannerClass = computed(() =&gt; ({
-  'bg-ctp-red/90 text-ctp-base': status.value === 'offline',
+  'bg-ctp-red/90 text-ctp-base': status.value === 'offline' || status.value === 'unreachable',
   'bg-ctp-surface1 text-ctp-yellow border border-ctp-yellow/30': status.value === 'syncing',
   'bg-ctp-green/90 text-ctp-base': status.value === 'connected',
 }))
 &nbsp;
 const dotClass = computed(() =&gt; ({
-  'bg-ctp-base': status.value === 'offline' || status.value === 'connected',
+  'bg-ctp-base': status.value === 'offline' || status.value === 'unreachable' || status.value === 'connected',
   'bg-ctp-yellow animate-pulse': status.value === 'syncing',
 }))
 &nbsp;
 const message = computed(() =&gt; {
   if (status.value === 'offline') return 'Kein Internet — Offline gespeichert'
+  <span class="missing-if-branch" title="if path not taken" >I</span>if (status.value === 'unreachable') return 'Server nicht erreichbar — Offline gespeichert'
   <span class="missing-if-branch" title="else path not taken" >E</span>if (status.value === 'syncing') {
     return reconnectAttempt.value &gt; 0
       ? <span class="branch-0 cbranch-no" title="branch not covered" >`Erneut verbinden… Versuch ${reconnectAttempt.value}`</span>
@@ -304,7 +319,7 @@ watch(status, (next, prev) =&gt; {
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2026-04-23T09:12:43.268Z
+                at 2026-04-23T09:33:12.489Z
             </div>
         <script src="../../../prettify.js"></script>
         <script>

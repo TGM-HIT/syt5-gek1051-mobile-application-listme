@@ -23,9 +23,9 @@
         <div class='clearfix'>
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">69.09% </span>
+                <span class="strong">70.08% </span>
                 <span class="quiet">Statements</span>
-                <span class='fraction'>76/110</span>
+                <span class='fraction'>82/117</span>
             </div>
         
             
@@ -44,9 +44,9 @@
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">75.26% </span>
+                <span class="strong">76.23% </span>
                 <span class="quiet">Lines</span>
-                <span class='fraction'>70/93</span>
+                <span class='fraction'>77/101</span>
             </div>
         
             
@@ -251,7 +251,16 @@
 <a name='L186'></a><a href='#L186'>186</a>
 <a name='L187'></a><a href='#L187'>187</a>
 <a name='L188'></a><a href='#L188'>188</a>
-<a name='L189'></a><a href='#L189'>189</a></td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
+<a name='L189'></a><a href='#L189'>189</a>
+<a name='L190'></a><a href='#L190'>190</a>
+<a name='L191'></a><a href='#L191'>191</a>
+<a name='L192'></a><a href='#L192'>192</a>
+<a name='L193'></a><a href='#L193'>193</a>
+<a name='L194'></a><a href='#L194'>194</a>
+<a name='L195'></a><a href='#L195'>195</a>
+<a name='L196'></a><a href='#L196'>196</a>
+<a name='L197'></a><a href='#L197'>197</a>
+<a name='L198'></a><a href='#L198'>198</a></td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -284,19 +293,25 @@
 <span class="cline-any cline-yes">12x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">11x</span>
 <span class="cline-any cline-yes">11x</span>
 <span class="cline-any cline-yes">11x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-yes">11x</span>
 <span class="cline-any cline-yes">2x</span>
 <span class="cline-any cline-yes">2x</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">1x</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">2x</span>
 <span class="cline-any cline-yes">2x</span>
 <span class="cline-any cline-yes">2x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -322,8 +337,11 @@
 <span class="cline-any cline-yes">11x</span>
 <span class="cline-any cline-yes">11x</span>
 <span class="cline-any cline-yes">11x</span>
+<span class="cline-any cline-yes">11x</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-yes">11x</span>
+<span class="cline-any cline-yes">11x</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
@@ -371,9 +389,9 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">1x</span>
-<span class="cline-any cline-yes">1x</span>
-<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">2x</span>
+<span class="cline-any cline-yes">2x</span>
+<span class="cline-any cline-yes">2x</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
@@ -474,17 +492,23 @@ export function useListSync() {
     function subscribeTopics() {
       unsubOps?.()
       unsubPresence?.()
+      console.debug('[Sync] subscribeTopics for', listId)
 &nbsp;
       unsubOps = subscribe(`/topic/list/${listId}`, (payload) =&gt; {
         const op = payload as CrdtOperation
-        if (op.deviceId === myDeviceId) return
+        if (op.deviceId === myDeviceId) {
+          console.debug('[Sync] ignoring own op', op.operationType, op.id)
+          return
+        }
 &nbsp;
+        console.log('[Sync] PATH1 op received', op.operationType, 'from', op.deviceId, 'opId', op.id)
         LocalClockService.mergeClock(listId, op.vectorClock as Record&lt;string, number&gt;)
 &nbsp;
         sessionOps.push(op)
         conflicts.value = detectConflicts(sessionOps)
 &nbsp;
         const listName = listsStore.getById(listId)?.name ?? <span class="branch-1 cbranch-no" title="branch not covered" >''</span>
+        console.log('[Sync] PATH1 notification:', opToMessage(op), { listId })
         notificationsStore.add({ listId, listName, message: opToMessage(op) })
         <span class="missing-if-branch" title="if path not taken" >I</span>if ('vibrate' in navigator) <span class="cstat-no" title="statement not covered" >navigator.vibrate([100, 50, 100])</span>
 &nbsp;
@@ -504,6 +528,7 @@ export function useListSync() {
     // Register BEFORE connectWebSocket so this fires even on the very first
     // successful connection (covers devices that were offline at mount time).
     const unsubConnect = onAnyConnect(async () =&gt; {
+      console.log('[Sync] onAnyConnect fired for', listId)
       connected.value = true
       const snapIds = new Set(itemsStore.getItems(listId).map(<span class="fstat-no" title="function not covered" >i =&gt; <span class="cstat-no" title="statement not covered" >`</span>${i.id}|${i.checked}|${i.name}`)</span>)
       await itemsStore.fetchAll(listId)
@@ -511,8 +536,10 @@ export function useListSync() {
       const after = itemsStore.getItems(listId)
       const changed = after.length !== snapIds.size
         || after.some(<span class="fstat-no" title="function not covered" >i =&gt; <span class="cstat-no" title="statement not covered" >!</span>snapIds.has(`${i.id}|${i.checked}|${i.name}`))</span>
+      console.log('[Sync] onAnyConnect: items changed =', changed, { snapSize: snapIds.size, afterSize: after.length })
       <span class="missing-if-branch" title="if path not taken" >I</span>if (changed) {
         const listName = <span class="cstat-no" title="statement not covered" >listsStore.getById(listId)?.name ?? ''</span>
+<span class="cstat-no" title="statement not covered" >        console.log('[Sync] PATH2 notification: Liste wurde aktualisiert', { listId })</span>
 <span class="cstat-no" title="statement not covered" >        notificationsStore.add({ listId, listName, message: 'Liste wurde aktualisiert' })</span>
 <span class="cstat-no" title="statement not covered" >        if ('vibrate' in navigator) <span class="cstat-no" title="statement not covered" >navigator.vibrate([100, 50, 100])</span></span>
       }
@@ -634,7 +661,7 @@ export function applyOp(listId: string, op: CrdtOperation, itemsStore: ReturnTyp
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2026-04-23T09:12:43.268Z
+                at 2026-04-23T09:33:12.489Z
             </div>
         <script src="../../prettify.js"></script>
         <script>
