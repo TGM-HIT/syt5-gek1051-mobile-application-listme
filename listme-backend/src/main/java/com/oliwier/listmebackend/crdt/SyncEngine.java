@@ -6,6 +6,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -184,6 +185,14 @@ public class SyncEngine {
                     item.setChecked(false);
                     item.setPosition(itemRepository.countByListIdAndDeletedAtIsNull(list.getId()));
                     item.setCreatedByDevice(device);
+                    if (payload.get("quantity") != null)
+                        item.setQuantity(new BigDecimal(payload.get("quantity").toString()));
+                    if (payload.get("quantityUnit") != null)
+                        item.setQuantityUnit((String) payload.get("quantityUnit"));
+                    if (payload.get("price") != null)
+                        item.setPrice(new BigDecimal(payload.get("price").toString()));
+                    if (payload.get("imageUrl") != null)
+                        item.setImageUrl((String) payload.get("imageUrl"));
                     itemRepository.save(item);
                 }
             }
@@ -197,6 +206,16 @@ public class SyncEngine {
                     long localTs = item.getUpdatedAt().toEpochMilli();
                     if (incomingTs >= localTs) {
                         item.setName(name);
+                        if (payload.containsKey("quantity"))
+                            item.setQuantity(payload.get("quantity") != null
+                                ? new BigDecimal(payload.get("quantity").toString()) : null);
+                        if (payload.containsKey("quantityUnit"))
+                            item.setQuantityUnit((String) payload.get("quantityUnit"));
+                        if (payload.containsKey("price"))
+                            item.setPrice(payload.get("price") != null
+                                ? new BigDecimal(payload.get("price").toString()) : null);
+                        if (payload.containsKey("imageUrl"))
+                            item.setImageUrl((String) payload.get("imageUrl"));
                         itemRepository.save(item);
                     }
                 });

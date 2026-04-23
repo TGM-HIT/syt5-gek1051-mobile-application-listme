@@ -9,7 +9,10 @@ import { getDeviceId } from '../services/device'
 import { useListsStore } from './lists'
 import type { Item, CreateItemRequest, UpdateItemRequest } from '../types'
 
+class OfflineError extends Error {}
+
 function isNetworkError(e: unknown): boolean {
+  if (e instanceof OfflineError) return true
   if (!axios.isAxiosError(e)) return false
   if (!e.response) return true
   const { status } = e.response
@@ -39,8 +42,30 @@ export const useItemsStore = defineStore('items', () => {
 
     try {
       const fresh = await itemService.getAll(listId)
-      itemsByList.value[listId] = fresh
-      await CacheService.saveItems(listId, fresh)
+
+      // Merge: preserve local state for items that have pending offline ops
+      const pending = await OperationQueue.getPending(listId)
+      const pendingItemIds = new Set(
+        pending
+          .filter(op => op.operationType !== 'ITEM_DELETE')
+          .map(op => op.payload['itemId'] as string)
+          .filter(Boolean)
+      )
+      const deletedItemIds = new Set(
+        pending
+          .filter(op => op.operationType === 'ITEM_DELETE')
+          .map(op => op.payload['itemId'] as string)
+          .filter(Boolean)
+      )
+      const current = itemsByList.value[listId] ?? []
+      const merged = [
+        ...fresh
+          .filter(f => !deletedItemIds.has(f.id))
+          .map(f => pendingItemIds.has(f.id) ? (current.find(c => c.id === f.id) ?? f) : f),
+        ...current.filter(c => pendingItemIds.has(c.id) && !fresh.some(f => f.id === c.id)),
+      ]
+      itemsByList.value[listId] = merged
+      await CacheService.saveItems(listId, merged)
     } catch {
       if ((itemsByList.value[listId] ?? []).length === 0) {
         error.value = 'Items konnten nicht geladen werden'
@@ -53,6 +78,7 @@ export const useItemsStore = defineStore('items', () => {
 
   async function create(listId: string, req: CreateItemRequest): Promise<Item> {
     try {
+      if (!navigator.onLine) throw new OfflineError()
       const item = await itemService.create(listId, req)
       if (!itemsByList.value[listId]) itemsByList.value[listId] = []
       itemsByList.value[listId].push(item)
@@ -96,7 +122,16 @@ export const useItemsStore = defineStore('items', () => {
         listId,
         deviceId,
         operationType: 'ITEM_CREATE',
-        payload: { itemId, name: req.name, position: item.position, timestamp: Date.now() },
+        payload: {
+          itemId,
+          name: req.name,
+          position: item.position,
+          quantity: req.quantity ?? null,
+          quantityUnit: req.quantityUnit ?? null,
+          price: req.price ?? null,
+          imageUrl: req.imageUrl ?? null,
+          timestamp: Date.now(),
+        },
         vectorClock,
         createdAt: Date.now(),
       })
@@ -106,6 +141,7 @@ export const useItemsStore = defineStore('items', () => {
 
   async function update(listId: string, itemId: string, req: UpdateItemRequest): Promise<void> {
     try {
+      if (!navigator.onLine) throw new OfflineError()
       const updated = await itemService.update(listId, itemId, req)
       const items = itemsByList.value[listId] ?? []
       const idx = items.findIndex(i => i.id === itemId)
@@ -136,7 +172,15 @@ export const useItemsStore = defineStore('items', () => {
         listId,
         deviceId,
         operationType: 'ITEM_UPDATE',
-        payload: { itemId, name: req.name, timestamp: Date.now() },
+        payload: {
+          itemId,
+          name: req.name,
+          quantity: req.quantity ?? null,
+          quantityUnit: req.quantityUnit ?? null,
+          price: req.price ?? null,
+          imageUrl: req.imageUrl ?? null,
+          timestamp: Date.now(),
+        },
         vectorClock,
         createdAt: Date.now(),
       })
@@ -145,6 +189,7 @@ export const useItemsStore = defineStore('items', () => {
 
   async function toggleCheck(listId: string, itemId: string): Promise<void> {
     try {
+      if (!navigator.onLine) throw new OfflineError()
       const updated = await itemService.toggleCheck(listId, itemId)
       const items = itemsByList.value[listId] ?? []
       const idx = items.findIndex(i => i.id === itemId)
@@ -178,6 +223,7 @@ export const useItemsStore = defineStore('items', () => {
 
   async function remove(listId: string, itemId: string): Promise<void> {
     try {
+      if (!navigator.onLine) throw new OfflineError()
       await itemService.delete(listId, itemId)
       if (itemsByList.value[listId]) {
         itemsByList.value[listId] = itemsByList.value[listId].filter(i => i.id !== itemId)

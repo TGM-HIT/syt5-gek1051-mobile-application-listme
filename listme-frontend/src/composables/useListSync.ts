@@ -162,10 +162,10 @@ export function applyOp(listId: string, op: CrdtOperation, itemsStore: ReturnTyp
         categoryId: null,
         categoryName: null,
         categoryColor: null,
-        quantity: null,
-        quantityUnit: null,
-        price: null,
-        imageUrl: null,
+        quantity: (payload['quantity'] as number | null) ?? null,
+        quantityUnit: (payload['quantityUnit'] as string | null) ?? null,
+        price: (payload['price'] as number | null) ?? null,
+        imageUrl: (payload['imageUrl'] as string | null) ?? null,
         labels: [],
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
@@ -184,9 +184,17 @@ export function applyOp(listId: string, op: CrdtOperation, itemsStore: ReturnTyp
     }
     case 'ITEM_UPDATE': {
       const itemId = payload['itemId'] as string
-      const name = payload['name'] as string
       const idx = items.findIndex(i => i.id === itemId)
-      if (idx !== -1) items[idx] = { ...items[idx]!, name }
+      if (idx !== -1) {
+        items[idx] = {
+          ...items[idx]!,
+          name: payload['name'] as string,
+          quantity: 'quantity' in payload ? (payload['quantity'] as number | null) : items[idx]!.quantity,
+          quantityUnit: 'quantityUnit' in payload ? (payload['quantityUnit'] as string | null) : items[idx]!.quantityUnit,
+          price: 'price' in payload ? (payload['price'] as number | null) : items[idx]!.price,
+          imageUrl: 'imageUrl' in payload ? (payload['imageUrl'] as string | null) : items[idx]!.imageUrl,
+        }
+      }
       break
     }
     case 'ITEM_DELETE': {
