@@ -7,6 +7,7 @@ import ConflictToast from './components/common/ConflictToast.vue'
 import { useOffline } from './composables/useOffline'
 import { useSyncQueue } from './composables/useSyncQueue'
 import { usePullToRefresh } from './composables/usePullToRefresh'
+import { useGlobalNotifications } from './composables/useGlobalNotifications'
 import { pushService } from './services/push'
 
 const route = useRoute()
@@ -14,6 +15,8 @@ const { isOnline } = useOffline()
 
 // Flush queued ops whenever connectivity returns
 useSyncQueue()
+// Show notifications for ops on all lists, even when not viewing them
+useGlobalNotifications()
 
 // Request push permission + subscribe after first meaningful interaction
 onMounted(() => {

@@ -130,9 +130,11 @@ export function opToMessage(op: CrdtOperation): string {
   const name = op.payload['name'] as string | undefined
   switch (op.operationType) {
     case 'ITEM_CREATE': return name ? `"${name}" hinzugefügt` : 'Artikel hinzugefügt'
-    case 'ITEM_CHECK': return op.payload['checked'] ? 'Artikel abgehakt' : 'Artikel reaktiviert'
+    case 'ITEM_CHECK': return op.payload['checked']
+      ? (name ? `"${name}" abgehakt` : 'Artikel abgehakt')
+      : (name ? `"${name}" reaktiviert` : 'Artikel reaktiviert')
     case 'ITEM_UPDATE': return name ? `"${name}" bearbeitet` : 'Artikel bearbeitet'
-    case 'ITEM_DELETE': return 'Artikel gelöscht'
+    case 'ITEM_DELETE': return name ? `"${name}" gelöscht` : 'Artikel gelöscht'
     default: return 'Änderung eingetroffen'
   }
 }

@@ -126,6 +126,7 @@ public class ItemService {
 
         CrdtOperation op = syncEngine.record(list, device, OperationType.ITEM_CHECK, Map.of(
                 "itemId", item.getId().toString(),
+                "name", item.getName(),
                 "checked", item.isChecked(),
                 "timestamp", Instant.now().toEpochMilli()
         ));
@@ -144,6 +145,7 @@ public class ItemService {
 
         CrdtOperation op = syncEngine.record(list, device, OperationType.ITEM_DELETE, Map.of(
                 "itemId", itemId.toString(),
+                "name", item.getName(),
                 "timestamp", Instant.now().toEpochMilli()
         ));
         broadcaster.broadcastOp(list.getId(), op);
