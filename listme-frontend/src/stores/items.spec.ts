@@ -51,6 +51,14 @@ function networkError(): Error {
   return e
 }
 
+// Simulate a gateway error (e.g. Nginx 502 when backend is down)
+function gatewayError(status: 502 | 503 | 504): Error {
+  const e: any = new Error(`HTTP ${status}`)
+  e.isAxiosError = true
+  e.response = { status }
+  return e
+}
+
 describe('useItemsStore', () => {
   beforeEach(() => {
     setActivePinia(createPinia())
@@ -130,6 +138,39 @@ describe('useItemsStore', () => {
     mockItemService.create.mockRejectedValue(serverErr)
     const store = useItemsStore()
     await expect(store.create('list-1', { name: 'Bad' })).rejects.toThrow('validation')
+  })
+
+  // ── gateway errors (502/503/504) ──────────────────────────────────────
+
+  it('toggleCheck (502) applies locally and enqueues', async () => {
+    const item = makeItem('i1', 'Milk', false)
+    mockItemService.getAll.mockResolvedValue([item])
+    mockItemService.toggleCheck.mockRejectedValue(gatewayError(502))
+    const store = useItemsStore()
+    await store.fetchAll('list-1')
+    await store.toggleCheck('list-1', 'i1')
+    expect(store.getItems('list-1')[0]!.checked).toBe(true)
+    expect(mockEnqueue).toHaveBeenCalledWith(expect.objectContaining({ operationType: 'ITEM_CHECK' }))
+  })
+
+  it('create (503) applies locally and enqueues', async () => {
+    mockItemService.create.mockRejectedValue(gatewayError(503))
+    const store = useItemsStore()
+    const item = await store.create('list-1', { name: 'Butter' })
+    expect(item.name).toBe('Butter')
+    expect(store.getItems('list-1')).toHaveLength(1)
+    expect(mockEnqueue).toHaveBeenCalledWith(expect.objectContaining({ operationType: 'ITEM_CREATE' }))
+  })
+
+  it('remove (504) removes locally and enqueues delete', async () => {
+    const items = [makeItem('i1', 'Milk')]
+    mockItemService.getAll.mockResolvedValue(items)
+    mockItemService.delete.mockRejectedValue(gatewayError(504))
+    const store = useItemsStore()
+    await store.fetchAll('list-1')
+    await store.remove('list-1', 'i1')
+    expect(store.getItems('list-1')).toHaveLength(0)
+    expect(mockEnqueue).toHaveBeenCalledWith(expect.objectContaining({ operationType: 'ITEM_DELETE' }))
   })
 
   // ── toggleCheck (online) ──────────────────────────────────────────────

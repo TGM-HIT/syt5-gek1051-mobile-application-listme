@@ -2,7 +2,7 @@ import axios from 'axios'
 import { getDeviceId } from './device'
 import { getUserId } from './userId'
 
-const api = axios.create({ baseURL: '/api' })
+const api = axios.create({ baseURL: '/api', timeout: 10000 })
 
 api.interceptors.request.use(async (config) => {
   const deviceId = await getDeviceId()

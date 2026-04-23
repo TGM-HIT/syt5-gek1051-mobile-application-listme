@@ -64,9 +64,9 @@ export function useListSync() {
     // successful connection (covers devices that were offline at mount time).
     const unsubConnect = onAnyConnect(async () => {
       connected.value = true
-      subscribeTopics()
       const snapIds = new Set(itemsStore.getItems(listId).map(i => `${i.id}|${i.checked}|${i.name}`))
       await itemsStore.fetchAll(listId)
+      subscribeTopics()
       const after = itemsStore.getItems(listId)
       const changed = after.length !== snapIds.size
         || after.some(i => !snapIds.has(`${i.id}|${i.checked}|${i.name}`))

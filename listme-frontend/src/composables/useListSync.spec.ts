@@ -117,6 +117,18 @@ describe('useListSync', () => {
     expect(mockSubscribe).toHaveBeenCalledWith('/topic/list/l1', expect.any(Function))
   })
 
+  it('fetchAll runs before subscribing to topics (prevents double-notification race)', async () => {
+    const callOrder: string[] = []
+    mockFetchAll.mockImplementation(() => { callOrder.push('fetchAll'); return Promise.resolve() })
+    mockSubscribe.mockImplementation(() => { callOrder.push('subscribe'); return () => {} })
+    const { startSync } = useListSync()
+    await startSync('l1')
+    const fetchIdx = callOrder.indexOf('fetchAll')
+    const subscribeIdx = callOrder.indexOf('subscribe')
+    expect(fetchIdx).toBeGreaterThanOrEqual(0)
+    expect(subscribeIdx).toBeGreaterThan(fetchIdx)
+  })
+
   it('startSync subscribes to presence topic', async () => {
     const { startSync } = useListSync()
     await startSync('l1')

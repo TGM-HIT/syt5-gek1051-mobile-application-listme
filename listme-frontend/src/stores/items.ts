@@ -10,7 +10,10 @@ import { useListsStore } from './lists'
 import type { Item, CreateItemRequest, UpdateItemRequest } from '../types'
 
 function isNetworkError(e: unknown): boolean {
-  return axios.isAxiosError(e) && !e.response
+  if (!axios.isAxiosError(e)) return false
+  if (!e.response) return true
+  const { status } = e.response
+  return status === 502 || status === 503 || status === 504
 }
 
 export const useItemsStore = defineStore('items', () => {
