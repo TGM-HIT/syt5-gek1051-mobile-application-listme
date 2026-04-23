@@ -42,6 +42,7 @@ vi.mock('../stores/items', () => ({
     getItems: (listId: string) => mockItemsByList[listId] ?? [],
     fetchAll: mockFetchAll,
     patchCounts: mockPatchCounts,
+    syncCounts: vi.fn(),
     itemsByList: {},
   }),
 }))
