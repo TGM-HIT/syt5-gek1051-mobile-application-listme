@@ -32,7 +32,7 @@ async function join() {
   try {
     const joined = await shareService.joinViaToken(token)
     await listsStore.fetchAll()
-    router.push({ name: 'list-detail', params: { id: joined.id } })
+    router.replace({ name: 'list-detail', params: { id: joined.id } })
   } catch {
     notFound.value = true
   } finally {

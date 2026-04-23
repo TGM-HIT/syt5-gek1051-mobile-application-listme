@@ -29,6 +29,7 @@ public class ListController {
     private final ListDeviceRepository listDeviceRepository;
     private final ItemRepository itemRepository;
     private final PresetItemRepository presetItemRepository;
+    private final CategoryRepository categoryRepository;
     private final DeviceSiblingRepository deviceSiblingRepository;
     private final SimpMessagingTemplate messaging;
 
@@ -53,10 +54,29 @@ public class ListController {
         // Notify this user's other devices (same userId) via WebSocket
         messaging.convertAndSend("/topic/user/" + user.getId(), (Object) Map.of("type", "LIST_ADDED"));
 
-        // If a preset was specified, copy its items into the new list
+        // If a preset was specified, copy its items (and categories) into the new list
         int itemCount = 0;
         if (req.presetId() != null) {
             List<PresetItem> presetItems = presetItemRepository.findByPresetIdOrderByPosition(req.presetId());
+
+            // Recreate unique categories for this new list (categories are list-scoped)
+            Map<String, Category> categoryByName = new LinkedHashMap<>();
+            int catPos = 0;
+            for (PresetItem pi : presetItems) {
+                if (pi.getCategoryName() != null && !pi.getCategoryName().isBlank()
+                        && !categoryByName.containsKey(pi.getCategoryName())) {
+                    Category cat = new Category();
+                    cat.setName(pi.getCategoryName());
+                    cat.setColor(pi.getCategoryColor());
+                    cat.setList(savedList);
+                    cat.setPosition(catPos++);
+                    categoryByName.put(pi.getCategoryName(), cat);
+                }
+            }
+            if (!categoryByName.isEmpty()) {
+                categoryRepository.saveAll(categoryByName.values());
+            }
+
             List<Item> items = new ArrayList<>();
             for (PresetItem pi : presetItems) {
                 Item item = new Item();
@@ -69,6 +89,9 @@ public class ListController {
                 item.setPrice(pi.getPrice());
                 item.setImageUrl(pi.getImageUrl());
                 item.setCreatedByDevice(device);
+                if (pi.getCategoryName() != null) {
+                    item.setCategory(categoryByName.get(pi.getCategoryName()));
+                }
                 items.add(item);
             }
             itemRepository.saveAll(items);

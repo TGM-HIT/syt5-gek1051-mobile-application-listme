@@ -5,9 +5,10 @@ import type { ShoppingList } from '../types'
 
 // ── mocks ──────────────────────────────────────────────────────────────────
 const mockPush = vi.fn()
+const mockReplace = vi.fn()
 vi.mock('vue-router', () => ({
   useRoute: () => ({ params: { token: 'abc123' } }),
-  useRouter: () => ({ push: mockPush }),
+  useRouter: () => ({ push: mockPush, replace: mockReplace }),
 }))
 
 const { mockPreviewToken, mockJoinToken, mockFetchAll } = vi.hoisted(() => ({
@@ -94,7 +95,8 @@ describe('JoinListView', () => {
     const btn = w.findAll('button').find(b => b.text().includes('beitreten'))!
     await btn.trigger('click')
     await flushPromises()
-    expect(mockPush).toHaveBeenCalledWith({ name: 'list-detail', params: { id: 'joined-l1' } })
+    // replace (not push) so pressing back skips the invite page
+    expect(mockReplace).toHaveBeenCalledWith({ name: 'list-detail', params: { id: 'joined-l1' } })
   })
 
   it('shows cancel button that navigates home', async () => {
