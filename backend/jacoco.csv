@@ -6,7 +6,7 @@ listme-backend,com.oliwier.listmebackend.api,PushController.UnsubscribeRequest,6
 listme-backend,com.oliwier.listmebackend.api,PushController.SubscribeRequest,9,0,0,0,1,0,1,0,1,0
 listme-backend,com.oliwier.listmebackend.api,ShareController,12,63,1,1,1,14,2,5,1,5
 listme-backend,com.oliwier.listmebackend.api,SyncController,114,173,15,7,16,31,16,8,6,7
-listme-backend,com.oliwier.listmebackend.api,ItemController,43,127,0,0,7,24,3,6,3,6
+listme-backend,com.oliwier.listmebackend.api,ItemController,25,43,0,0,4,6,3,5,3,5
 listme-backend,com.oliwier.listmebackend.api,CategoryController,0,34,0,0,0,5,0,4,0,4
 listme-backend,com.oliwier.listmebackend.api,PushController,25,0,0,0,5,0,3,0,3,0
 listme-backend,com.oliwier.listmebackend.api,PresetController,0,37,0,0,0,6,0,4,0,4
