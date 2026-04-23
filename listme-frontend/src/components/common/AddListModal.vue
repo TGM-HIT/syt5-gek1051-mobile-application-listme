@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, watch, nextTick } from 'vue'
 import { presetService, type Preset } from '../../services/preset'
+import { emojiGroups, DEFAULT_RECENT_EMOJIS } from '../../utils/emojis'
 
 const props = defineProps<{
   open: boolean
@@ -14,21 +15,45 @@ const emit = defineEmits<{
   create: [name: string, emoji: string, presetId: string | null]
 }>()
 
+const RECENTS_KEY = 'listme-recent-emojis'
+const MAX_RECENTS = 12
+
+function loadRecents(): string[] {
+  try {
+    const stored = localStorage.getItem(RECENTS_KEY)
+    if (stored) return JSON.parse(stored)
+  } catch { /* ignore */ }
+  return [...DEFAULT_RECENT_EMOJIS]
+}
+
+function saveRecents(list: string[]) {
+  try { localStorage.setItem(RECENTS_KEY, JSON.stringify(list)) } catch { /* ignore */ }
+}
+
 const name = ref('')
 const selectedEmoji = ref('')
 const selectedPresetId = ref<string | null>(null)
 const selectedPresetName = ref<string | null>(null)
 const inputRef = ref<HTMLInputElement>()
 const presets = ref<Preset[]>([])
+const showEmojiPicker = ref(false)
+const recentEmojis = ref<string[]>(loadRecents())
 
-const emojis = ['🛒', '🏠', '🎂', '🎁', '💊', '🐾', '🧹', '🍕', '📦', '🌿', '🏋️', '✈️']
+function pickEmoji(emoji: string) {
+  selectedEmoji.value = emoji
+  showEmojiPicker.value = false
+  const updated = [emoji, ...recentEmojis.value.filter(e => e !== emoji)].slice(0, MAX_RECENTS)
+  recentEmojis.value = updated
+  saveRecents(updated)
+}
 
 watch(() => props.open, async (isOpen) => {
   if (isOpen) {
     name.value = ''
-    selectedEmoji.value = props.initialPresetEmoji || emojis[0]!
+    selectedEmoji.value = props.initialPresetEmoji || recentEmojis.value[0] || DEFAULT_RECENT_EMOJIS[0]!
     selectedPresetId.value = props.initialPresetId ?? null
     selectedPresetName.value = props.initialPresetName ?? null
+    showEmojiPicker.value = false
     await nextTick()
     inputRef.value?.focus()
     presetService.getAll().then(p => { presets.value = p }).catch(() => {})
@@ -61,7 +86,7 @@ function handleCreate() {
 
     <Transition name="sheet">
       <div v-if="open" class="fixed bottom-0 left-0 right-0 z-50" :style="{ paddingBottom: 'env(safe-area-inset-bottom)' }">
-        <div class="bg-ctp-mantle border-t border-ctp-surface0 rounded-t-3xl p-6 shadow-2xl shadow-ctp-crust/50 max-w-lg mx-auto">
+        <div class="bg-ctp-mantle border-t border-ctp-surface0 rounded-t-3xl p-6 shadow-2xl shadow-ctp-crust/50 max-w-lg mx-auto max-h-[90vh] overflow-y-auto">
           <div class="w-10 h-1 bg-ctp-surface1 rounded-full mx-auto mb-5" />
 
           <h2 class="text-lg font-semibold text-ctp-text mb-5">Neue Liste</h2>
@@ -82,14 +107,41 @@ function handleCreate() {
 
           <!-- Emoji -->
           <p class="text-xs font-medium text-ctp-subtext0 mb-2.5">Symbol</p>
-          <div class="flex flex-wrap gap-2 mb-5">
-            <button
-              v-for="emoji in emojis"
-              :key="emoji"
-              class="w-10 h-10 rounded-xl flex items-center justify-center text-lg transition-all duration-150 border-2"
-              :class="selectedEmoji === emoji ? 'bg-ctp-teal/10 border-ctp-teal scale-110' : 'bg-ctp-surface0 border-transparent hover:bg-ctp-surface1'"
-              @click="selectedEmoji = emoji"
-            >{{ emoji }}</button>
+          <div class="mb-5">
+            <!-- Recent emojis row -->
+            <div class="flex flex-wrap gap-2 mb-2">
+              <button
+                v-for="emoji in recentEmojis"
+                :key="emoji"
+                class="w-10 h-10 rounded-xl flex items-center justify-center text-lg transition-all duration-150 border-2"
+                :class="selectedEmoji === emoji ? 'bg-ctp-teal/10 border-ctp-teal scale-110' : 'bg-ctp-surface0 border-transparent hover:bg-ctp-surface1'"
+                @click="pickEmoji(emoji)"
+              >{{ emoji }}</button>
+
+              <!-- More emojis toggle -->
+              <button
+                class="w-10 h-10 rounded-xl flex items-center justify-center text-xl font-medium transition-all duration-150 border-2"
+                :class="showEmojiPicker ? 'bg-ctp-teal/10 border-ctp-teal text-ctp-teal' : 'bg-ctp-surface0 border-transparent text-ctp-subtext0 hover:bg-ctp-surface1'"
+                aria-label="Mehr Symbole"
+                @click="showEmojiPicker = !showEmojiPicker"
+              >+</button>
+            </div>
+
+            <!-- Expanded emoji picker grouped by category -->
+            <div v-if="showEmojiPicker" class="rounded-xl bg-ctp-surface0 p-2 max-h-52 overflow-y-auto">
+              <div v-for="group in emojiGroups" :key="group.group" class="mb-2">
+                <p class="text-[10px] font-medium text-ctp-overlay0 uppercase tracking-wide px-1 pb-1">{{ group.group }}</p>
+                <div class="flex flex-wrap gap-1">
+                  <button
+                    v-for="emoji in group.emojis"
+                    :key="emoji"
+                    class="w-9 h-9 rounded-lg flex items-center justify-center text-base transition-all duration-150"
+                    :class="selectedEmoji === emoji ? 'bg-ctp-teal/20 scale-110' : 'hover:bg-ctp-surface1'"
+                    @click="pickEmoji(emoji)"
+                  >{{ emoji }}</button>
+                </div>
+              </div>
+            </div>
           </div>
 
           <!-- Preset picker -->

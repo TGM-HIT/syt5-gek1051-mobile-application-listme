@@ -146,6 +146,7 @@
               :selected-id="selectedCategoryId"
               @update:selected-id="selectedCategoryId = $event"
               @create="(name) => categoriesStore.create(props.listId, { name })"
+              @delete="(id) => { if (selectedCategoryId === id) selectedCategoryId = null; categoriesStore.remove(props.listId, id) }"
             />
           </div>
 
