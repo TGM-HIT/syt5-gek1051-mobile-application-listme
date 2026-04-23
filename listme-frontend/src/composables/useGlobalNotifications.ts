@@ -29,7 +29,7 @@ export function useGlobalNotifications() {
 
     // ListDetailView exposes the active list via route.params.id — skip it to
     // avoid double-notifications (useListSync already handles that list).
-    const activeListId = (route.params.id as string) || null
+    const activeListId = (route.params?.id as string) || null
     const itemsStore = useItemsStore()
 
     for (const list of listsStore.lists) {
@@ -49,7 +49,7 @@ export function useGlobalNotifications() {
   }
 
   // Re-subscribe when the user navigates into or out of a list view
-  watch(() => route.params.id, resubscribe)
+  watch(() => route.params?.id, resubscribe)
 
   // Re-subscribe when the list roster changes (new list joined/created)
   watch(() => listsStore.lists.map(l => l.id).join(','), resubscribe)
