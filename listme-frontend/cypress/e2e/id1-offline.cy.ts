@@ -32,7 +32,9 @@ describe('ID 1: Offline Access', () => {
     // After going back online the offline message disappears;
     // without a live WebSocket the banner transitions to 'syncing' state
     cy.contains('Kein Internet — Offline gespeichert').should('not.exist');
-    cy.contains('Verbindung wird hergestellt').should('be.visible');
+    // Banner transitions to a connecting/reconnecting state (exact text depends
+    // on whether the WS has already attempted a reconnect in this test run)
+    cy.contains(/Verbindung wird hergestellt|Erneut verbinden/).should('be.visible');
   });
 
   it('should still display list items while offline', () => {
