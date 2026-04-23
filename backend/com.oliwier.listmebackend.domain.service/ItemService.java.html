@@ -126,73 +126,75 @@ public class ItemService {
 
 <span class="fc" id="L127">        CrdtOperation op = syncEngine.record(list, device, OperationType.ITEM_CHECK, Map.of(</span>
 <span class="fc" id="L128">                &quot;itemId&quot;, item.getId().toString(),</span>
-<span class="fc" id="L129">                &quot;checked&quot;, item.isChecked(),</span>
-<span class="fc" id="L130">                &quot;timestamp&quot;, Instant.now().toEpochMilli()</span>
+<span class="fc" id="L129">                &quot;name&quot;, item.getName(),</span>
+<span class="fc" id="L130">                &quot;checked&quot;, item.isChecked(),</span>
+<span class="fc" id="L131">                &quot;timestamp&quot;, Instant.now().toEpochMilli()</span>
         ));
-<span class="fc" id="L132">        broadcaster.broadcastOp(list.getId(), op);</span>
+<span class="fc" id="L133">        broadcaster.broadcastOp(list.getId(), op);</span>
 
-<span class="fc" id="L134">        return item;</span>
+<span class="fc" id="L135">        return item;</span>
     }
 
     /** Soft delete — moves item to trash. */
     @Transactional
     public void delete(UUID listId, UUID itemId, Device device) {
-<span class="fc" id="L140">        ShoppingList list = requireAccess(listId, device);</span>
-<span class="fc" id="L141">        Item item = requireItem(itemId, listId);</span>
-<span class="fc" id="L142">        item.setDeletedAt(Instant.now());</span>
-<span class="fc" id="L143">        itemRepository.save(item);</span>
+<span class="fc" id="L141">        ShoppingList list = requireAccess(listId, device);</span>
+<span class="fc" id="L142">        Item item = requireItem(itemId, listId);</span>
+<span class="fc" id="L143">        item.setDeletedAt(Instant.now());</span>
+<span class="fc" id="L144">        itemRepository.save(item);</span>
 
-<span class="fc" id="L145">        CrdtOperation op = syncEngine.record(list, device, OperationType.ITEM_DELETE, Map.of(</span>
-<span class="fc" id="L146">                &quot;itemId&quot;, itemId.toString(),</span>
-<span class="fc" id="L147">                &quot;timestamp&quot;, Instant.now().toEpochMilli()</span>
+<span class="fc" id="L146">        CrdtOperation op = syncEngine.record(list, device, OperationType.ITEM_DELETE, Map.of(</span>
+<span class="fc" id="L147">                &quot;itemId&quot;, itemId.toString(),</span>
+<span class="fc" id="L148">                &quot;name&quot;, item.getName(),</span>
+<span class="fc" id="L149">                &quot;timestamp&quot;, Instant.now().toEpochMilli()</span>
         ));
-<span class="fc" id="L149">        broadcaster.broadcastOp(list.getId(), op);</span>
-<span class="fc" id="L150">    }</span>
+<span class="fc" id="L151">        broadcaster.broadcastOp(list.getId(), op);</span>
+<span class="fc" id="L152">    }</span>
 
     /** Restore a trashed item to the active list. */
     @Transactional
     public Item restore(UUID listId, UUID itemId, Device device) {
-<span class="fc" id="L155">        requireAccess(listId, device);</span>
-<span class="fc" id="L156">        Item item = itemRepository.findById(itemId)</span>
-<span class="pc" id="L157">                .orElseThrow(() -&gt; new ResponseStatusException(HttpStatus.NOT_FOUND, &quot;Item not found&quot;));</span>
-<span class="fc bfc" id="L158" title="All 2 branches covered.">        if (!item.getList().getId().equals(listId)) {</span>
-<span class="fc" id="L159">            throw new ResponseStatusException(HttpStatus.NOT_FOUND, &quot;Item not found in this list&quot;);</span>
+<span class="fc" id="L157">        requireAccess(listId, device);</span>
+<span class="fc" id="L158">        Item item = itemRepository.findById(itemId)</span>
+<span class="pc" id="L159">                .orElseThrow(() -&gt; new ResponseStatusException(HttpStatus.NOT_FOUND, &quot;Item not found&quot;));</span>
+<span class="fc bfc" id="L160" title="All 2 branches covered.">        if (!item.getList().getId().equals(listId)) {</span>
+<span class="fc" id="L161">            throw new ResponseStatusException(HttpStatus.NOT_FOUND, &quot;Item not found in this list&quot;);</span>
         }
-<span class="fc" id="L161">        item.setDeletedAt(null);</span>
-<span class="fc" id="L162">        return itemRepository.save(item);</span>
+<span class="fc" id="L163">        item.setDeletedAt(null);</span>
+<span class="fc" id="L164">        return itemRepository.save(item);</span>
     }
 
     /** Permanently remove a trashed item — no recovery possible. */
     @Transactional
     public void permanentDelete(UUID listId, UUID itemId, Device device) {
-<span class="nc" id="L168">        requireAccess(listId, device);</span>
-<span class="nc" id="L169">        Item item = itemRepository.findById(itemId)</span>
-<span class="nc" id="L170">                .orElseThrow(() -&gt; new ResponseStatusException(HttpStatus.NOT_FOUND, &quot;Item not found&quot;));</span>
-<span class="nc bnc" id="L171" title="All 2 branches missed.">        if (!item.getList().getId().equals(listId)) {</span>
-<span class="nc" id="L172">            throw new ResponseStatusException(HttpStatus.NOT_FOUND, &quot;Item not found in this list&quot;);</span>
+<span class="nc" id="L170">        requireAccess(listId, device);</span>
+<span class="nc" id="L171">        Item item = itemRepository.findById(itemId)</span>
+<span class="nc" id="L172">                .orElseThrow(() -&gt; new ResponseStatusException(HttpStatus.NOT_FOUND, &quot;Item not found&quot;));</span>
+<span class="nc bnc" id="L173" title="All 2 branches missed.">        if (!item.getList().getId().equals(listId)) {</span>
+<span class="nc" id="L174">            throw new ResponseStatusException(HttpStatus.NOT_FOUND, &quot;Item not found in this list&quot;);</span>
         }
-<span class="nc" id="L174">        itemRepository.delete(item);</span>
-<span class="nc" id="L175">    }</span>
+<span class="nc" id="L176">        itemRepository.delete(item);</span>
+<span class="nc" id="L177">    }</span>
 
     private ShoppingList requireAccess(UUID listId, Device device) {
-<span class="fc" id="L178">        ShoppingList list = listRepository.findById(listId)</span>
-<span class="fc" id="L179">                .orElseThrow(() -&gt; new ResponseStatusException(HttpStatus.NOT_FOUND, &quot;List not found&quot;));</span>
-<span class="fc bfc" id="L180" title="All 2 branches covered.">        if (!listDeviceRepository.existsByListIdAndDeviceId(listId, device.getId())) {</span>
-<span class="fc" id="L181">            throw new ResponseStatusException(HttpStatus.FORBIDDEN, &quot;Not a participant of this list&quot;);</span>
+<span class="fc" id="L180">        ShoppingList list = listRepository.findById(listId)</span>
+<span class="fc" id="L181">                .orElseThrow(() -&gt; new ResponseStatusException(HttpStatus.NOT_FOUND, &quot;List not found&quot;));</span>
+<span class="fc bfc" id="L182" title="All 2 branches covered.">        if (!listDeviceRepository.existsByListIdAndDeviceId(listId, device.getId())) {</span>
+<span class="fc" id="L183">            throw new ResponseStatusException(HttpStatus.FORBIDDEN, &quot;Not a participant of this list&quot;);</span>
         }
-<span class="fc" id="L183">        return list;</span>
+<span class="fc" id="L185">        return list;</span>
     }
 
     private Item requireItem(UUID itemId, UUID listId) {
-<span class="fc" id="L187">        Item item = itemRepository.findById(itemId)</span>
-<span class="pc" id="L188">                .orElseThrow(() -&gt; new ResponseStatusException(HttpStatus.NOT_FOUND, &quot;Item not found&quot;));</span>
-<span class="pc bpc" id="L189" title="1 of 2 branches missed.">        if (!item.getList().getId().equals(listId)) {</span>
-<span class="nc" id="L190">            throw new ResponseStatusException(HttpStatus.NOT_FOUND, &quot;Item not found in this list&quot;);</span>
+<span class="fc" id="L189">        Item item = itemRepository.findById(itemId)</span>
+<span class="pc" id="L190">                .orElseThrow(() -&gt; new ResponseStatusException(HttpStatus.NOT_FOUND, &quot;Item not found&quot;));</span>
+<span class="pc bpc" id="L191" title="1 of 2 branches missed.">        if (!item.getList().getId().equals(listId)) {</span>
+<span class="nc" id="L192">            throw new ResponseStatusException(HttpStatus.NOT_FOUND, &quot;Item not found in this list&quot;);</span>
         }
-<span class="fc bfc" id="L192" title="All 2 branches covered.">        if (item.getDeletedAt() != null) {</span>
-<span class="fc" id="L193">            throw new ResponseStatusException(HttpStatus.GONE, &quot;Item is in trash&quot;);</span>
+<span class="fc bfc" id="L194" title="All 2 branches covered.">        if (item.getDeletedAt() != null) {</span>
+<span class="fc" id="L195">            throw new ResponseStatusException(HttpStatus.GONE, &quot;Item is in trash&quot;);</span>
         }
-<span class="fc" id="L195">        return item;</span>
+<span class="fc" id="L197">        return item;</span>
     }
 }
 </pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>
