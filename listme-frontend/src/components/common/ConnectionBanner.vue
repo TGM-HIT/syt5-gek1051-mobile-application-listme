@@ -25,25 +25,30 @@ const { isOnline } = useOffline()
 const show = ref(false)
 let hideTimeout: ReturnType<typeof setTimeout> | null = null
 
-const status = computed<'offline' | 'syncing' | 'connected'>(() => {
+const UNREACHABLE_THRESHOLD = 5
+
+const status = computed<'offline' | 'syncing' | 'unreachable' | 'connected'>(() => {
   if (!isOnline.value) return 'offline'
-  if (!props.connected) return 'syncing'
+  if (!props.connected) {
+    return reconnectAttempt.value >= UNREACHABLE_THRESHOLD ? 'unreachable' : 'syncing'
+  }
   return 'connected'
 })
 
 const bannerClass = computed(() => ({
-  'bg-ctp-red/90 text-ctp-base': status.value === 'offline',
+  'bg-ctp-red/90 text-ctp-base': status.value === 'offline' || status.value === 'unreachable',
   'bg-ctp-surface1 text-ctp-yellow border border-ctp-yellow/30': status.value === 'syncing',
   'bg-ctp-green/90 text-ctp-base': status.value === 'connected',
 }))
 
 const dotClass = computed(() => ({
-  'bg-ctp-base': status.value === 'offline' || status.value === 'connected',
+  'bg-ctp-base': status.value === 'offline' || status.value === 'unreachable' || status.value === 'connected',
   'bg-ctp-yellow animate-pulse': status.value === 'syncing',
 }))
 
 const message = computed(() => {
   if (status.value === 'offline') return 'Kein Internet — Offline gespeichert'
+  if (status.value === 'unreachable') return 'Server nicht erreichbar — Offline gespeichert'
   if (status.value === 'syncing') {
     return reconnectAttempt.value > 0
       ? `Erneut verbinden… Versuch ${reconnectAttempt.value}`

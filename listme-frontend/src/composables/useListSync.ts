@@ -33,17 +33,23 @@ export function useListSync() {
     function subscribeTopics() {
       unsubOps?.()
       unsubPresence?.()
+      console.debug('[Sync] subscribeTopics for', listId)
 
       unsubOps = subscribe(`/topic/list/${listId}`, (payload) => {
         const op = payload as CrdtOperation
-        if (op.deviceId === myDeviceId) return
+        if (op.deviceId === myDeviceId) {
+          console.debug('[Sync] ignoring own op', op.operationType, op.id)
+          return
+        }
 
+        console.log('[Sync] PATH1 op received', op.operationType, 'from', op.deviceId, 'opId', op.id)
         LocalClockService.mergeClock(listId, op.vectorClock as Record<string, number>)
 
         sessionOps.push(op)
         conflicts.value = detectConflicts(sessionOps)
 
         const listName = listsStore.getById(listId)?.name ?? ''
+        console.log('[Sync] PATH1 notification:', opToMessage(op), { listId })
         notificationsStore.add({ listId, listName, message: opToMessage(op) })
         if ('vibrate' in navigator) navigator.vibrate([100, 50, 100])
 
@@ -63,6 +69,7 @@ export function useListSync() {
     // Register BEFORE connectWebSocket so this fires even on the very first
     // successful connection (covers devices that were offline at mount time).
     const unsubConnect = onAnyConnect(async () => {
+      console.log('[Sync] onAnyConnect fired for', listId)
       connected.value = true
       const snapIds = new Set(itemsStore.getItems(listId).map(i => `${i.id}|${i.checked}|${i.name}`))
       await itemsStore.fetchAll(listId)
@@ -70,8 +77,10 @@ export function useListSync() {
       const after = itemsStore.getItems(listId)
       const changed = after.length !== snapIds.size
         || after.some(i => !snapIds.has(`${i.id}|${i.checked}|${i.name}`))
+      console.log('[Sync] onAnyConnect: items changed =', changed, { snapSize: snapIds.size, afterSize: after.length })
       if (changed) {
         const listName = listsStore.getById(listId)?.name ?? ''
+        console.log('[Sync] PATH2 notification: Liste wurde aktualisiert', { listId })
         notificationsStore.add({ listId, listName, message: 'Liste wurde aktualisiert' })
         if ('vibrate' in navigator) navigator.vibrate([100, 50, 100])
       }

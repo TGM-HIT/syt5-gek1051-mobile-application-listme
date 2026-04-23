@@ -1,10 +1,16 @@
 /// <reference lib="WebWorker" />
-import { cleanupOutdatedCaches, precacheAndRoute } from 'workbox-precaching'
+import { cleanupOutdatedCaches, precacheAndRoute, createHandlerBoundToURL } from 'workbox-precaching'
+import { NavigationRoute, registerRoute } from 'workbox-routing'
 
 declare const self: ServiceWorkerGlobalScope
 
 cleanupOutdatedCaches()
 precacheAndRoute(self.__WB_MANIFEST)
+
+// SPA shell: intercept all navigation requests (full-page load / reload) and
+// serve the cached index.html instead of hitting the network.  This prevents
+// Nginx 502/503 "Bad Gateway" pages when the backend is temporarily down.
+registerRoute(new NavigationRoute(createHandlerBoundToURL('/index.html')))
 
 self.skipWaiting()
 self.addEventListener('activate', (event) => {

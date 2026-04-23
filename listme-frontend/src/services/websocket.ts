@@ -30,11 +30,15 @@ export function onReconnect(cb: () => void): () => void {
 
 /**
  * Register a callback that fires on EVERY successful connection — including
- * the very first one. Use this when setup must happen even if the device was
- * offline at startup. Returns an unregister function.
+ * the very first one, and immediately if already connected at registration
+ * time (e.g. navigating to a new view while WS is already up).
+ * Returns an unregister function.
  */
 export function onAnyConnect(cb: () => void): () => void {
   connectListeners.push(cb)
+  // Fire immediately if the socket is already up so callers don't have to
+  // wait for the next reconnect cycle to set up their subscriptions.
+  if (client?.connected) cb()
   return () => {
     const idx = connectListeners.indexOf(cb)
     if (idx !== -1) connectListeners.splice(idx, 1)
@@ -93,8 +97,12 @@ export async function connectWebSocket(): Promise<void> {
 
     client.onWebSocketError = (err) => {
       console.error('[WS] WebSocket error', err)
-      if (!hasConnectedOnce) reject(err)
-      // After first connect, errors trigger onDisconnect → scheduleReconnect
+      if (!hasConnectedOnce) {
+        reject(err)
+        // onDisconnect may not fire for initial connection failures in some
+        // environments, so kick off the retry loop here as well.
+        scheduleReconnect()
+      }
     }
 
     client.activate()

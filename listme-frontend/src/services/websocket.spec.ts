@@ -14,6 +14,7 @@ const { mockFns, wsState } = vi.hoisted(() => ({
     shouldConnect: true,
     onConnect: null as ((frame: unknown) => void) | null,
     onDisconnect: null as (() => void) | null,
+    onWebSocketError: null as ((err: unknown) => void) | null,
   },
 }))
 
@@ -22,7 +23,7 @@ vi.mock('@stomp/stompjs', () => ({
     get connected() { return wsState.connected }
     set onConnect(fn: (frame: unknown) => void) { wsState.onConnect = fn }
     set onDisconnect(fn: () => void) { wsState.onDisconnect = fn }
-    set onWebSocketError(_fn: unknown) {}
+    set onWebSocketError(fn: (err: unknown) => void) { wsState.onWebSocketError = fn }
     set onStompError(_fn: unknown) {}
     set reconnectDelay(_v: unknown) {}
     activate() {
@@ -53,6 +54,7 @@ import {
   send,
   reconnectAttempt,
   onReconnect,
+  onAnyConnect,
 } from './websocket'
 
 describe('websocketService', () => {
@@ -61,6 +63,8 @@ describe('websocketService', () => {
     wsState.connected = false
     wsState.shouldConnect = true
     wsState.onConnect = null
+    wsState.onDisconnect = null
+    wsState.onWebSocketError = null
     disconnectWebSocket()
   })
 
@@ -221,6 +225,31 @@ describe('websocketService', () => {
     wsState.onDisconnect?.()
     await vi.runAllTimersAsync()
     expect(cb).not.toHaveBeenCalled()
+    vi.useRealTimers()
+  })
+
+  it('onAnyConnect fires immediately when already connected', async () => {
+    await connectWebSocket()
+    const cb = vi.fn()
+    onAnyConnect(cb)
+    expect(cb).toHaveBeenCalledTimes(1) // fired immediately because client is connected
+  })
+
+  it('onAnyConnect does NOT fire immediately when not yet connected', () => {
+    const cb = vi.fn()
+    onAnyConnect(cb)
+    expect(cb).not.toHaveBeenCalled()
+  })
+
+  it('reconnectAttempt increments when onWebSocketError fires before first connect', async () => {
+    vi.useFakeTimers()
+    wsState.shouldConnect = false
+    // Start connecting (won't succeed)
+    const connectPromise = connectWebSocket().catch(() => {})
+    // Fire WebSocket error before any onConnect
+    wsState.onWebSocketError?.(new Error('connection refused'))
+    await connectPromise
+    expect(reconnectAttempt.value).toBe(1)
     vi.useRealTimers()
   })
 
