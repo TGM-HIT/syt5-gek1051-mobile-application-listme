@@ -23,30 +23,30 @@
         <div class='clearfix'>
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">81.81% </span>
+                <span class="strong">72.46% </span>
                 <span class="quiet">Statements</span>
-                <span class='fraction'>45/55</span>
+                <span class='fraction'>50/69</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">42.85% </span>
+                <span class="strong">30.43% </span>
                 <span class="quiet">Branches</span>
-                <span class='fraction'>6/14</span>
+                <span class='fraction'>7/23</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">92.3% </span>
+                <span class="strong">86.66% </span>
                 <span class="quiet">Functions</span>
-                <span class='fraction'>12/13</span>
+                <span class='fraction'>13/15</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">81.63% </span>
+                <span class="strong">77.19% </span>
                 <span class="quiet">Lines</span>
-                <span class='fraction'>40/49</span>
+                <span class='fraction'>44/57</span>
             </div>
         
             
@@ -61,7 +61,7 @@
             </div>
         </template>
     </div>
-    <div class='status-line high'></div>
+    <div class='status-line medium'></div>
     <pre><table class="coverage">
 <tr><td class="line-count quiet"><a name='L1'></a><a href='#L1'>1</a>
 <a name='L2'></a><a href='#L2'>2</a>
@@ -170,7 +170,18 @@
 <a name='L105'></a><a href='#L105'>105</a>
 <a name='L106'></a><a href='#L106'>106</a>
 <a name='L107'></a><a href='#L107'>107</a>
-<a name='L108'></a><a href='#L108'>108</a></td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
+<a name='L108'></a><a href='#L108'>108</a>
+<a name='L109'></a><a href='#L109'>109</a>
+<a name='L110'></a><a href='#L110'>110</a>
+<a name='L111'></a><a href='#L111'>111</a>
+<a name='L112'></a><a href='#L112'>112</a>
+<a name='L113'></a><a href='#L113'>113</a>
+<a name='L114'></a><a href='#L114'>114</a>
+<a name='L115'></a><a href='#L115'>115</a>
+<a name='L116'></a><a href='#L116'>116</a>
+<a name='L117'></a><a href='#L117'>117</a>
+<a name='L118'></a><a href='#L118'>118</a>
+<a name='L119'></a><a href='#L119'>119</a></td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -179,6 +190,12 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -200,6 +217,10 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-yes">10x</span>
 <span class="cline-any cline-yes">10x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">8x</span>
+<span class="cline-any cline-yes">8x</span>
+<span class="cline-any cline-yes">8x</span>
 <span class="cline-any cline-yes">8x</span>
 <span class="cline-any cline-yes">8x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -213,6 +234,7 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-yes">1x</span>
@@ -285,8 +307,14 @@ import { CacheService } from '../services/cache'
 import { cacheDb } from '../services/db'
 import type { ShoppingList, CreateListRequest, UpdateListRequest } from '../types'
 &nbsp;
+class OfflineError extends Error {}
+&nbsp;
 function <span class="fstat-no" title="function not covered" >isNetworkError(e</span>: unknown): boolean {
-<span class="cstat-no" title="statement not covered" >  return axios.isAxiosError(e) &amp;&amp; !e.response</span>
+<span class="cstat-no" title="statement not covered" >  if (e instanceof OfflineError) <span class="cstat-no" title="statement not covered" >return true</span></span>
+<span class="cstat-no" title="statement not covered" >  if (!axios.isAxiosError(e)) <span class="cstat-no" title="statement not covered" >return false</span></span>
+<span class="cstat-no" title="statement not covered" >  if (!e.response) <span class="cstat-no" title="statement not covered" >return true</span></span>
+  const { status } = <span class="cstat-no" title="statement not covered" >e.response</span>
+<span class="cstat-no" title="statement not covered" >  return status === 502 || status === 503 || status === 504</span>
 }
 &nbsp;
 export const useListsStore = defineStore('lists', () =&gt; {
@@ -307,7 +335,11 @@ export const useListsStore = defineStore('lists', () =&gt; {
 &nbsp;
         try {
             const fresh = await listService.getAll()
-            lists.value = fresh
+            // Preserve lists created offline that haven't synced yet (tempId still in pendingLists)
+            const pendingRecords = await cacheDb.pendingLists.toArray()
+            const pendingTempIds = new Set(pendingRecords.map(<span class="fstat-no" title="function not covered" >p =&gt; <span class="cstat-no" title="statement not covered" >p</span>.tempId)</span>)
+            const pendingInStore = lists.value.filter(l =&gt; pendingTempIds.has(l.id))
+            lists.value = [...fresh, ...pendingInStore]
             await CacheService.saveLists(fresh)
         } catch {
             if (lists.value.length === 0) {
@@ -321,6 +353,7 @@ export const useListsStore = defineStore('lists', () =&gt; {
 &nbsp;
     async function create(req: CreateListRequest): Promise&lt;ShoppingList&gt; {
         try {
+            <span class="missing-if-branch" title="if path not taken" >I</span>if (!navigator.onLine) <span class="cstat-no" title="statement not covered" >throw new OfflineError()</span>
             const list = await listService.create(req)
             lists.value.unshift(list)
             await CacheService.saveList(list)
@@ -391,7 +424,7 @@ export const useListsStore = defineStore('lists', () =&gt; {
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2026-04-23T18:56:44.514Z
+                at 2026-04-24T08:28:03.360Z
             </div>
         <script src="../../prettify.js"></script>
         <script>
