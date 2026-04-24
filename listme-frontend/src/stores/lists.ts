@@ -6,8 +6,14 @@ import { CacheService } from '../services/cache'
 import { cacheDb } from '../services/db'
 import type { ShoppingList, CreateListRequest, UpdateListRequest } from '../types'
 
+class OfflineError extends Error {}
+
 function isNetworkError(e: unknown): boolean {
-  return axios.isAxiosError(e) && !e.response
+  if (e instanceof OfflineError) return true
+  if (!axios.isAxiosError(e)) return false
+  if (!e.response) return true
+  const { status } = e.response
+  return status === 502 || status === 503 || status === 504
 }
 
 export const useListsStore = defineStore('lists', () => {
@@ -28,7 +34,11 @@ export const useListsStore = defineStore('lists', () => {
 
         try {
             const fresh = await listService.getAll()
-            lists.value = fresh
+            // Preserve lists created offline that haven't synced yet (tempId still in pendingLists)
+            const pendingRecords = await cacheDb.pendingLists.toArray()
+            const pendingTempIds = new Set(pendingRecords.map(p => p.tempId))
+            const pendingInStore = lists.value.filter(l => pendingTempIds.has(l.id))
+            lists.value = [...fresh, ...pendingInStore]
             await CacheService.saveLists(fresh)
         } catch {
             if (lists.value.length === 0) {
@@ -42,6 +52,7 @@ export const useListsStore = defineStore('lists', () => {
 
     async function create(req: CreateListRequest): Promise<ShoppingList> {
         try {
+            if (!navigator.onLine) throw new OfflineError()
             const list = await listService.create(req)
             lists.value.unshift(list)
             await CacheService.saveList(list)
