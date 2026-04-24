@@ -20,6 +20,7 @@ const { mockListService, mockCacheService } = vi.hoisted(() => ({
 
 vi.mock('../services/list', () => ({ listService: mockListService }))
 vi.mock('../services/cache', () => ({ CacheService: mockCacheService }))
+vi.mock('../services/db', () => ({ cacheDb: { pendingLists: { toArray: vi.fn().mockResolvedValue([]) } } }))
 
 import { useListsStore } from './lists'
 
