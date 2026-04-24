@@ -30,7 +30,9 @@ export const useItemsStore = defineStore('items', () => {
   }
 
   async function fetchAll(listId: string) {
-    loading.value = true
+    // Only show skeleton on the very first load; subsequent calls are silent background refreshes
+    const hasItems = (itemsByList.value[listId] ?? []).length > 0
+    if (!hasItems) loading.value = true
     error.value = null
 
     // Serve cached items immediately so the list feels instant

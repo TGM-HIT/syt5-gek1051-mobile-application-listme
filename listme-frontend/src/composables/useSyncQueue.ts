@@ -48,11 +48,14 @@ export function useSyncQueue() {
 
 async function flushAll(): Promise<void> {
   await flushPendingLists()
-  await flushQueue()
-  // No fetchAll here: optimistic state in the store + cache is already correct,
-  // and pullRemoteOps (called inside flushQueue) applies any remote changes via applyOp.
-  // Calling fetchAll here races with the POST and can overwrite correct local state
-  // with stale server data if the response arrives before the server processes our ops.
+  const flushedLists = await flushQueue()
+  // Re-fetch items for every list that had ops sent so the cache reflects the
+  // server's acknowledged state (e.g. confirmed checked status after offline use).
+  // fetchAll is a no-op visually when items already exist (no loading flash).
+  if (flushedLists.length > 0) {
+    const itemsStore = useItemsStore()
+    await Promise.all(flushedLists.map(id => itemsStore.fetchAll(id)))
+  }
 }
 
 /**
